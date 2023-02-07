@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "remotely",
+    "remotely-core",
+    "remotely-derive",
+    "examples/expanded"
+]
+
