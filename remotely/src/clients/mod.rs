@@ -1,4 +1,4 @@
-use crate::remotely_core::ClientCodegen;
+use remotely_core::ClientCodegen;
 
 pub struct WebsocketClient;
 

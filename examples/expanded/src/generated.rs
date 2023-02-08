@@ -1,5 +1,3 @@
-use crate::remotely_core::{ClientCodegen, Namespace};
-
 use super::*;
 
 impl Watchout {
@@ -8,26 +6,26 @@ impl Watchout {
     const MyEntity: () = ();
 }
 
-inventory::submit!(crate::remotely_core::NsMember::Interface {
+inventory::submit!(remotely::__private::NsMember::Interface {
     ns_name: "Watchout",
     name: "MyEntity",
     raw_decl: &|| <MyEntity as ts_rs::TS>::decl(),
     raw_deps: &|| <MyEntity as ts_rs::TS>::dependencies()
 });
 
-inventory::submit!(crate::remotely_core::NsMember::Interface {
+inventory::submit!(remotely::__private::NsMember::Interface {
     ns_name: "Pixera",
     name: "MyEntity2",
     raw_decl: &|| <MyEntity2 as ts_rs::TS>::decl(),
     raw_deps: &|| <MyEntity2 as ts_rs::TS>::dependencies()
 });
 
-impl remotely_core::Namespace for Watchout {
+impl remotely::__private::Namespace for Watchout {
     const NAME: &'static str = "Watchout";
     type Req = WatchoutReq;
 }
 
-inventory::submit!(crate::remotely_core::NsMember::Method {
+inventory::submit!(remotely::__private::NsMember::Method {
     ns_name: "Watchout",
     name: "hello",
     args: &|| vec![
@@ -39,11 +37,19 @@ inventory::submit!(crate::remotely_core::NsMember::Method {
     raw_deps: &|| <(String, usize, MyEntity) as ts_rs::TS>::dependencies()
 });
 
+inventory::submit!(remotely::__private::NsMember::Method {
+    ns_name: "Watchout",
+    name: "hello_stream",
+    args: &|| vec![("num", <usize as ts_rs::TS>::name())],
+    res: &|| <() as ts_rs::TS>::name(),
+    raw_deps: &|| <(usize,) as ts_rs::TS>::dependencies()
+});
+
 #[async_trait::async_trait]
-impl remotely_core::Backend for MyBackend {
-    fn generate<T>() -> remotely_core::FileList
+impl remotely::__private::Backend for MyBackend {
+    fn generate<T>() -> remotely::__private::FileList
     where
-        T: ClientCodegen,
+        T: remotely::__private::ClientCodegen,
     {
         let mut list = ::std::collections::BTreeMap::new();
 
@@ -52,10 +58,10 @@ impl remotely_core::Backend for MyBackend {
         // repeat for all fields
         list.insert(
             ::std::path::Path::new(concat!("Watchout", ".ts")),
-            <Watchout as remotely_core::Namespace>::code(),
+            <Watchout as remotely::__private::Namespace>::code(),
         );
 
-        remotely_core::FileList::new(list)
+        remotely::__private::FileList::new(list)
     }
 
     async fn handle_request(&mut self, req: serde_json::Value) -> serde_json::Value {
@@ -68,7 +74,7 @@ impl remotely_core::Backend for MyBackend {
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[serde(tag = "namespace")]
 enum MyBackendReq {
-    Watchout(<Watchout as Namespace>::Req),
+    Watchout(<Watchout as remotely::__private::Namespace>::Req),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]

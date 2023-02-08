@@ -1,5 +1,5 @@
-use super::Server;
-use crate::remotely_core::Backend;
+use crate::Server;
+use remotely_core::Backend;
 
 pub struct AxumWsServer {
     port: u16,

@@ -1,11 +1,11 @@
-use remotely_core::Backend;
-use remotely_lib::clients::WebsocketClient;
-use remotely_lib::servers::AxumWsServer;
-use remotely_lib::Server;
+use futures::Stream;
+use futures::StreamExt;
+use remotely::clients::WebsocketClient;
+use remotely::servers::AxumWsServer;
+use remotely::Backend;
+use remotely::Server;
 
 mod generated;
-mod remotely_core;
-mod remotely_lib;
 
 #[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]
 #[ts(rename = "Watchout.MyEntity")]
@@ -27,6 +27,10 @@ impl Watchout {
     pub async fn hello(&mut self, s: String, n: usize) -> usize {
         self.shared_data += 1;
         self.shared_data
+    }
+
+    pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = ()> {
+        futures::stream::iter(0..).take(num).map(|_| ())
     }
 }
 

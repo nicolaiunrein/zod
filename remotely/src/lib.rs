@@ -1,14 +1,16 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub mod clients;
+pub mod servers;
+
+pub use remotely_core::Backend;
+
+#[async_trait::async_trait]
+pub trait Server {
+    async fn serve<T>(self, backend: T)
+    where
+        T: Backend + Send,
+        Self: Sized;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub mod __private {
+    pub use remotely_core::*;
 }
