@@ -8,8 +8,6 @@ use std::{collections::BTreeMap, path::Path};
 
 type FileMap = BTreeMap<&'static Path, String>;
 
-// pub type Callback = futures::channel::mpsc::UnboundedSender<serde_json::Value>;
-
 #[derive(Debug)]
 pub struct FileList(FileMap);
 
