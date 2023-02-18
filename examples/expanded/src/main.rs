@@ -24,7 +24,7 @@ pub struct Watchout {
 }
 
 impl Watchout {
-    pub async fn hello(&mut self, s: String, n: usize) -> usize {
+    pub async fn hello(&mut self, _s: String, _n: usize) -> usize {
         self.shared_data += 1;
         self.shared_data
     }
@@ -40,7 +40,7 @@ struct MyBackend(Watchout);
 async fn main() {
     let backend = MyBackend(Watchout { shared_data: 0 });
 
-    match std::env::args().skip(1).next().as_ref().map(|s| s.as_str()) {
+    match std::env::args().nth(1).as_deref() {
         Some("generate") => {
             let files = MyBackend::generate::<WebsocketClient>();
             for (name, content) in files.iter() {

@@ -10,7 +10,7 @@ pub trait Namespace {
 
         let member_code = members().map(|member| member.decl()).collect::<String>();
 
-        let dependencies: HashSet<String> = members().map(|m| m.deps()).flatten().collect();
+        let dependencies: HashSet<String> = members().flat_map(|m| m.deps()).collect();
 
         let imports = dependencies
             .iter()
@@ -50,7 +50,7 @@ impl NsMember {
                 ..
             } => {
                 let raw = (raw_decl)();
-                let full_name = format!("{}.{}", ns_name, name);
+                let full_name = format!("{ns_name}.{name}");
                 let decl = raw.replace(&full_name, name);
                 format!("export {decl};\n")
             }
@@ -80,7 +80,7 @@ impl NsMember {
             NsMember::Interface { raw_deps, .. } | NsMember::Method { raw_deps, .. } => {
                 (raw_deps)()
                     .into_iter()
-                    .map(|dep| dep.ts_name.split_once(".").unwrap().0.to_string())
+                    .map(|dep| dep.ts_name.split_once('.').unwrap().0.to_string())
                     .collect()
             }
         }
@@ -88,8 +88,8 @@ impl NsMember {
 
     pub fn ns_name(&self) -> &str {
         match self {
-            NsMember::Interface { ns_name, .. } => &ns_name,
-            NsMember::Method { ns_name, .. } => &ns_name,
+            NsMember::Interface { ns_name, .. } => ns_name,
+            NsMember::Method { ns_name, .. } => ns_name,
         }
     }
 }

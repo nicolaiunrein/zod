@@ -11,15 +11,15 @@ impl Watchout {
 inventory::submit!(remotely::__private::NsMember::Interface {
     ns_name: "Watchout",
     name: "MyEntity",
-    raw_decl: &|| <MyEntity as ts_rs::TS>::decl(),
-    raw_deps: &|| <MyEntity as ts_rs::TS>::dependencies()
+    raw_decl: &<MyEntity as ts_rs::TS>::decl,
+    raw_deps: &<MyEntity as ts_rs::TS>::dependencies
 });
 
 inventory::submit!(remotely::__private::NsMember::Interface {
     ns_name: "Pixera",
     name: "MyEntity2",
-    raw_decl: &|| <MyEntity2 as ts_rs::TS>::decl(),
-    raw_deps: &|| <MyEntity2 as ts_rs::TS>::dependencies()
+    raw_decl: &<MyEntity2 as ts_rs::TS>::decl,
+    raw_deps: &<MyEntity2 as ts_rs::TS>::dependencies
 });
 
 impl remotely::__private::Namespace for Watchout {
@@ -35,16 +35,16 @@ inventory::submit!(remotely::__private::NsMember::Method {
         ("num", <usize as ts_rs::TS>::name())
     ],
 
-    res: &|| <usize as ts_rs::TS>::name(),
-    raw_deps: &|| <(String, usize, MyEntity) as ts_rs::TS>::dependencies()
+    res: &<usize as ts_rs::TS>::name,
+    raw_deps: &<(String, usize, MyEntity) as ts_rs::TS>::dependencies
 });
 
 inventory::submit!(remotely::__private::NsMember::Method {
     ns_name: "Watchout",
     name: "hello_stream",
     args: &|| vec![("num", <usize as ts_rs::TS>::name())],
-    res: &|| <() as ts_rs::TS>::name(),
-    raw_deps: &|| <(usize,) as ts_rs::TS>::dependencies()
+    res: &<() as ts_rs::TS>::name,
+    raw_deps: &<(usize,) as ts_rs::TS>::dependencies
 });
 
 #[async_trait::async_trait]

@@ -5,12 +5,12 @@ use futures::{channel::mpsc::unbounded, StreamExt};
 use remotely_core::Backend;
 
 pub struct AxumWsServer {
-    port: u16,
+    _port: u16,
 }
 
 impl AxumWsServer {
-    pub fn new(port: u16) -> Self {
-        Self { port }
+    pub fn new(_port: u16) -> Self {
+        Self { _port }
     }
 }
 
