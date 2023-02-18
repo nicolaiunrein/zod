@@ -29,8 +29,8 @@ impl Watchout {
         self.shared_data
     }
 
-    pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = ()> {
-        futures::stream::iter(0..).take(num).map(|_| ())
+    pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = usize> {
+        futures::stream::iter(0..).take(num)
     }
 }
 

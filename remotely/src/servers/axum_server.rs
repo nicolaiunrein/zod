@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use crate::Server;
+use futures::{channel::mpsc::unbounded, StreamExt};
 use remotely_core::Backend;
 
 pub struct AxumWsServer {
@@ -18,11 +21,22 @@ impl Server for AxumWsServer {
         T: Backend + Send,
         Self: Sized,
     {
-        let req =
-            serde_json::json!({"namespace": "Watchout", "method": "hello", "args": ["abc", 123]});
+        loop {
+            let req = serde_json::json!({"namespace": "Watchout", "method": "hello", "args": ["abc", 123]});
 
-        let res = backend.handle_request(req).await;
+            let stream_req =
+                serde_json::json!({"namespace": "Watchout", "method": "hello_stream", "args": [4]});
 
-        println!("{res:?}")
+            let (tx, mut rx) = unbounded();
+
+            backend.handle_request(req, tx.clone()).await;
+            backend.handle_request(stream_req, tx).await;
+
+            while let Some(res) = rx.next().await {
+                println!("{res:?}");
+            }
+
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
     }
 }

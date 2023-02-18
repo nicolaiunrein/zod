@@ -2,6 +2,8 @@ mod namespace;
 
 pub use namespace::*;
 
+pub type ResponseSender = futures::channel::mpsc::UnboundedSender<serde_json::Value>;
+
 use std::{collections::BTreeMap, path::Path};
 
 type FileMap = BTreeMap<&'static Path, String>;
@@ -36,7 +38,7 @@ pub trait Backend {
     where
         T: ClientCodegen;
 
-    async fn handle_request(&mut self, req: serde_json::Value) -> serde_json::Value;
+    async fn handle_request(&mut self, req: serde_json::Value, res: ResponseSender);
 }
 
 pub trait ClientCodegen {

@@ -1,3 +1,5 @@
+use remotely::__private::ResponseSender;
+
 use super::*;
 
 impl Watchout {
@@ -64,10 +66,9 @@ impl remotely::__private::Backend for MyBackend {
         remotely::__private::FileList::new(list)
     }
 
-    async fn handle_request(&mut self, req: serde_json::Value) -> serde_json::Value {
+    async fn handle_request(&mut self, req: serde_json::Value, sender: ResponseSender) {
         let evt: MyBackendReq = serde_json::from_value(req).unwrap();
-        let res = evt.call(self).await;
-        res
+        evt.call(self, sender).await;
     }
 }
 
@@ -84,22 +85,33 @@ enum MyBackendReq {
 #[allow(non_upper_case_globals)]
 pub enum WatchoutReq {
     hello { args: (String, usize) },
+    hello_stream { args: (usize,) },
 }
 
 impl MyBackendReq {
-    async fn call(self, backend: &mut MyBackend) -> serde_json::Value {
+    async fn call(self, backend: &mut MyBackend, sender: ResponseSender) {
         match self {
-            MyBackendReq::Watchout(method) => method.call(&mut backend.0).await,
+            MyBackendReq::Watchout(method) => method.call(&mut backend.0, sender).await,
         }
     }
 }
 
 impl WatchoutReq {
-    async fn call(self, ctx: &mut Watchout) -> serde_json::Value {
+    async fn call(self, ctx: &mut Watchout, sender: ResponseSender) {
         match self {
             WatchoutReq::hello { args } => {
                 let res = ctx.hello(args.0, args.1).await;
-                serde_json::to_value(res).unwrap()
+                let res = serde_json::to_value(res).unwrap();
+                sender.unbounded_send(res).unwrap();
+            }
+            WatchoutReq::hello_stream { args } => {
+                let mut s = ctx.hello_stream(args.0);
+                tokio::spawn(async move {
+                    while let Some(evt) = s.next().await {
+                        let res = serde_json::to_value(evt).unwrap();
+                        sender.unbounded_send(res).unwrap();
+                    }
+                });
             }
         }
     }
