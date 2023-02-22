@@ -2,9 +2,13 @@ mod namespace;
 
 pub use namespace::*;
 
-pub type ResponseSender = futures::channel::mpsc::UnboundedSender<serde_json::Value>;
+pub type ResponseSender = futures::channel::mpsc::UnboundedSender<Response>;
+pub type SubscriberMap = HashMap<usize, tokio::task::JoinHandle<()>>;
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::{BTreeMap, HashMap},
+    path::Path,
+};
 
 type FileMap = BTreeMap<&'static Path, String>;
 
@@ -36,16 +40,52 @@ pub trait Backend {
     where
         T: ClientCodegen;
 
-    async fn handle_request(&mut self, req: Request, res: ResponseSender);
+    async fn handle_request(
+        &mut self,
+        req: Request,
+        res: ResponseSender,
+        subscribers: &mut SubscriberMap,
+    );
 }
 
 pub trait ClientCodegen {
     fn get() -> String;
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub enum Request {
-    Method(serde_json::Value),
+    Request { id: usize, value: serde_json::Value },
+    StreamCancel { id: usize },
+}
+
+#[derive(serde::Serialize, Debug)]
+pub enum Response {
+    Method { id: usize, value: serde_json::Value },
+    Stream { id: usize, event: serde_json::Value },
+    Error { id: usize, value: Error },
+}
+
+impl Response {
+    pub fn error(id: usize, err: impl Into<Error>) -> Self {
+        Self::Error {
+            id,
+            value: err.into(),
+        }
+    }
+
+    pub fn method(id: usize, value: impl serde::ser::Serialize) -> Self {
+        match serde_json::to_value(value) {
+            Ok(value) => Self::Method { id, value },
+            Err(value) => Self::error(id, value),
+        }
+    }
+
+    pub fn stream(id: usize, value: impl serde::ser::Serialize) -> Self {
+        match serde_json::to_value(value) {
+            Ok(event) => Self::Stream { id, event },
+            Err(value) => Self::error(id, value),
+        }
+    }
 }
 
 #[derive(thiserror::Error, Debug, serde::Serialize)]

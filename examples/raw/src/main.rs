@@ -1,7 +1,10 @@
 use futures::channel::mpsc::unbounded;
+use futures::channel::mpsc::UnboundedSender;
 use futures::Stream;
 use futures::StreamExt;
 use remotely::__private::Request;
+use remotely::__private::Response;
+use remotely::__private::SubscriberMap;
 use remotely::clients::WebsocketClient;
 use remotely::Backend;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -31,11 +34,28 @@ impl Watchout {
     }
 
     pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = usize> {
-        futures::stream::iter(0..).take(num)
+        futures::stream::iter(0..).take(num).then(|x| async move {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            x
+        })
     }
 }
 
 struct MyBackend(Watchout);
+
+struct Server {
+    tx: UnboundedSender<Response>,
+    backend: MyBackend,
+    subscribers: SubscriberMap,
+}
+
+impl Server {
+    async fn handle_request(&mut self, req: Request) {
+        self.backend
+            .handle_request(req, self.tx.clone(), &mut self.subscribers)
+            .await;
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -47,34 +67,59 @@ async fn main() {
     match std::env::args().nth(1).as_deref() {
         Some("generate") => generate(),
         Some("method") => method().await,
-        Some("stream") => stream().await,
+        Some("stream") => {
+            let (tx, mut rx) = unbounded();
+            let backend = MyBackend(Watchout { shared_data: 0 });
+            let mut server = Server {
+                tx,
+                backend,
+                subscribers: Default::default(),
+            };
+
+            for id in 0..10 {
+                stream(&mut server, id).await;
+            }
+
+            while let Some(Response::Stream { event, id }) = rx.next().await {
+                if event == serde_json::json!(id) {
+                    let req = Request::StreamCancel { id };
+                    server.handle_request(req).await;
+                }
+                println!("{event:?}")
+            }
+        }
         _ => eprintln!("Call with method, stream or generate"),
     }
 }
 
 async fn method() {
-    let mut backend = MyBackend(Watchout { shared_data: 0 });
-    let req = Request::Method(
-        serde_json::json!({"namespace": "Watchout", "method": "hello", "args": ["abc", 123]}),
-    );
-
     let (tx, mut rx) = unbounded();
-    backend.handle_request(req, tx).await;
+    let backend = MyBackend(Watchout { shared_data: 0 });
+    let mut server = Server {
+        tx,
+        backend,
+        subscribers: Default::default(),
+    };
+
+    let req = Request::Request {
+        id: 1,
+        value: serde_json::json!({"namespace": "Watchout", "method": "hello", "args": ["abc", 123]}),
+    };
+
+    server.handle_request(req).await;
+
     let res = rx.next().await.unwrap();
+
     println!("{res:?}")
 }
 
-async fn stream() {
-    let mut backend = MyBackend(Watchout { shared_data: 0 });
+async fn stream(server: &mut Server, id: usize) {
+    let req = Request::Request {
+        id,
+        value: serde_json::json!({"namespace": "Watchout", "method": "hello_stream", "args": [123]}),
+    };
 
-    let req = Request::Method(
-        serde_json::json!({"namespace": "Watchout", "method": "hello_stream", "arg": [123]}),
-    );
-
-    let (tx, mut rx) = unbounded();
-    backend.handle_request(req, tx).await;
-    let res = rx.next().await.unwrap();
-    println!("{res:?}")
+    server.handle_request(req).await;
 }
 
 fn generate() {

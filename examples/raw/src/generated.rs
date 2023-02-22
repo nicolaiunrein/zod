@@ -66,18 +66,30 @@ impl remotely::__private::Backend for MyBackend {
         remotely::__private::FileList::new(list)
     }
 
-    async fn handle_request(&mut self, req: Request, sender: ResponseSender) {
+    async fn handle_request(
+        &mut self,
+        req: Request,
+        sender: ResponseSender,
+        subscribers: &mut remotely::__private::SubscriberMap,
+    ) {
         match req {
-            Request::Method(value) => match serde_json::from_value::<MyBackendReq>(value) {
-                Ok(evt) => evt.call(self, sender).await,
+            Request::Request { id, value } => match serde_json::from_value::<MyBackendReq>(value) {
+                Ok(evt) => {
+                    if let Some(jh) = evt.call(id, self, sender).await {
+                        subscribers.insert(id, jh);
+                    }
+                }
                 Err(err) => {
                     let _ = sender
-                        .unbounded_send(
-                            serde_json::to_value(&remotely::__private::Error::from(err)).unwrap(),
-                        )
+                        .unbounded_send(remotely::__private::Response::error(id, err))
                         .ok();
                 }
             },
+            Request::StreamCancel { id } => {
+                if let Some(jh) = subscribers.remove(&id) {
+                    jh.abort();
+                }
+            }
         }
     }
 }
@@ -99,32 +111,46 @@ pub enum WatchoutReq {
 }
 
 impl MyBackendReq {
-    async fn call(self, backend: &mut MyBackend, sender: ResponseSender) {
+    async fn call(
+        self,
+        id: usize,
+        backend: &mut MyBackend,
+        sender: ResponseSender,
+    ) -> Option<tokio::task::JoinHandle<()>> {
         match self {
-            MyBackendReq::Watchout(method) => method.call(&mut backend.0, sender).await,
+            MyBackendReq::Watchout(req) => req.call(id, &mut backend.0, sender).await,
         }
     }
 }
 
 impl WatchoutReq {
-    async fn call(self, ctx: &mut Watchout, sender: ResponseSender) {
+    async fn call(
+        self,
+        id: usize,
+        ctx: &mut Watchout,
+        sender: ResponseSender,
+    ) -> Option<tokio::task::JoinHandle<()>> {
         match self {
             WatchoutReq::hello { args } => {
                 let res = ctx.hello(args.0, args.1).await;
-                let res = serde_json::to_value(res).unwrap();
-                sender.unbounded_send(res).unwrap();
+                sender
+                    .unbounded_send(remotely::__private::Response::method(id, res))
+                    .unwrap();
+                None
             }
             WatchoutReq::hello_stream { args } => {
-                let mut s = ctx.hello_stream(args.0);
-                tokio::spawn(async move {
+                let s = ctx.hello_stream(args.0);
+                Some(tokio::spawn(async move {
+                    futures::pin_mut!(s);
                     while let Some(evt) = s.next().await {
-                        let res = serde_json::to_value(evt).unwrap();
-                        if let Err(err) = sender.unbounded_send(res) {
+                        if let Err(err) =
+                            sender.unbounded_send(remotely::__private::Response::stream(id, evt))
+                        {
                             tracing::warn!(?err, "Failed to emit event");
                             break;
                         }
                     }
-                });
+                }))
             }
         }
     }
