@@ -3,7 +3,35 @@ mod namespace;
 pub use namespace::*;
 
 pub type ResponseSender = futures::channel::mpsc::UnboundedSender<Response>;
-pub type SubscriberMap = HashMap<usize, tokio::task::JoinHandle<()>>;
+
+pub type StreamHandle = tokio::task::JoinHandle<()>;
+
+#[derive(Debug, Default)]
+pub struct SubscriberMap {
+    inner: HashMap<usize, StreamHandle>,
+}
+
+impl std::ops::Deref for SubscriberMap {
+    type Target = HashMap<usize, StreamHandle>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl std::ops::DerefMut for SubscriberMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl Drop for SubscriberMap {
+    fn drop(&mut self) {
+        for (_, jh) in self.inner.drain() {
+            jh.abort();
+        }
+    }
+}
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -53,9 +81,16 @@ pub trait ClientCodegen {
 }
 
 #[derive(serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum Request {
-    Request { id: usize, value: serde_json::Value },
-    StreamCancel { id: usize },
+    Exec {
+        id: usize,
+        #[serde(flatten)]
+        value: serde_json::Value,
+    },
+    CancelStream {
+        id: usize,
+    },
 }
 
 #[derive(serde::Serialize, Debug)]

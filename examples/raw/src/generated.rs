@@ -73,7 +73,7 @@ impl remotely::__private::Backend for MyBackend {
         subscribers: &mut remotely::__private::SubscriberMap,
     ) {
         match req {
-            Request::Request { id, value } => match serde_json::from_value::<MyBackendReq>(value) {
+            Request::Exec { id, value } => match serde_json::from_value::<MyBackendReq>(value) {
                 Ok(evt) => {
                     if let Some(jh) = evt.call(id, self, sender).await {
                         subscribers.insert(id, jh);
@@ -85,7 +85,7 @@ impl remotely::__private::Backend for MyBackend {
                         .ok();
                 }
             },
-            Request::StreamCancel { id } => {
+            Request::CancelStream { id } => {
                 if let Some(jh) = subscribers.remove(&id) {
                     jh.abort();
                 }

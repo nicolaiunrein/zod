@@ -35,7 +35,7 @@ impl Watchout {
 
     pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = usize> {
         futures::stream::iter(0..).take(num).then(|x| async move {
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             x
         })
     }
@@ -82,7 +82,8 @@ async fn main() {
 
             while let Some(Response::Stream { event, id }) = rx.next().await {
                 if event == serde_json::json!(id) {
-                    let req = Request::StreamCancel { id };
+                    let json = serde_json::json!({"cancelStream": { "id": id}});
+                    let req = serde_json::from_value(json).unwrap();
                     server.handle_request(req).await;
                 }
                 println!("{event:?}")
@@ -101,10 +102,8 @@ async fn method() {
         subscribers: Default::default(),
     };
 
-    let req = Request::Request {
-        id: 1,
-        value: serde_json::json!({"namespace": "Watchout", "method": "hello", "args": ["abc", 123]}),
-    };
+    let json = serde_json::json!({"exec": {"id": 1, "namespace": "Watchout", "method": "hello", "args": ["abc", 123]}});
+    let req = serde_json::from_value(json).unwrap();
 
     server.handle_request(req).await;
 
@@ -114,11 +113,9 @@ async fn method() {
 }
 
 async fn stream(server: &mut Server, id: usize) {
-    let req = Request::Request {
-        id,
-        value: serde_json::json!({"namespace": "Watchout", "method": "hello_stream", "args": [123]}),
-    };
+    let json = serde_json::json!({"exec": {"id": id, "namespace": "Watchout", "method": "hello_stream", "args": [123]}});
 
+    let req = serde_json::from_value(json).unwrap();
     server.handle_request(req).await;
 }
 
