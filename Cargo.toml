@@ -4,6 +4,7 @@ members = [
     "remotely-core",
     "remotely-derive",
     "remotely-zod",
+    "remotely-zod/derive",
     "examples/axum",
     "examples/raw"
 ]
