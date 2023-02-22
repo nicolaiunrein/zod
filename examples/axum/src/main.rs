@@ -43,24 +43,24 @@ async fn main() {
         .with(fmt::layer())
         .with(EnvFilter::from_default_env())
         .init();
-    let backend = MyBackend(Watchout { shared_data: 0 });
 
     match std::env::args().nth(1).as_deref() {
-        Some("generate") => {
-            let files = MyBackend::generate::<WebsocketClient>();
-            for (name, content) in files.iter() {
-                let name = name.display();
-                println!("// {name}\n{content}\n\n")
-            }
-        }
+        Some("generate") => generate(),
+        Some("serve") => serve().await,
+        _ => eprintln!("Call with serve or generate"),
+    }
+}
 
-        Some("serve") => {
-            let server = AxumWsServer::new(3000);
-            server.serve(backend).await.unwrap();
-        }
+async fn serve() {
+    let backend = MyBackend(Watchout { shared_data: 0 });
+    let server = AxumWsServer::new(3000);
+    server.serve(backend).await.unwrap();
+}
 
-        _ => {
-            eprintln!("Call with serve or generate")
-        }
+fn generate() {
+    let files = MyBackend::generate::<WebsocketClient>();
+    for (name, content) in files.iter() {
+        let name = name.display();
+        println!("// {name}\n{content}\n\n")
     }
 }

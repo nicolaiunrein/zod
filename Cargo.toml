@@ -3,6 +3,7 @@ members = [
     "remotely",
     "remotely-core",
     "remotely-derive",
-    "examples/expanded"
+    "examples/axum",
+    "examples/raw"
 ]
 

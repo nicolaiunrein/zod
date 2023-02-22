@@ -36,9 +36,30 @@ pub trait Backend {
     where
         T: ClientCodegen;
 
-    async fn handle_request(&mut self, req: serde_json::Value, res: ResponseSender);
+    async fn handle_request(&mut self, req: Request, res: ResponseSender);
 }
 
 pub trait ClientCodegen {
     fn get() -> String;
+}
+
+#[derive(serde::Deserialize)]
+pub enum Request {
+    Method(serde_json::Value),
+}
+
+#[derive(thiserror::Error, Debug, serde::Serialize)]
+pub enum Error {
+    #[error("JsonError: {0}")]
+    #[serde(serialize_with = "ser_display")]
+    #[serde(rename = "JsonError")]
+    Json(#[from] serde_json::Error),
+}
+
+fn ser_display<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+where
+    T: std::fmt::Display,
+    S: serde::Serializer,
+{
+    serializer.collect_str(value)
 }

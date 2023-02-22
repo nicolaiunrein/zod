@@ -1,5 +1,7 @@
 use std::collections::{BTreeSet, HashSet};
 
+type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
+
 pub trait Namespace {
     const NAME: &'static str;
     type Req: serde::de::DeserializeOwned;
@@ -26,15 +28,15 @@ pub enum NsMember {
     Interface {
         ns_name: &'static str,
         name: &'static str,
-        raw_decl: &'static (dyn Fn() -> String + Sync),
-        raw_deps: &'static (dyn Fn() -> Vec<ts_rs::Dependency> + Sync),
+        raw_decl: RuntimeValue<String>,
+        raw_deps: RuntimeValue<Vec<ts_rs::Dependency>>,
     },
     Method {
         ns_name: &'static str,
         name: &'static str,
-        args: &'static (dyn Fn() -> Vec<(&'static str, String)> + Sync),
-        res: &'static (dyn Fn() -> String + Sync),
-        raw_deps: &'static (dyn Fn() -> Vec<ts_rs::Dependency> + Sync),
+        args: RuntimeValue<Vec<(&'static str, String)>>,
+        res: RuntimeValue<String>,
+        raw_deps: RuntimeValue<Vec<ts_rs::Dependency>>,
     },
 }
 

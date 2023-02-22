@@ -15,12 +15,13 @@ use futures::{
 };
 use futures::{FutureExt, SinkExt};
 use hyper::server::conn::AddrStream;
+use remotely_core::Request;
 use std::{
     net::SocketAddr,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-type ReqChannel = UnboundedSender<(serde_json::Value, UnboundedSender<serde_json::Value>)>;
+type ReqChannel = UnboundedSender<(Request, UnboundedSender<serde_json::Value>)>;
 
 #[derive(Clone, Debug)]
 pub struct ClientInfo {

@@ -1,4 +1,4 @@
-use remotely::__private::ResponseSender;
+use remotely::__private::{Request, ResponseSender};
 
 use super::*;
 
@@ -49,6 +49,8 @@ inventory::submit!(remotely::__private::NsMember::Method {
 
 #[async_trait::async_trait]
 impl remotely::__private::Backend for MyBackend {
+    type Request = MyBackendReq;
+
     fn generate<T>() -> remotely::__private::FileList
     where
         T: remotely::__private::ClientCodegen,
@@ -66,14 +68,18 @@ impl remotely::__private::Backend for MyBackend {
         remotely::__private::FileList::new(list)
     }
 
-    async fn handle_request(&mut self, req: serde_json::Value, sender: ResponseSender) {
-        match serde_json::from_value::<MyBackendReq>(req) {
-            Ok(evt) => evt.call(self, sender).await,
-            Err(err) => {
-                // todo improve error handling
-                let _ = sender
-                    .unbounded_send(serde_json::json!({"Error": err.to_string()}))
-                    .ok();
+    async fn handle_request(&mut self, req: Request, sender: ResponseSender) {
+        match req {
+            Request::Method(value) => {
+                match serde_json::from_value::<MyBackendReq>(value) {
+                    Ok(evt) => evt.call(self, sender).await,
+                    Err(err) => {
+                        // todo improve error handling
+                        let _ = sender
+                            .unbounded_send(serde_json::json!({"Error": err.to_string()}))
+                            .ok();
+                    }
+                }
             }
         }
     }
