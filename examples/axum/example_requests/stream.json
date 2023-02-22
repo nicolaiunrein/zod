@@ -1,0 +1,8 @@
+{
+  "exec": {
+    "id": 91,
+    "namespace": "Watchout",
+    "method": "hello_stream",
+    "args": [123]
+  }
+}
