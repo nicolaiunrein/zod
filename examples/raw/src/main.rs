@@ -1,12 +1,8 @@
-use futures::channel::mpsc::unbounded;
-use futures::channel::mpsc::UnboundedSender;
-use futures::Stream;
-use futures::StreamExt;
-use remotely::__private::Request;
-use remotely::__private::Response;
-use remotely::__private::SubscriberMap;
-use remotely::clients::WebsocketClient;
-use remotely::Backend;
+use futures::{
+    channel::mpsc::{unbounded, UnboundedSender},
+    Stream, StreamExt,
+};
+use remotely::{clients::WebsocketClient, Backend, Request, Response, SubscriberMap};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 mod generated;

@@ -128,7 +128,7 @@ impl AxumWsServer {
 impl crate::Server for AxumWsServer {
     async fn serve<T>(self, mut backend: T) -> Result<(), Box<dyn std::error::Error>>
     where
-        T: remotely_core::Backend + Send,
+        T: remotely_core::server::Backend + Send,
         Self: Sized,
     {
         let (tx, mut rx) = unbounded();

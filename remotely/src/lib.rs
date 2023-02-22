@@ -1,7 +1,11 @@
 pub mod clients;
 pub mod servers;
 
-pub use remotely_core::Backend;
+pub use remotely_core::error::Error;
+pub use remotely_core::server::Backend;
+pub use remotely_core::server::SubscriberMap;
+pub use remotely_core::Request;
+pub use remotely_core::Response;
 
 #[async_trait::async_trait]
 pub trait Server {

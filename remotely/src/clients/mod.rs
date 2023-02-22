@@ -1,4 +1,4 @@
-use remotely_core::ClientCodegen;
+use remotely_core::codegen::ClientCodegen;
 
 pub struct WebsocketClient;
 
