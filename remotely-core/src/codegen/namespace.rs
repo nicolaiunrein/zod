@@ -82,7 +82,13 @@ impl NsMember {
             NsMember::Interface { raw_deps, .. } | NsMember::Method { raw_deps, .. } => {
                 (raw_deps)()
                     .into_iter()
-                    .map(|dep| dep.ts_name.split_once('.').unwrap().0.to_string())
+                    .map(|dep| {
+                        dep.ts_name
+                            .split_once('.')
+                            .expect("dependency has shape `namespace.name`")
+                            .0
+                            .to_string()
+                    })
                     .collect()
             }
         }

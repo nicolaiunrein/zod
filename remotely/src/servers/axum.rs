@@ -14,7 +14,9 @@ pub struct RpcResponse(remotely_core::Response);
 
 impl IntoResponse for RpcResponse {
     fn into_response(self) -> Response<BoxBody> {
-        let body: Body = serde_json::to_string(&self.0).unwrap().into();
+        let body: Body = serde_json::to_string(&self.0)
+            .expect("failed to serialize body")
+            .into();
         let mut resp = Response::new(boxed(body));
         resp.headers_mut().insert(
             http::header::CONTENT_TYPE,
@@ -54,8 +56,17 @@ async fn websocket(stream: WebSocket, con: ProxyConnection) {
 
     let fut2 = async move {
         while let Some(msg) = rx.next().await {
-            let json = serde_json::to_string(&msg).unwrap();
-            sender.send(Message::Text(json)).await.unwrap();
+            match serde_json::to_string(&msg) {
+                Ok(json) => {
+                    if let Err(err) = sender.send(Message::Text(json)).await {
+                        tracing::warn!(?err, "failed to send response");
+                        break;
+                    }
+                }
+                Err(err) => {
+                    panic!("failed to serialize response: {err}");
+                }
+            }
         }
     };
 
