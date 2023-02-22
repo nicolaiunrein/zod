@@ -12,8 +12,7 @@ inventory::submit!(
     remotely::__private::codegen::namespace::NsMember::Interface {
         ns_name: "Watchout",
         name: "MyEntity",
-        raw_decl: &<MyEntity as ts_rs::TS>::decl,
-        raw_deps: &<MyEntity as ts_rs::TS>::dependencies
+        code: &<MyEntity as ts_rs::TS>::decl,
     }
 );
 
@@ -21,8 +20,7 @@ inventory::submit!(
     remotely::__private::codegen::namespace::NsMember::Interface {
         ns_name: "Pixera",
         name: "MyEntity2",
-        raw_decl: &<MyEntity2 as ts_rs::TS>::decl,
-        raw_deps: &<MyEntity2 as ts_rs::TS>::dependencies
+        code: &<MyEntity2 as ts_rs::TS>::decl,
     }
 );
 
@@ -40,7 +38,6 @@ inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
     ],
 
     res: &<usize as ts_rs::TS>::name,
-    raw_deps: &<(String, usize, MyEntity) as ts_rs::TS>::dependencies
 });
 
 inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
@@ -48,26 +45,18 @@ inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
     name: "hello_stream",
     args: &|| vec![("num", <usize as ts_rs::TS>::name())],
     res: &<() as ts_rs::TS>::name,
-    raw_deps: &<(usize,) as ts_rs::TS>::dependencies
 });
 
 #[async_trait::async_trait]
 impl remotely::__private::server::Backend for MyBackend {
-    fn generate<T>() -> remotely::__private::codegen::FileList
+    fn generate<T>() -> String
     where
         T: remotely::__private::codegen::ClientCodegen,
     {
-        let mut list = ::std::collections::BTreeMap::new();
-
-        list.insert(::std::path::Path::new("remotely_client.ts"), T::get());
-
-        // repeat for all fields
-        list.insert(
-            ::std::path::Path::new(concat!("Watchout", ".ts")),
-            <Watchout as remotely::__private::codegen::namespace::Namespace>::code(),
-        );
-
-        remotely::__private::codegen::FileList::new(list)
+        let mut code = T::get();
+        code.push_str(&<Watchout as remotely::__private::codegen::namespace::Namespace>::code());
+        // repeat for all namespaces
+        code
     }
 
     async fn handle_request(

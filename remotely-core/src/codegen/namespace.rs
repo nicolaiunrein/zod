@@ -1,5 +1,3 @@
-use std::collections::{BTreeSet, HashSet};
-
 type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
 
 pub trait Namespace {
@@ -12,31 +10,20 @@ pub trait Namespace {
 
         let member_code = members().map(|member| member.decl()).collect::<String>();
 
-        let dependencies: HashSet<String> = members().flat_map(|m| m.deps()).collect();
-
-        let imports = dependencies
-            .iter()
-            .map(|dep| format!("import {{ {dep} }} from \"./{dep}\";\n"))
-            .collect::<String>();
-
-        let export = format!("export namespace {} {{\n{member_code}}};", Self::NAME);
-
-        format!("{imports}{export}")
+        format!("export namespace {} {{\n{member_code}}};", Self::NAME)
     }
 }
 pub enum NsMember {
     Interface {
         ns_name: &'static str,
         name: &'static str,
-        raw_decl: RuntimeValue<String>,
-        raw_deps: RuntimeValue<Vec<ts_rs::Dependency>>,
+        code: RuntimeValue<String>,
     },
     Method {
         ns_name: &'static str,
         name: &'static str,
         args: RuntimeValue<Vec<(&'static str, String)>>,
         res: RuntimeValue<String>,
-        raw_deps: RuntimeValue<Vec<ts_rs::Dependency>>,
     },
 }
 
@@ -48,16 +35,20 @@ impl NsMember {
             NsMember::Interface {
                 ns_name,
                 name,
-                raw_decl,
+                code,
                 ..
             } => {
-                let raw = (raw_decl)();
                 let full_name = format!("{ns_name}.{name}");
-                let decl = raw.replace(&full_name, name);
-                format!("export {decl};\n")
+                let code = (code)();
+                let replaced_code = code.replace(&full_name, name);
+                format!("export {replaced_code};\n")
             }
             NsMember::Method {
-                name, args, res, ..
+                name,
+                args,
+                res,
+                ns_name,
+                ..
             } => {
                 let args = (args)();
                 let res = (res)();
@@ -70,26 +61,9 @@ impl NsMember {
 
                 format!(
                     "export function {name}({args}): Promise<{res}> {{
-                    return request(\"Watchout\", \"hello\", arguments);
+                    return request(\"{ns_name}\", \"{name}\", arguments);
                 }};"
                 )
-            }
-        }
-    }
-
-    pub fn deps(&self) -> BTreeSet<String> {
-        match self {
-            NsMember::Interface { raw_deps, .. } | NsMember::Method { raw_deps, .. } => {
-                (raw_deps)()
-                    .into_iter()
-                    .map(|dep| {
-                        dep.ts_name
-                            .split_once('.')
-                            .expect("dependency has shape `namespace.name`")
-                            .0
-                            .to_string()
-                    })
-                    .collect()
             }
         }
     }

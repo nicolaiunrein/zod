@@ -33,7 +33,7 @@ impl Drop for SubscriberMap {
 
 #[async_trait::async_trait]
 pub trait Backend {
-    fn generate<T>() -> codegen::FileList
+    fn generate<T>() -> String
     where
         T: codegen::ClientCodegen;
 

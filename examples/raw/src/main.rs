@@ -76,13 +76,13 @@ async fn main() {
                 stream(&mut server, id).await;
             }
 
-            while let Some(Response::Stream { event, id }) = rx.next().await {
-                if event == serde_json::json!(id) {
+            while let Some(Response::Stream { data, id }) = rx.next().await {
+                if data == serde_json::json!(id) {
                     let json = serde_json::json!({"cancelStream": { "id": id}});
                     let req = serde_json::from_value(json).unwrap();
                     server.handle_request(req).await;
                 }
-                println!("{event:?}")
+                println!("{data:?}")
             }
         }
         _ => eprintln!("Call with method, stream or generate"),
@@ -116,9 +116,6 @@ async fn stream(server: &mut Server, id: usize) {
 }
 
 fn generate() {
-    let files = MyBackend::generate::<WebsocketClient>();
-    for (name, content) in files.iter() {
-        let name = name.display();
-        println!("// {name}\n{content}\n\n")
-    }
+    let content = MyBackend::generate::<WebsocketClient>();
+    println!("{content}");
 }

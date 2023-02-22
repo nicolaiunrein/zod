@@ -23,11 +23,8 @@ async fn main() {
 }
 
 fn generate() {
-    let files = MyBackend::generate::<WebsocketClient>();
-    for (name, content) in files.iter() {
-        let name = name.display();
-        println!("// {name}\n{content}\n\n")
-    }
+    let content = MyBackend::generate::<WebsocketClient>();
+    println!("{content}");
 }
 
 async fn serve() {
