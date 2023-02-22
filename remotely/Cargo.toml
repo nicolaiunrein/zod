@@ -10,3 +10,6 @@ remotely-core = { path = "../remotely-core" }
 serde_json = "1.0.92"
 tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread", "time"] }
 futures = "0.3.26"
+hyper = "0.14.24"
+tracing = "0.1.37"
+axum = { version = "0.6.7", features = ["ws", "headers"] }

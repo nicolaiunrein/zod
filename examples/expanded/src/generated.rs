@@ -67,8 +67,15 @@ impl remotely::__private::Backend for MyBackend {
     }
 
     async fn handle_request(&mut self, req: serde_json::Value, sender: ResponseSender) {
-        let evt: MyBackendReq = serde_json::from_value(req).unwrap();
-        evt.call(self, sender).await;
+        match serde_json::from_value::<MyBackendReq>(req) {
+            Ok(evt) => evt.call(self, sender).await,
+            Err(err) => {
+                // todo improve error handling
+                let _ = sender
+                    .unbounded_send(serde_json::json!({"Error": err.to_string()}))
+                    .ok();
+            }
+        }
     }
 }
 

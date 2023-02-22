@@ -15,3 +15,4 @@ tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread"] }
 ts-rs = "6.2.1"
 typetag = "0.2.5"
 remotely = { path = "../../remotely" }
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
