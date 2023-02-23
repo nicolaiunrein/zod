@@ -4,13 +4,22 @@ use remotely_zod::zod;
 mod generated;
 
 #[derive(serde::Serialize, serde::Deserialize, zod)]
-#[zod(ns = "Watchout")]
+#[zod(namespace = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
+mod nested_mod {
+    use super::*;
+
+    #[derive(serde::Serialize, serde::Deserialize, zod)]
+    #[zod(namespace = "Watchout")]
+    pub struct MyEntity {
+        value: MyEntity2,
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize, zod)]
-#[zod(ns = "Pixera")]
+#[zod(namespace = "Pixera")]
 pub struct MyEntity2 {
     value: usize,
 }

@@ -1,9 +1,16 @@
 use super::*;
 
+// Prevent duplicate interfaces
 impl Watchout {
     #[allow(dead_code)]
     #[allow(non_upper_case_globals)]
     const MyEntity: () = ();
+}
+
+impl Pixera {
+    #[allow(dead_code)]
+    #[allow(non_upper_case_globals)]
+    const MyEntity2: () = ();
 }
 
 inventory::submit!(

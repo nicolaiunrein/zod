@@ -3,7 +3,6 @@ use darling::{
     FromDeriveInput, FromField, FromVariant,
 };
 use proc_macro::TokenStream;
-use proc_macro_error::proc_macro_error;
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Type};
 
@@ -16,7 +15,7 @@ use syn::{spanned::Spanned, Type};
 struct Input {
     ident: syn::Ident,
     data: Data<EnumVariant, StructField>,
-    ns: String,
+    namespace: syn::Path,
 }
 
 #[derive(FromVariant, Clone)]
@@ -28,11 +27,20 @@ struct StructField {
     ty: Type,
 }
 
-#[proc_macro_error]
 #[proc_macro_derive(zod, attributes(zod))]
 pub fn zod(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse(input).unwrap();
-    let input = Input::from_derive_input(&parsed).unwrap();
+    let parsed = match syn::parse(input) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            return err.into_compile_error().into();
+        }
+    };
+    let input = match Input::from_derive_input(&parsed) {
+        Ok(input) => input,
+        Err(err) => {
+            return err.write_errors().into();
+        }
+    };
     let expanded = match input.data.clone() {
         Data::Enum(e) => expand_enum(input, e),
         Data::Struct(e) => expand_struct(input, e),
@@ -42,8 +50,8 @@ pub fn zod(input: TokenStream) -> TokenStream {
 
 fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::TokenStream {
     let ident = input.ident;
-    let ns = input.ns;
-    let qualified_name = format!("{}.{}", ns, ident);
+    let ident_str = ident.to_string();
+    let ns_path = input.namespace.clone();
 
     let field_schemas = fields
         .iter()
@@ -78,7 +86,7 @@ fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::Toke
             }
 
             fn type_name() -> String {
-                String::from(#qualified_name)
+                format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
             }
         }
     }
