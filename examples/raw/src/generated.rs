@@ -40,7 +40,7 @@ inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
     res: &<usize as ts_rs::TS>::name,
 });
 
-inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
+inventory::submit!(remotely::__private::codegen::namespace::NsMember::Stream {
     ns_name: "Watchout",
     name: "hello_stream",
     args: &|| vec![("num", <usize as ts_rs::TS>::name())],

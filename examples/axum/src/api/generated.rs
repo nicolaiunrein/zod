@@ -1,5 +1,3 @@
-use remotely::__private::{Request, ResponseSender};
-
 use super::*;
 
 impl Watchout {
@@ -61,24 +59,26 @@ impl remotely::__private::server::Backend for MyBackend {
 
     async fn handle_request(
         &mut self,
-        req: Request,
-        sender: ResponseSender,
+        req: remotely::__private::Request,
+        sender: remotely::__private::ResponseSender,
         subscribers: &mut remotely::__private::server::SubscriberMap,
     ) {
         match req {
-            Request::Exec { id, value } => match serde_json::from_value::<MyBackendReq>(value) {
-                Ok(evt) => {
-                    if let Some(jh) = evt.call(id, self, sender).await {
-                        subscribers.insert(id, jh);
+            remotely::__private::Request::Exec { id, value } => {
+                match serde_json::from_value::<MyBackendReq>(value) {
+                    Ok(evt) => {
+                        if let Some(jh) = evt.call(id, self, sender).await {
+                            subscribers.insert(id, jh);
+                        }
+                    }
+                    Err(err) => {
+                        let _ = sender
+                            .unbounded_send(remotely::__private::Response::error(id, err))
+                            .ok();
                     }
                 }
-                Err(err) => {
-                    let _ = sender
-                        .unbounded_send(remotely::__private::Response::error(id, err))
-                        .ok();
-                }
-            },
-            Request::CancelStream { id } => {
+            }
+            remotely::__private::Request::CancelStream { id } => {
                 if let Some(jh) = subscribers.remove(&id) {
                     jh.abort();
                 }
@@ -108,7 +108,7 @@ impl MyBackendReq {
         self,
         id: usize,
         backend: &mut MyBackend,
-        sender: ResponseSender,
+        sender: remotely::__private::ResponseSender,
     ) -> Option<tokio::task::JoinHandle<()>> {
         match self {
             MyBackendReq::Watchout(req) => req.call(id, &mut backend.0, sender).await,
@@ -121,7 +121,7 @@ impl WatchoutReq {
         self,
         id: usize,
         ctx: &mut Watchout,
-        sender: ResponseSender,
+        sender: remotely::__private::ResponseSender,
     ) -> Option<tokio::task::JoinHandle<()>> {
         match self {
             WatchoutReq::hello { args } => {
