@@ -53,7 +53,7 @@ function websocketStore(url: string) {
 
     socket.onmessage = (event) => {
       const res = JSON.parse(event.data);
-      console.debug(res);
+      console.trace({ response: res });
 
       // TODO
       if ("method" in res) {
@@ -99,7 +99,6 @@ function websocketStore(url: string) {
     if (!socket || socket.readyState !== WebSocket.OPEN)
       open().then(() => open_and_send(value));
     else {
-      // console.log("sending request", value);
       socket.send(value);
     }
   };
@@ -155,11 +154,6 @@ export function subscribe<T>(
     subscribe(cb: (value: T) => void) {
       return CONNECTION.subscribe(([res_id, data]) => {
         if (res_id == id) {
-          console.log("Stream Response", {
-            req_id,
-            request: req,
-            response: data,
-          });
           cb(data as T);
         }
       });

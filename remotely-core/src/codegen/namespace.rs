@@ -26,6 +26,12 @@ pub enum NsMember {
         args: RuntimeValue<Vec<(&'static str, String)>>,
         res: RuntimeValue<String>,
     },
+    Stream {
+        ns_name: &'static str,
+        name: &'static str,
+        args: RuntimeValue<Vec<(&'static str, String)>>,
+        res: RuntimeValue<String>,
+    },
 }
 
 inventory::collect!(NsMember);
@@ -63,8 +69,32 @@ impl NsMember {
                 format!(
                     "
                     // @ts-ignore
-                    export function {name}({args}): Promise<{res}> {{
+                    export async function {name}({args}): Promise<{res}> {{
                     return request(\"{ns_name}\", \"{name}\", arguments);
+                }};"
+                )
+            }
+            NsMember::Stream {
+                name,
+                args,
+                res,
+                ns_name,
+                ..
+            } => {
+                let args = (args)();
+                let res = (res)();
+
+                let args = args
+                    .into_iter()
+                    .map(|(name, ty)| format!("{name}: {ty}"))
+                    .collect::<Vec<_>>()
+                    .join(",");
+
+                format!(
+                    "
+                    // @ts-ignore
+                    export function {name}({args}): Store<{res}> {{
+                    return subscribe(\"{ns_name}\", \"{name}\", arguments);
                 }};"
                 )
             }
@@ -75,6 +105,7 @@ impl NsMember {
         match self {
             NsMember::Interface { ns_name, .. } => ns_name,
             NsMember::Method { ns_name, .. } => ns_name,
+            NsMember::Stream { ns_name, .. } => ns_name,
         }
     }
 }
