@@ -205,3 +205,16 @@ export async function request<T>(
     })
     .finally(() => unsubscribe && unsubscribe());
 }
+export namespace Watchout {
+  // @ts-ignore
+  export function hello_stream(num: number): Store<number> {
+    return subscribe("Watchout", "hello_stream", arguments);
+  }
+  // @ts-ignore
+  export function hello(s: string, num: number): Promise<number> {
+    return request("Watchout", "hello", arguments);
+  }
+  export interface MyEntity {
+    value: Pixera.MyEntity2;
+  }
+}

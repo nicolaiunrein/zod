@@ -18,6 +18,7 @@ pub enum Request {
 }
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum Response {
     Method {
         id: usize,

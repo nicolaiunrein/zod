@@ -52,21 +52,11 @@ function websocketStore(url: string) {
     socket = new WebSocket(url);
 
     socket.onmessage = (event) => {
-      const res = JSON.parse(event.data);
-      console.debug(res);
-
-      // TODO
-      if ("method" in res) {
-        initialValue = [res.method.id, res.method.data];
-        subscriptions.forEach((subscription) =>
-          subscription(initialValue as any)
-        );
-      } else if ("stream" in res) {
-        initialValue = [res.stream.id, res.stream.data];
-        subscriptions.forEach((subscription) =>
-          subscription(initialValue as any)
-        );
-      }
+      initialValue = JSON.parse(event.data);
+      console.debug(initialValue);
+      subscriptions.forEach((subscription) =>
+        subscription(initialValue as any)
+      );
     };
 
     socket.onclose = (event: Event) => {
@@ -205,3 +195,14 @@ export async function request<T>(
     })
     .finally(() => unsubscribe && unsubscribe());
 }
+export namespace Watchout {
+
+                    // @ts-ignore
+                    export function hello_stream(num: number): Promise<null> {
+                    return request("Watchout", "hello_stream", arguments);
+                };
+                    // @ts-ignore
+                    export function hello(s: string,num: number): Promise<number> {
+                    return request("Watchout", "hello", arguments);
+                };export interface MyEntity { value: Pixera.MyEntity2, };
+};

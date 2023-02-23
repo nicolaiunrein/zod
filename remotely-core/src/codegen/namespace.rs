@@ -13,6 +13,7 @@ pub trait Namespace {
         format!("export namespace {} {{\n{member_code}}};", Self::NAME)
     }
 }
+
 pub enum NsMember {
     Interface {
         ns_name: &'static str,
@@ -60,7 +61,9 @@ impl NsMember {
                     .join(",");
 
                 format!(
-                    "export function {name}({args}): Promise<{res}> {{
+                    "
+                    // @ts-ignore
+                    export function {name}({args}): Promise<{res}> {{
                     return request(\"{ns_name}\", \"{name}\", arguments);
                 }};"
                 )
