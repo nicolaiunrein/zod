@@ -6,10 +6,6 @@ pub trait Codegen {
     fn type_name() -> String {
         Self::type_def()
     }
-
-    fn resolved_schema() -> String {
-        format!("{}Schema", Self::type_name())
-    }
 }
 
 macro_rules! impl_primitive {

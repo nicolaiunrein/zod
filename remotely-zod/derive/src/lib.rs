@@ -1,20 +1,11 @@
-use darling::ast::Data;
-use darling::ast::Fields;
-use darling::FromDeriveInput;
-use darling::FromField;
-use darling::FromVariant;
+use darling::{
+    ast::{Data, Fields},
+    FromDeriveInput, FromField, FromVariant,
+};
 use proc_macro::TokenStream;
-use proc_macro_error::abort_call_site;
 use proc_macro_error::proc_macro_error;
-use quote::quote;
-use quote::quote_spanned;
-use syn::parse_macro_input;
-use syn::spanned::Spanned;
-use syn::Field;
-use syn::Item;
-use syn::ItemEnum;
-use syn::ItemStruct;
-use syn::Type;
+use quote::{quote, quote_spanned};
+use syn::{spanned::Spanned, Type};
 
 #[derive(FromDeriveInput)]
 #[darling(
@@ -25,7 +16,6 @@ use syn::Type;
 struct Input {
     ident: syn::Ident,
     data: Data<EnumVariant, StructField>,
-    attrs: Vec<syn::Attribute>,
     ns: String,
 }
 
@@ -44,7 +34,7 @@ pub fn zod(input: TokenStream) -> TokenStream {
     let parsed = syn::parse(input).unwrap();
     let input = Input::from_derive_input(&parsed).unwrap();
     let expanded = match input.data.clone() {
-        Data::Enum(e) => todo!(),
+        Data::Enum(e) => expand_enum(input, e),
         Data::Struct(e) => expand_struct(input, e),
     };
     expanded.into()
@@ -53,7 +43,7 @@ pub fn zod(input: TokenStream) -> TokenStream {
 fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::TokenStream {
     let ident = input.ident;
     let ns = input.ns;
-    let name = format!("{}.{}", ns, ident);
+    let qualified_name = format!("{}.{}", ns, ident);
 
     let field_schemas = fields
         .iter()
@@ -79,7 +69,6 @@ fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::Toke
         impl remotely_zod::Codegen for #ident {
             fn schema() -> String {
                 let fields: Vec<String> = vec![#(#field_schemas),*];
-
                 format!("z.object({{{}}})", fields.join("\n"))
             }
 
@@ -89,12 +78,12 @@ fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::Toke
             }
 
             fn type_name() -> String {
-                String::from(#name)
+                String::from(#qualified_name)
             }
         }
     }
 }
 
-fn expand_enum(e: ItemEnum) -> proc_macro2::TokenStream {
-    quote!()
+fn expand_enum(_: Input, _: Vec<EnumVariant>) -> proc_macro2::TokenStream {
+    todo!()
 }
