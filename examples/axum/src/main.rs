@@ -28,7 +28,10 @@ fn generate() {
 }
 
 async fn serve() {
-    let backend = MyBackend(api::Watchout { shared_data: 0 });
+    let backend = MyBackend(
+        api::Watchout { shared_data: 0 },
+        api::Pixera { shared_data: 0 },
+    );
     let proxy = BackendProxy::new(backend);
 
     let app = Router::new()

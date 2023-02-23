@@ -1,3 +1,5 @@
+import * as z from "zod";
+
 const WS_ADDR = "ws://localhost:8000/ws";
 
 const reopenTimeouts = [100, 200, 1000, 3000];

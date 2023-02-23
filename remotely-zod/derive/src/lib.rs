@@ -54,26 +54,42 @@ fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::Toke
     let ident = input.ident;
     let ns = input.ns;
     let name = format!("{}.{}", ns, ident);
-    let expanded_fields = fields
-        .into_iter()
+
+    let field_schemas = fields
+        .iter()
         .map(|StructField { ident, ty, .. }| match ident {
             Some(ident) => {
                 let field_name = ident.to_string();
-                quote_spanned! {ty.span() =>  format!("{}: {},", #field_name, #ty::compose()) }
+                quote_spanned! {ty.span() =>  format!("{}: {},", #field_name, #ty::schema()) }
+            }
+            None => todo!(),
+        });
+
+    let field_type_defs = fields
+        .iter()
+        .map(|StructField { ident, ty, .. }| match ident {
+            Some(ident) => {
+                let field_name = ident.to_string();
+                quote_spanned! {ty.span() =>  format!("{}: {},", #field_name, #ty::type_name()) }
             }
             None => todo!(),
         });
 
     quote! {
         impl remotely_zod::Codegen for #ident {
-            fn code() -> String {
-                let fields: Vec<String> = vec![#(#expanded_fields),*];
+            fn schema() -> String {
+                let fields: Vec<String> = vec![#(#field_schemas),*];
 
                 format!("z.object({{{}}})", fields.join("\n"))
             }
 
-            fn name() -> Option<&'static str> {
-                Some(#name)
+            fn type_def() -> String {
+                let fields: Vec<String> = vec![#(#field_type_defs),*];
+                format!("{{{}}}", fields.join("\n"))
+            }
+
+            fn type_name() -> String {
+                String::from(#name)
             }
         }
     }
@@ -81,59 +97,4 @@ fn expand_struct(input: Input, fields: Fields<StructField>) -> proc_macro2::Toke
 
 fn expand_enum(e: ItemEnum) -> proc_macro2::TokenStream {
     quote!()
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn empty_struct() {
-        let tt = syn::parse_str::<ItemStruct>("struct X {}").unwrap();
-        let out = expand_struct(tt);
-
-        let expected = quote! {
-            impl remotely_zod::Codegen for X {
-                fn code() -> String {
-                    let fields: Vec<String> = vec![];
-                    format!("z.object({{{}}})", fields.join("\n"))
-                }
-
-                fn name() -> Option<&'static str> {
-                    Some("X")
-                }
-            }
-        };
-
-        assert_eq!(out.to_string(), expected.to_string());
-    }
-
-    #[test]
-    fn struct_fields() {
-        let s = quote! {
-            struct X {
-                a: usize,
-                b: String
-            }
-        };
-
-        let tt = syn::parse_str::<ItemStruct>(&s.to_string()).unwrap();
-        let out = expand_struct(tt);
-
-        let expected = quote! {
-            impl remotely_zod::Codegen for X {
-                fn code() -> String {
-                    let fields: Vec<String> = vec![format!("{}: {},", "a", usize::compose()), format!("{}: {},", "b", String::compose())];
-                    format!("z.object({{{}}})", fields.join("\n"))
-                }
-
-                fn name() -> Option<&'static str> {
-                    Some("X")
-                }
-            }
-        };
-
-        assert_eq!(out.to_string(), expected.to_string());
-    }
 }

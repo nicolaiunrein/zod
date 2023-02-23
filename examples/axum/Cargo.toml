@@ -15,6 +15,7 @@ tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread"] }
 ts-rs = "6.2.1"
 typetag = "0.2.5"
 remotely = { path = "../../remotely" }
+remotely-zod = { path = "../../remotely-zod" }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 axum = { version = "0.6.7", features = ["ws"] }
 tracing = "0.1.37"

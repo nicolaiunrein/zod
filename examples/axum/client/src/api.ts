@@ -1,3 +1,5 @@
+import * as z from "zod";
+
 const WS_ADDR = "ws://localhost:8000/ws";
 
 const reopenTimeouts = [100, 200, 1000, 3000];
@@ -199,14 +201,49 @@ export async function request<T>(
     })
     .finally(() => unsubscribe && unsubscribe());
 }
-export namespace Watchout {
 
-                    // @ts-ignore
-                    export function hello_stream(num: number): Store<null> {
-                    return subscribe("Watchout", "hello_stream", arguments);
-                };
-                    // @ts-ignore
-                    export async function hello(s: string,num: number): Promise<number> {
-                    return request("Watchout", "hello", arguments);
-                };export interface MyEntity { value: Pixera.MyEntity2, };
-};
+export namespace Watchout {
+  // @ts-ignore
+  export function hello_stream(num: number): Store<null> {
+    z.tuple([z.number().finite().int().nonnegative()]).parse([...arguments]);
+    return subscribe("Watchout", "hello_stream", arguments);
+  }
+
+  // @ts-ignore
+  export async function nested(value: {
+    value: Pixera.MyEntity2;
+  }): Promise<number> {
+    z.tuple([
+      z.object({
+        value: z.object({ value: z.number().finite().int().nonnegative() }),
+      }),
+    ]).parse([...arguments]);
+    return request("Watchout", "nested", arguments);
+  }
+
+  // @ts-ignore
+  export async function hello(s: string, num: number): Promise<number> {
+    z.tuple([z.string(), z.number().finite().int().nonnegative()]).parse([
+      ...arguments,
+    ]);
+    return request("Watchout", "hello", arguments);
+  }
+
+  export const MyEntitySchema = z.object({
+    value: z.object({ value: z.number().finite().int().nonnegative() }),
+  });
+
+  export interface MyEntity {
+    value: Pixera.MyEntity2;
+  }
+}
+
+export namespace Pixera {
+  export const MyEntity2Schema = z.object({
+    value: z.number().finite().int().nonnegative(),
+  });
+
+  export interface MyEntity2 {
+    value: number;
+  }
+}

@@ -10,7 +10,7 @@ let unsubscribe: (() => void) | undefined = undefined;
 
 btn &&
   btn.addEventListener("click", async () => {
-    let res = await Watchout.hello("abc", 123);
+    let res = await Watchout.nested({ value: { value: 123 } });
     if (resField) {
       resField.innerHTML = res.toString();
     }
@@ -33,3 +33,7 @@ streamSwitch &&
       unsubscribe && unsubscribe();
     }
   });
+
+const x: Watchout.MyEntity = { value: 123 };
+
+// console.log(C.c);

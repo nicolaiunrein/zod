@@ -10,7 +10,8 @@ inventory::submit!(
     remotely::__private::codegen::namespace::NsMember::Interface {
         ns_name: "Watchout",
         name: "MyEntity",
-        code: &<MyEntity as ts_rs::TS>::decl,
+        schema: &<MyEntity as remotely_zod::Codegen>::schema,
+        type_def: &<MyEntity as remotely_zod::Codegen>::type_def,
     }
 );
 
@@ -18,7 +19,8 @@ inventory::submit!(
     remotely::__private::codegen::namespace::NsMember::Interface {
         ns_name: "Pixera",
         name: "MyEntity2",
-        code: &<MyEntity2 as ts_rs::TS>::decl,
+        schema: &<MyEntity2 as remotely_zod::Codegen>::schema,
+        type_def: &<MyEntity2 as remotely_zod::Codegen>::type_def,
     }
 );
 
@@ -27,22 +29,51 @@ impl remotely::__private::codegen::namespace::Namespace for Watchout {
     type Req = WatchoutReq;
 }
 
+impl remotely::__private::codegen::namespace::Namespace for Pixera {
+    const NAME: &'static str = "Pixera";
+    type Req = PixeraReq;
+}
+
 inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
     ns_name: "Watchout",
     name: "hello",
     args: &|| vec![
-        ("s", <String as ts_rs::TS>::name()),
-        ("num", <usize as ts_rs::TS>::name())
+        (
+            "s",
+            <String as remotely_zod::Codegen>::type_def(),
+            <String as remotely_zod::Codegen>::schema()
+        ),
+        (
+            "num",
+            <usize as remotely_zod::Codegen>::type_def(),
+            <usize as remotely_zod::Codegen>::schema()
+        )
     ],
 
-    res: &<usize as ts_rs::TS>::name,
+    res: &<usize as remotely_zod::Codegen>::type_def,
+});
+
+inventory::submit!(remotely::__private::codegen::namespace::NsMember::Method {
+    ns_name: "Watchout",
+    name: "nested",
+    args: &|| vec![(
+        "value",
+        <MyEntity as remotely_zod::Codegen>::type_def(),
+        <MyEntity as remotely_zod::Codegen>::schema()
+    )],
+
+    res: &<usize as remotely_zod::Codegen>::type_def,
 });
 
 inventory::submit!(remotely::__private::codegen::namespace::NsMember::Stream {
     ns_name: "Watchout",
     name: "hello_stream",
-    args: &|| vec![("num", <usize as ts_rs::TS>::name())],
-    res: &<() as ts_rs::TS>::name,
+    args: &|| vec![(
+        "num",
+        <usize as remotely_zod::Codegen>::type_def(),
+        <usize as remotely_zod::Codegen>::schema()
+    )],
+    res: &<() as remotely_zod::Codegen>::type_def,
 });
 
 #[async_trait::async_trait]
@@ -53,6 +84,7 @@ impl remotely::__private::server::Backend for MyBackend {
     {
         let mut code = T::get();
         code.push_str(&<Watchout as remotely::__private::codegen::namespace::Namespace>::code());
+        code.push_str(&<Pixera as remotely::__private::codegen::namespace::Namespace>::code());
         // repeat for all namespaces
         code
     }
@@ -91,6 +123,7 @@ impl remotely::__private::server::Backend for MyBackend {
 #[serde(tag = "namespace")]
 enum MyBackendReq {
     Watchout(<Watchout as remotely::__private::codegen::namespace::Namespace>::Req),
+    Pixera(<Pixera as remotely::__private::codegen::namespace::Namespace>::Req),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -103,6 +136,13 @@ pub enum WatchoutReq {
     hello_stream { args: (usize,) },
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(tag = "method")]
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
+pub enum PixeraReq {}
+
 impl MyBackendReq {
     async fn call(
         self,
@@ -112,7 +152,19 @@ impl MyBackendReq {
     ) -> Option<tokio::task::JoinHandle<()>> {
         match self {
             MyBackendReq::Watchout(req) => req.call(id, &mut backend.0, sender).await,
+            MyBackendReq::Pixera(req) => req.call(id, &mut backend.1, sender).await,
         }
+    }
+}
+
+impl PixeraReq {
+    async fn call(
+        self,
+        _id: usize,
+        _ctx: &mut Pixera,
+        _sender: remotely::__private::ResponseSender,
+    ) -> Option<tokio::task::JoinHandle<()>> {
+        None
     }
 }
 

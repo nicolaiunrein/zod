@@ -1,15 +1,16 @@
 use futures::{Stream, StreamExt};
+use remotely_zod::zod;
 
 mod generated;
 
-#[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]
-#[ts(rename = "Watchout.MyEntity")]
+#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[zod(ns = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]
-#[ts(rename = "Pixera.MyEntity2")]
+#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[zod(ns = "Pixera")]
 pub struct MyEntity2 {
     value: usize,
 }
@@ -18,7 +19,16 @@ pub struct Watchout {
     pub shared_data: usize,
 }
 
+pub struct Pixera {
+    pub shared_data: usize,
+}
+
 impl Watchout {
+    pub async fn nested(&mut self, _value: MyEntity) -> usize {
+        self.shared_data += 1;
+        self.shared_data
+    }
+
     pub async fn hello(&mut self, _s: String, _n: usize) -> usize {
         self.shared_data += 1;
         self.shared_data
@@ -32,4 +42,4 @@ impl Watchout {
     }
 }
 
-pub struct MyBackend(pub Watchout);
+pub struct MyBackend(pub Watchout, pub Pixera);

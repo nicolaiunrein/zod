@@ -18,18 +18,19 @@ pub enum NsMember {
     Interface {
         ns_name: &'static str,
         name: &'static str,
-        code: RuntimeValue<String>,
+        schema: RuntimeValue<String>,
+        type_def: RuntimeValue<String>,
     },
     Method {
         ns_name: &'static str,
         name: &'static str,
-        args: RuntimeValue<Vec<(&'static str, String)>>,
+        args: RuntimeValue<Vec<(&'static str, String, String)>>,
         res: RuntimeValue<String>,
     },
     Stream {
         ns_name: &'static str,
         name: &'static str,
-        args: RuntimeValue<Vec<(&'static str, String)>>,
+        args: RuntimeValue<Vec<(&'static str, String, String)>>,
         res: RuntimeValue<String>,
     },
 }
@@ -40,15 +41,17 @@ impl NsMember {
     pub fn decl(&self) -> String {
         match self {
             NsMember::Interface {
-                ns_name,
                 name,
-                code,
+                schema,
+                type_def,
                 ..
             } => {
-                let full_name = format!("{ns_name}.{name}");
-                let code = (code)();
-                let replaced_code = code.replace(&full_name, name);
-                format!("export {replaced_code};\n")
+                let schema_name = format!("{name}Schema");
+                let schema = (schema)();
+                let type_def = (type_def)();
+                let schema_export = format!("export const {schema_name} = {schema};\n");
+                let interface_export = format!("export interface {name} {type_def}");
+                format!("{schema_export}\n{interface_export}")
             }
             NsMember::Method {
                 name,
@@ -60,16 +63,23 @@ impl NsMember {
                 let args = (args)();
                 let res = (res)();
 
-                let args = args
-                    .into_iter()
-                    .map(|(name, ty)| format!("{name}: {ty}"))
+                let arg_fields = args
+                    .iter()
+                    .map(|(name, ty_name, _)| format!("{name}: {ty_name}"))
+                    .collect::<Vec<_>>()
+                    .join(",");
+
+                let arg_zod = args
+                    .iter()
+                    .map(|(_, _, zod)| zod.to_owned())
                     .collect::<Vec<_>>()
                     .join(",");
 
                 format!(
                     "
                     // @ts-ignore
-                    export async function {name}({args}): Promise<{res}> {{
+                    export async function {name}({arg_fields}): Promise<{res}> {{
+                    z.tuple([{arg_zod}]).parse([...arguments]);
                     return request(\"{ns_name}\", \"{name}\", arguments);
                 }};"
                 )
@@ -84,16 +94,23 @@ impl NsMember {
                 let args = (args)();
                 let res = (res)();
 
-                let args = args
-                    .into_iter()
-                    .map(|(name, ty)| format!("{name}: {ty}"))
+                let arg_fields = args
+                    .iter()
+                    .map(|(name, ty_name, _)| format!("{name}: {ty_name}"))
+                    .collect::<Vec<_>>()
+                    .join(",");
+
+                let arg_zod = args
+                    .iter()
+                    .map(|(_, _, zod)| zod.to_owned())
                     .collect::<Vec<_>>()
                     .join(",");
 
                 format!(
                     "
                     // @ts-ignore
-                    export function {name}({args}): Store<{res}> {{
+                    export function {name}({arg_fields}): Store<{res}> {{
+                    z.tuple([{arg_zod}]).parse([...arguments]);
                     return subscribe(\"{ns_name}\", \"{name}\", arguments);
                 }};"
                 )
