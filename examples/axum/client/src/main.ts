@@ -34,3 +34,5 @@ streamSwitch &&
       unsubscribe && unsubscribe();
     }
   });
+
+export type X = { A: [number, number] } | { B: string };

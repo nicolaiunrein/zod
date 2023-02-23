@@ -1,5 +1,5 @@
 use super::args;
-use darling::ast::Fields;
+use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
@@ -12,26 +12,48 @@ pub fn expand(input: args::Input, fields: Fields<args::StructField>) -> proc_mac
     let field_schemas = expand_schemas(&fields);
     let field_type_defs = expand_type_defs(&fields);
 
-    quote! {
-        impl remotely_zod::Codegen for #ident {
-            fn schema() -> String {
-                let fields: Vec<String> = vec![#(#field_schemas),*];
-                format!("z.object({{{}}})", fields.join("\n"))
-            }
+    match fields.style {
+        Style::Tuple => {
+            let schema = field_schemas.first().expect("Newtype");
+            let type_def = field_type_defs.first().expect("Newtype");
+            quote! {
+                impl remotely_zod::Codegen for #ident {
+                    fn schema() -> String {
+                        #schema
+                    }
 
-            fn type_def() -> String {
-                let fields: Vec<String> = vec![#(#field_type_defs),*];
-                format!("{{{}}}", fields.join("\n"))
-            }
+                    fn type_def() -> String {
+                        #type_def
 
-            fn type_name() -> String {
-                format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                    }
+
+                }
             }
         }
+        Style::Struct => {
+            quote! {
+                impl remotely_zod::Codegen for #ident {
+                    fn schema() -> String {
+                        let fields: Vec<String> = vec![#(#field_schemas),*];
+                        format!("z.object({{{}}})", fields.join("\n"))
+                    }
+
+                    fn type_def() -> String {
+                        let fields: Vec<String> = vec![#(#field_type_defs),*];
+                        format!("{{{}}}", fields.join("\n"))
+                    }
+
+                    fn type_name() -> String {
+                        format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                    }
+                }
+            }
+        }
+        Style::Unit => todo!(),
     }
 }
 
-fn expand_schemas<'a>(fields: &'a Fields<args::StructField>) -> Vec<TokenStream> {
+fn expand_schemas(fields: &Fields<args::StructField>) -> Vec<TokenStream> {
     fields
         .iter()
         .map(|args::StructField { ident, ty, .. }| match ident {
@@ -47,9 +69,7 @@ fn expand_schemas<'a>(fields: &'a Fields<args::StructField>) -> Vec<TokenStream>
         .collect()
 }
 
-fn expand_type_defs<'a>(
-    fields: &'a Fields<args::StructField>,
-) -> impl Iterator<Item = TokenStream> + 'a {
+fn expand_type_defs(fields: &Fields<args::StructField>) -> Vec<TokenStream> {
     fields
         .iter()
         .map(|args::StructField { ident, ty, .. }| match ident {
@@ -62,4 +82,5 @@ fn expand_type_defs<'a>(
                 quote_spanned! {ty.span() => #ty::type_name()}
             }
         })
+        .collect()
 }
