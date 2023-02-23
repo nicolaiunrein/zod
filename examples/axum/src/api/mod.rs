@@ -8,6 +8,11 @@ mod generated;
 pub struct MyEntity {
     value: MyEntity2,
 }
+
+#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[zod(namespace = "Watchout")]
+pub struct T(usize);
+
 mod nested_mod {
     use super::*;
 
