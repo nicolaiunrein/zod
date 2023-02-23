@@ -73,7 +73,7 @@ inventory::submit!(remotely::__private::codegen::namespace::NsMember::Stream {
         <usize as remotely_zod::Codegen>::type_def(),
         <usize as remotely_zod::Codegen>::schema()
     )],
-    res: &<() as remotely_zod::Codegen>::type_def,
+    res: &<usize as remotely_zod::Codegen>::type_def,
 });
 
 #[async_trait::async_trait]
@@ -83,9 +83,9 @@ impl remotely::__private::server::Backend for MyBackend {
         T: remotely::__private::codegen::ClientCodegen,
     {
         let mut code = T::get();
+        // repeat for all namespaces
         code.push_str(&<Watchout as remotely::__private::codegen::namespace::Namespace>::code());
         code.push_str(&<Pixera as remotely::__private::codegen::namespace::Namespace>::code());
-        // repeat for all namespaces
         code
     }
 
