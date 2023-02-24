@@ -4,7 +4,7 @@ use axum::{extract::Extension, routing::get, Router, Server};
 use remotely::{
     clients::WebsocketClient,
     servers::{axum::websocket_handler, proxy::BackendProxy},
-    Backend,
+    Backend, Codegen,
 };
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 

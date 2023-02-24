@@ -2,6 +2,9 @@ pub use remotely_zod_derive::*;
 
 pub trait Codegen {
     fn schema() -> String;
+    fn docs() -> Option<&'static str> {
+        None
+    }
     fn type_def() -> String;
     fn type_name() -> String {
         Self::type_def()

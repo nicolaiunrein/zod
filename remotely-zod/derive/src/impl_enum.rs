@@ -1,4 +1,4 @@
-use crate::args::EnumField;
+use crate::args::{get_rustdoc, EnumField};
 
 use super::args;
 use darling::ast::Fields;
@@ -27,6 +27,23 @@ impl Enum {
             _ => self.expand_many_variants(),
         }
     }
+
+    fn docs(&self) -> TokenStream {
+        match get_rustdoc(&self.input.attrs) {
+            Ok(Some(docs)) => {
+                let docs = format!(
+                    "/**\n{}*/\n",
+                    docs.lines()
+                        .map(|line| format!("* {}\n", line))
+                        .collect::<String>()
+                );
+                quote!(#docs)
+            }
+            Ok(None) => quote!(""),
+            Err(err) => err.into_compile_error().into(),
+        }
+    }
+
     fn expand_one_variant(&self) -> TokenStream {
         let ident = &self.input.ident;
         let ident_str = ident.to_string();
@@ -40,19 +57,24 @@ impl Enum {
 
         let schema = variant.expand_schema();
         let type_def = variant.expand_type_def();
+        let docs = self.docs();
 
         quote! {
             impl remotely_zod::Codegen for #ident {
                 fn schema() -> String {
-                    String::from(#schema)
+                    #schema
                 }
 
                 fn type_def() -> String {
-                    String::from(#type_def)
+                    #type_def
                 }
 
                 fn type_name() -> String {
                     format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                }
+
+                fn docs() -> Option<&'static str> {
+                    Some(#docs)
                 }
             }
         }
@@ -67,20 +89,26 @@ impl Enum {
         let expanded_variant_schemas = variants.iter().map(|v| v.expand_schema());
         let expanded_variant_type_defs = variants.iter().map(|v| v.expand_type_def());
 
+        let docs = self.docs();
+
         quote! {
             impl remotely_zod::Codegen for #ident {
                 fn schema() -> String {
                     let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
-                    format!("z.union([{}])", variants.join(", "))
+                    format!("{}z.union([{}])", #docs, variants.join(", "))
                 }
 
                 fn type_def() -> String {
                     let type_defs: std::vec::Vec<String> = vec![#(#expanded_variant_type_defs),*];
-                    type_defs.join(" | ")
+                    format!("{}{}", #docs, type_defs.join(" | "))
                 }
 
                 fn type_name() -> String {
                     format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                }
+
+                fn docs() -> Option<&'static str> {
+                    Some(#docs)
                 }
             }
         }

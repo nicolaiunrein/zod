@@ -1,3 +1,5 @@
+use crate::args::get_rustdoc;
+
 use super::args;
 use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
@@ -12,6 +14,20 @@ pub fn expand(input: args::Input, fields: Fields<args::StructField>) -> proc_mac
     let field_schemas = expand_schemas(&fields);
     let field_type_defs = expand_type_defs(&fields);
 
+    let docs = match get_rustdoc(&input.attrs) {
+        Ok(Some(docs)) => {
+            let docs = format!(
+                "/**\n{}*/\n",
+                docs.lines()
+                    .map(|line| format!("* {}\n", line))
+                    .collect::<String>()
+            );
+            quote!(#docs)
+        }
+        Ok(None) => quote!(""),
+        Err(err) => err.into_compile_error().into(),
+    };
+
     match fields.style {
         Style::Tuple => {
             let schema = field_schemas.first().expect("Newtype");
@@ -19,14 +35,20 @@ pub fn expand(input: args::Input, fields: Fields<args::StructField>) -> proc_mac
             quote! {
                 impl remotely_zod::Codegen for #ident {
                     fn schema() -> String {
-                        #schema
+                        format!("{}", #schema)
                     }
 
                     fn type_def() -> String {
-                        #type_def
-
+                        format!("{}", #type_def)
                     }
 
+                    fn type_name() -> String {
+                        format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                    }
+
+                    fn docs() -> Option<&'static str> {
+                        Some(#docs)
+                    }
                 }
             }
         }
@@ -45,6 +67,10 @@ pub fn expand(input: args::Input, fields: Fields<args::StructField>) -> proc_mac
 
                     fn type_name() -> String {
                         format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                    }
+
+                    fn docs() -> Option<&'static str> {
+                        Some(#docs)
                     }
                 }
             }

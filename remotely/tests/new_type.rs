@@ -25,5 +25,5 @@ fn ok() {
 
     assert_eq!(Test::schema(), usize::schema());
     assert_eq!(Test::type_def(), usize::type_def());
-    assert_eq!(Test::type_name(), usize::type_name());
+    assert_eq!(Test::type_name(), "Ns.Test")
 }
