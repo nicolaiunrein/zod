@@ -1,0 +1,5 @@
+error: deriving zod on empty enums is not supported.
+ --> tests/ui/fail/enum_empty.rs:6:6
+  |
+6 | enum MyEnum {}
+  |      ^^^^^^
