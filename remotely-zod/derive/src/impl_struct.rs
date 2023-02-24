@@ -49,7 +49,7 @@ pub fn expand(input: args::Input, fields: Fields<args::StructField>) -> proc_mac
                 }
             }
         }
-        Style::Unit => todo!(),
+        Style::Unit => unreachable!(),
     }
 }
 

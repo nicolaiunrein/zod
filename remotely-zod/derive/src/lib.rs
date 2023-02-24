@@ -1,10 +1,12 @@
 use darling::{ast::Data, FromDeriveInput};
 use proc_macro::TokenStream;
+use proc_macro_error::proc_macro_error;
 
 mod args;
 mod impl_enum;
 mod impl_struct;
 
+#[proc_macro_error]
 #[proc_macro_derive(zod, attributes(zod))]
 pub fn zod(input: TokenStream) -> TokenStream {
     let parsed = match syn::parse(input) {

@@ -5,6 +5,10 @@ mod generated;
 
 #[derive(serde::Serialize, serde::Deserialize, zod)]
 #[zod(namespace = "Watchout")]
+pub enum MyEntity3 {}
+
+#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[zod(namespace = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
