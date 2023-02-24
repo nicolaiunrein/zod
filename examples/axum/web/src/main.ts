@@ -1,6 +1,5 @@
 import "./style.css";
 import { Pixera, Watchout } from "./api";
-import * as z from "zod";
 
 const btn = document.getElementById("btn");
 const resField = document.getElementById("res");
@@ -35,5 +34,3 @@ streamSwitch &&
       unsubscribe && unsubscribe();
     }
   });
-
-const x = z.null();

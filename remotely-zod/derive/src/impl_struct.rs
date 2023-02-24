@@ -4,9 +4,14 @@ use super::args;
 use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
+use serde_derive_internals::attr::Container;
 use syn::spanned::Spanned;
 
-pub fn expand(input: args::Input, fields: Fields<args::StructField>) -> proc_macro2::TokenStream {
+pub fn expand(
+    input: args::Input,
+    fields: Fields<args::StructField>,
+    container: Container,
+) -> proc_macro2::TokenStream {
     let ident = input.ident;
     let ident_str = ident.to_string();
     let ns_path = input.namespace.clone();

@@ -5,15 +5,26 @@ use darling::ast::Fields;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::{quote, quote_spanned};
+use serde_derive_internals::attr::Container;
 use syn::{spanned::Spanned, Ident};
 
-pub fn expand(input: args::Input, variants: Vec<args::EnumVariant>) -> TokenStream {
-    Enum { input, variants }.expand()
+pub fn expand(
+    input: args::Input,
+    variants: Vec<args::EnumVariant>,
+    serde_attrs: Container,
+) -> TokenStream {
+    Enum {
+        input,
+        variants,
+        serde_attrs,
+    }
+    .expand()
 }
 
 struct Enum {
     input: args::Input,
     variants: Vec<args::EnumVariant>,
+    serde_attrs: Container,
 }
 
 impl Enum {
@@ -52,7 +63,7 @@ impl Enum {
         let variant = self
             .variants
             .first()
-            .map(Variant::from)
+            .map(|v| Variant::new(v, &self.serde_attrs))
             .expect("one variant");
 
         let schema = variant.expand_schema();
@@ -85,17 +96,37 @@ impl Enum {
         let ident_str = ident.to_string();
         let ns_path = self.input.namespace.clone();
 
-        let variants = self.variants.iter().map(Variant::from).collect::<Vec<_>>();
+        let variants = self
+            .variants
+            .iter()
+            .map(|v| Variant::new(v, &self.serde_attrs))
+            .collect::<Vec<_>>();
         let expanded_variant_schemas = variants.iter().map(|v| v.expand_schema());
         let expanded_variant_type_defs = variants.iter().map(|v| v.expand_type_def());
 
         let docs = self.docs();
 
+        let schema_def = match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External => {
+                quote! {
+                    let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                    format!("{}z.union([{}])", #docs, variants.join(", "))
+                }
+            }
+            serde_derive_internals::attr::TagType::Internal { tag } => {
+                quote! {
+                    let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                    format!("{}z.discriminatedUnion(\"{}\", [{}])", #docs, #tag, variants.join(", "))
+                }
+            }
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::None => todo!(),
+        };
+
         quote! {
             impl remotely_zod::Codegen for #ident {
                 fn schema() -> String {
-                    let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
-                    format!("{}z.union([{}])", #docs, variants.join(", "))
+                    #schema_def
                 }
 
                 fn type_def() -> String {
@@ -122,22 +153,28 @@ enum Variant<'a> {
     Tuple(TupleVariant<'a>),
 }
 
-impl<'a> From<&'a args::EnumVariant> for Variant<'a> {
-    fn from(variant: &'a args::EnumVariant) -> Self {
+impl<'a> Variant<'a> {
+    fn new(variant: &'a args::EnumVariant, serde_attrs: &'a Container) -> Self {
         let ident = &variant.ident;
         let fields = VariantFields {
             fields: &variant.fields,
         };
 
         match variant.fields.style {
-            darling::ast::Style::Unit => Self::Unit(UnitVariant { ident }),
-            darling::ast::Style::Tuple => Self::Tuple(TupleVariant { ident, fields }),
-            darling::ast::Style::Struct => Self::Struct(StructVariant { ident, fields }),
+            darling::ast::Style::Unit => Self::Unit(UnitVariant { ident, serde_attrs }),
+            darling::ast::Style::Tuple => Self::Tuple(TupleVariant {
+                ident,
+                fields,
+                serde_attrs,
+            }),
+            darling::ast::Style::Struct => Self::Struct(StructVariant {
+                ident,
+                fields,
+                serde_attrs,
+            }),
         }
     }
-}
 
-impl<'a> Variant<'a> {
     /// expand a single variant of an enum into a zod schema
     fn expand_schema(&self) -> TokenStream {
         match self {
@@ -161,19 +198,38 @@ impl<'a> Variant<'a> {
 /// stringifyied name
 struct UnitVariant<'a> {
     ident: &'a Ident,
+    serde_attrs: &'a Container,
 }
 
 impl<'a> UnitVariant<'a> {
     fn expand_schema(&self) -> TokenStream {
         let ident_str = self.ident.to_string();
-        quote_spanned!(self.ident.span() => format!("z.literal(\"{}\")", #ident_str))
+        match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External => {
+                quote_spanned!(self.ident.span() => format!("z.literal(\"{}\")", #ident_str))
+            }
+            serde_derive_internals::attr::TagType::Internal { tag } => {
+                quote_spanned!(self.ident.span() => format!("z.object({{ {}: z.literal(\"{}\") }})", #tag, #ident_str))
+            }
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::None => todo!(),
+        }
     }
 
     /// Example `A`  ->  `"A"`
     fn expand_type_defs(&self) -> TokenStream {
         let ident_str = self.ident.to_string();
         let span = self.ident.span();
-        quote_spanned!(span => format!("\"{}\"", #ident_str))
+        match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External => {
+                quote_spanned!(span => format!("\"{}\"", #ident_str))
+            }
+            serde_derive_internals::attr::TagType::Internal { tag } => {
+                quote_spanned!(span => format!("{{ {}: \"{}\" }}", #tag, #ident_str))
+            }
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::None => todo!(),
+        }
     }
 }
 
@@ -182,6 +238,7 @@ impl<'a> UnitVariant<'a> {
 struct TupleVariant<'a> {
     ident: &'a Ident,
     fields: VariantFields<'a>,
+    serde_attrs: &'a Container,
 }
 
 impl<'a> TupleVariant<'a> {
@@ -259,6 +316,7 @@ impl<'a> TupleVariant<'a> {
 struct StructVariant<'a> {
     ident: &'a Ident,
     fields: VariantFields<'a>,
+    serde_attrs: &'a Container,
 }
 
 impl<'a> StructVariant<'a> {
@@ -272,13 +330,23 @@ impl<'a> StructVariant<'a> {
     }
 
     /// expand an enum variant with exatly one field into a zod schema
-    /// Example: `A{ num: usize } =>  z.object({ A: z.object({ num: z.number().int().nonnegative() }) })`
+    /// Externally: `A{ num: usize } =>  z.object({ A: z.object({ num: z.number().int().nonnegative() }) })`
+    /// Internal: `A{ num: usize } =>  z.object({ type: z.literal("A"), num: z.number().int().nonnegative() })`
     fn expand_one_field(&self) -> TokenStream {
         let inner = self.fields.expand_schema();
         let span = self.ident.span();
         let ident_str = self.ident.to_string();
         let first = inner.first().unwrap();
-        quote_spanned! {span =>  format!("z.object({{{}: z.object({{ {} }}) }})", #ident_str, #first) }
+        match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External => {
+                quote_spanned! {span =>  format!("z.object({{{}: z.object({{ {} }}) }})", #ident_str, #first) }
+            }
+            serde_derive_internals::attr::TagType::Internal { tag } => {
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #ident_str, #first) }
+            }
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::None => todo!(),
+        }
     }
 
     /// expand an enum struct variant with more than one field into a zod schema
@@ -289,14 +357,29 @@ impl<'a> StructVariant<'a> {
         let span = self.ident.span();
         let ident_str = self.ident.to_string();
 
-        let expanded_inner = quote! {
-            {
-                let inner: std::vec::Vec<String> = vec![#(#inner),*];
-                format!("z.object({{ {} }})", inner.join(", "))
+        match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External => {
+                let expanded_inner = quote! {
+                    {
+                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
+                        inner.join(", ")
+                    }
+                };
+                quote_spanned! {span =>  format!("z.object({{{}: z.object({{ {} }}) }})", #ident_str, #expanded_inner) }
             }
-        };
+            serde_derive_internals::attr::TagType::Internal { tag } => {
+                let expanded_inner = quote! {
+                    {
+                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
+                        inner.join(", ")
+                    }
+                };
 
-        quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #expanded_inner) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #ident_str, #expanded_inner) }
+            }
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::None => todo!(),
+        }
     }
 
     fn expand_type_defs(&self) -> TokenStream {
@@ -311,21 +394,40 @@ impl<'a> StructVariant<'a> {
                 let first = expanded_fields.first().expect("exactly one variant");
 
                 // expand an enum variant with exatly one field to a TS definition
-                // Example `A(usize)` ->  `{ A: number }`
-                quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #ident_str, #first) }
+                // Extern: `A{ num: usize }` ->  `{ A: { num: number }}`
+                // Intern: `A{ num: usize }` ->  `{ type: "A", num: number }`
+                match self.serde_attrs.tag() {
+                    serde_derive_internals::attr::TagType::External => {
+                        quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #ident_str, #first) }
+                    }
+                    serde_derive_internals::attr::TagType::Internal { tag } => {
+                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #ident_str, #first) }
+                    }
+                    serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+                    serde_derive_internals::attr::TagType::None => todo!(),
+                }
             }
 
             // expand an enum tuple variant with more than one field to a TS definition
-            // Example
-            // `A{ num: usize, s: String }` -> `{ A: { num: number, s: string } }`
+            // External: `A{ num: usize, s: String }` -> `{ A: { num: number, s: string } }`
+            // Internal: `A{ num: usize, s: String }` -> `{ type: "A", num: number, s: string } }`
             _ => {
                 let expanded_inner = quote! {
                     {
                         let inner: std::vec::Vec<String> = vec![#(#expanded_fields),*];
-                        format!("{}", inner.join(", "))
+                        inner.join(", ")
                     }
                 };
-                quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #ident_str, #expanded_inner) }
+                match self.serde_attrs.tag() {
+                    serde_derive_internals::attr::TagType::External => {
+                        quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #ident_str, #expanded_inner) }
+                    }
+                    serde_derive_internals::attr::TagType::Internal { tag } => {
+                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #ident_str, #expanded_inner) }
+                    }
+                    serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+                    serde_derive_internals::attr::TagType::None => todo!(),
+                }
             }
         }
     }

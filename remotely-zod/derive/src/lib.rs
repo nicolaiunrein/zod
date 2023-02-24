@@ -16,6 +16,13 @@ pub fn zod(input: TokenStream) -> TokenStream {
             return err.into_compile_error().into();
         }
     };
+
+    let cx = serde_derive_internals::Ctxt::new();
+
+    let container = serde_derive_internals::attr::Container::from_ast(&cx, &parsed);
+
+    cx.check().unwrap();
+
     let input = match args::Input::from_derive_input(&parsed) {
         Ok(input) => input,
         Err(err) => {
@@ -24,8 +31,8 @@ pub fn zod(input: TokenStream) -> TokenStream {
     };
 
     let expanded = match input.data.clone() {
-        Data::Enum(e) => impl_enum::expand(input, e),
-        Data::Struct(e) => impl_struct::expand(input, e),
+        Data::Enum(e) => impl_enum::expand(input, e, container),
+        Data::Struct(e) => impl_struct::expand(input, e, container),
     };
     expanded.into()
 }

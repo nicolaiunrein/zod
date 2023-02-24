@@ -8,6 +8,7 @@ It also generates bindings using the `zod` typescript library.
 ## TODO
 - Codegen for struct style enums
 - RPC macros
+- Serde on newtype enums containing objects
 
 
 
