@@ -6,7 +6,7 @@ use remotely_zod::Codegen;
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 enum Test {
-    A { s: String },
+    A { s: String, num: usize },
     B { num: usize },
 }
 
@@ -31,11 +31,11 @@ fn externally_tagged() {
     let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{A: z.object({{ s: {string_schema} }}) }}), z.object({{B: z.object({{ num: {number_schema} }}) }})])")
+        format!("z.union([z.object({{A: z.object({{ s: {string_schema}, num: {number_schema} }})}}), z.object({{B: z.object({{ num: {number_schema} }}) }})])")
     );
     assert_eq!(
         Test::type_def(),
-        "{ A: { s: string } } | { B: { num: number } }"
+        "{ A: { s: string, num: number } } | { B: { num: number } }"
     );
     assert_eq!(Test::type_name(), "Ns.Test");
 }

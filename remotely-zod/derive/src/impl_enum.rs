@@ -71,30 +71,31 @@ fn expand_variant_schema(variant: &args::EnumVariant) -> TokenStream {
         darling::ast::Style::Tuple => {
             let span = variant.ident.span();
             let fields = &variant.fields;
-            let inner = expand_inner_tuple_variant_schema(fields);
-            expand_variant_fields_schema(span, &ident_str, inner)
+            let expanded_fields = expand_inner_tuple_variant_schema(fields);
+
+            match expanded_fields.len() {
+                0 => {
+                    // this case is handled by darling
+                    unreachable!()
+                }
+                1 => expand_one_tuple_field_variant_schema(expanded_fields, &ident_str, span),
+                _ => expand_n_tuple_fields_variant_schema(expanded_fields, &ident_str, span),
+            }
         }
         darling::ast::Style::Struct => {
             let span = variant.ident.span();
             let fields = &variant.fields;
-            let inner = expand_inner_struct_variant_schema(fields);
-            expand_variant_fields_schema(span, &ident_str, inner)
-        }
-    }
-}
+            let expanded_fields = expand_inner_struct_variant_schema(fields);
 
-fn expand_variant_fields_schema(
-    span: Span,
-    ident_str: &str,
-    expanded_fields: Vec<TokenStream>,
-) -> TokenStream {
-    match expanded_fields.len() {
-        0 => {
-            // this case is handled by darling
-            unreachable!()
+            match expanded_fields.len() {
+                0 => {
+                    // this case is handled by darling
+                    unreachable!()
+                }
+                1 => expand_one_struct_field_variant_schema(expanded_fields, &ident_str, span),
+                _ => expand_n_struct_fields_variant_schema(expanded_fields, &ident_str, span),
+            }
         }
-        1 => expand_one_field_variant_schema(expanded_fields, ident_str, span),
-        _ => expand_n_fields_variant_schema(expanded_fields, ident_str, span),
     }
 }
 
@@ -119,14 +120,14 @@ fn expand_inner_struct_variant_schema(fields: &Fields<EnumField>) -> Vec<TokenSt
         .map(|field| {
             let ty = &field.ty;
             let ident_str = field.ident.as_ref().expect("named field").to_string();
-            quote_spanned!(ty.span() => format!("z.object({{ {}: {} }})", #ident_str, <#ty as remotely_zod::Codegen>::schema()))
+            quote_spanned!(ty.span() => format!("{}: {}", #ident_str, <#ty as remotely_zod::Codegen>::schema()))
         })
     .collect()
 }
 
 /// expand an enum variant with exatly one field into a zod schema
 /// Example: `A(usize)  =>  z.object({ A: z.number().int().nonnegative() })`
-fn expand_one_field_variant_schema(
+fn expand_one_tuple_field_variant_schema(
     inner: Vec<TokenStream>,
     ident_str: &str,
     span: Span,
@@ -135,10 +136,21 @@ fn expand_one_field_variant_schema(
     quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #first) }
 }
 
-/// expand an enum variant with more than one field into a zod schema
+/// expand an enum variant with exatly one field into a zod schema
+/// Example: `A{ num: usize } =>  z.object({ A: z.object({ num: z.number().int().nonnegative() }) })`
+fn expand_one_struct_field_variant_schema(
+    inner: Vec<TokenStream>,
+    ident_str: &str,
+    span: Span,
+) -> TokenStream {
+    let first = inner.first().unwrap();
+    quote_spanned! {span =>  format!("z.object({{{}: z.object({{ {} }}) }})", #ident_str, #first) }
+}
+
+/// expand an enum tuple variant with more than one field into a zod schema
 /// Example: `A(usize, String)`  ->
 /// `z.object({ A: z.tuple([z.number().int().nonnegative(),  z.string()]) })`
-fn expand_n_fields_variant_schema(
+fn expand_n_tuple_fields_variant_schema(
     inner: Vec<TokenStream>,
     ident_str: &str,
     span: Span,
@@ -153,6 +165,24 @@ fn expand_n_fields_variant_schema(
     quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #expanded_inner) }
 }
 
+/// expand an enum struct variant with more than one field into a zod schema
+/// Example: `A{ num: usize, s: String}` ->
+/// `z.object({ A: z.object({ num: z.number().int().nonnegative(),  s: z.string()}) })`
+fn expand_n_struct_fields_variant_schema(
+    inner: Vec<TokenStream>,
+    ident_str: &str,
+    span: Span,
+) -> TokenStream {
+    let expanded_inner = quote! {
+        {
+            let inner: std::vec::Vec<String> = vec![#(#inner),*];
+            format!("z.object({{ {} }})", inner.join(", "))
+        }
+    };
+
+    quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #expanded_inner) }
+}
+
 /// expand an enum variant to TS definition
 fn expand_variant_type_def(args::EnumVariant { ident, fields }: &args::EnumVariant) -> TokenStream {
     let ident_str = ident.to_string();
@@ -161,31 +191,35 @@ fn expand_variant_type_def(args::EnumVariant { ident, fields }: &args::EnumVaria
     match fields.style {
         darling::ast::Style::Unit => expand_unit_variant_type_defs(span, &ident_str),
         darling::ast::Style::Tuple => {
-            let inner = expand_tuple_variant_fields_type_defs(fields);
-            expand_variant_fields_type_defs(span, &ident_str, inner)
+            let expanded_fields = expand_tuple_variant_fields_type_defs(fields);
+
+            match expanded_fields.len() {
+                0 => {
+                    // this case is handles by darling
+                    unreachable!()
+                }
+                1 => {
+                    let first = expanded_fields.first().expect("exactly one variant");
+                    expand_one_tuple_field_variant_type_defs(span, &ident_str, &first)
+                }
+                _ => expand_n_tuple_fields_variant_type_defs(span, &ident_str, expanded_fields),
+            }
         }
         darling::ast::Style::Struct => {
-            let inner = expand_struct_variant_fields_type_defs(fields);
-            expand_variant_fields_type_defs(span, &ident_str, inner)
-        }
-    }
-}
+            let expanded_fields = expand_struct_variant_fields_type_defs(fields);
 
-fn expand_variant_fields_type_defs(
-    span: Span,
-    ident_str: &str,
-    expanded_fields: Vec<TokenStream>,
-) -> TokenStream {
-    match expanded_fields.len() {
-        0 => {
-            // this case is handles by darling
-            unreachable!()
+            match expanded_fields.len() {
+                0 => {
+                    // this case is handles by darling
+                    unreachable!()
+                }
+                1 => {
+                    let first = expanded_fields.first().expect("exactly one variant");
+                    expand_one_struct_field_variant_type_defs(span, &ident_str, &first)
+                }
+                _ => expand_n_struct_fields_variant_type_defs(span, &ident_str, expanded_fields),
+            }
         }
-        1 => {
-            let first = expanded_fields.first().expect("exactly one variant");
-            expand_one_field_variant_type_defs(span, ident_str, &first)
-        }
-        _ => expand_n_fields_variant_type_defs(span, ident_str, expanded_fields),
     }
 }
 
@@ -202,7 +236,7 @@ fn expand_struct_variant_fields_type_defs(fields: &Fields<EnumField>) -> Vec<Tok
             let ty = &field.ty;
             let span = ty.span();
             let name = field.ident.as_ref().unwrap().to_string();
-            quote_spanned!(span => format!("{{ {}: {} }}", #name, <#ty as remotely_zod::Codegen>::type_def()))
+            quote_spanned!(span => format!("{}: {}", #name, <#ty as remotely_zod::Codegen>::type_def()))
         })
     .collect()
 }
@@ -220,7 +254,7 @@ fn expand_tuple_variant_fields_type_defs(fields: &Fields<EnumField>) -> Vec<Toke
 
 /// expand an enum variant with exatly one field to a TS definition
 /// Example `A(usize)` ->  `{ A: number }`
-fn expand_one_field_variant_type_defs(
+fn expand_one_tuple_field_variant_type_defs(
     span: Span,
     ident_str: &str,
     inner: &TokenStream,
@@ -228,10 +262,20 @@ fn expand_one_field_variant_type_defs(
     quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #inner) }
 }
 
+/// expand an enum variant with exatly one field to a TS definition
+/// Example `A(usize)` ->  `{ A: number }`
+fn expand_one_struct_field_variant_type_defs(
+    span: Span,
+    ident_str: &str,
+    inner: &TokenStream,
+) -> TokenStream {
+    quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #ident_str, #inner) }
+}
+
 /// expand an enum tuple variant with more than one field to a TS definition
 /// Example
 /// `A(usize, String)` -> `{ A: [number, string] }`
-fn expand_n_fields_variant_type_defs(
+fn expand_n_tuple_fields_variant_type_defs(
     span: Span,
     ident_str: &str,
     inner: Vec<TokenStream>,
@@ -243,4 +287,21 @@ fn expand_n_fields_variant_type_defs(
         }
     };
     quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #expanded_inner) }
+}
+
+/// expand an enum tuple variant with more than one field to a TS definition
+/// Example
+/// `A{ num: usize, s: String }` -> `{ A: { num: number, s: string } }`
+fn expand_n_struct_fields_variant_type_defs(
+    span: Span,
+    ident_str: &str,
+    inner: Vec<TokenStream>,
+) -> TokenStream {
+    let expanded_inner = quote! {
+        {
+            let inner: std::vec::Vec<String> = vec![#(#inner),*];
+            format!("{}", inner.join(", "))
+        }
+    };
+    quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #ident_str, #expanded_inner) }
 }
