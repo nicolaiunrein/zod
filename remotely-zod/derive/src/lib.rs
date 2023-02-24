@@ -2,8 +2,8 @@ use darling::{ast::Data, FromDeriveInput};
 use proc_macro::TokenStream;
 
 mod args;
-mod enum_impl;
-mod struct_impl;
+mod impl_enum;
+mod impl_struct;
 
 #[proc_macro_derive(zod, attributes(zod))]
 pub fn zod(input: TokenStream) -> TokenStream {
@@ -21,8 +21,8 @@ pub fn zod(input: TokenStream) -> TokenStream {
     };
 
     let expanded = match input.data.clone() {
-        Data::Enum(e) => enum_impl::expand(input, e),
-        Data::Struct(e) => struct_impl::expand(input, e),
+        Data::Enum(e) => impl_enum::expand(input, e),
+        Data::Struct(e) => impl_struct::expand(input, e),
     };
     expanded.into()
 }

@@ -1,8 +1,8 @@
-# Zottl
+# Remotely
 **simple and safe typescript RPC for rust**
 
 ## Overview
-Zottle generates all the code neccessary to call rust functions from typescript.
+Remotely generates all the code neccessary to call rust functions from typescript.
 It also generates bindings using the `zod` typescript library.
 
 ## TODO

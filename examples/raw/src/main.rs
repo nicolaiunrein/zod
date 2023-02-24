@@ -2,24 +2,29 @@ use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     Stream, StreamExt,
 };
+use remotely::zod;
 use remotely::{clients::WebsocketClient, Backend, Request, Response, SubscriberMap};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 mod generated;
 
-#[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]
-#[ts(rename = "Watchout.MyEntity")]
+#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[zod(namespace = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]
-#[ts(rename = "Pixera.MyEntity2")]
+#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[zod(namespace = "Pixera")]
 pub struct MyEntity2 {
     value: usize,
 }
 
 pub struct Watchout {
+    shared_data: usize,
+}
+
+pub struct Pixera {
     shared_data: usize,
 }
 
@@ -37,7 +42,7 @@ impl Watchout {
     }
 }
 
-struct MyBackend(Watchout);
+struct MyBackend(Watchout, Pixera);
 
 struct Server {
     tx: UnboundedSender<Response>,
@@ -65,7 +70,7 @@ async fn main() {
         Some("method") => method().await,
         Some("stream") => {
             let (tx, mut rx) = unbounded();
-            let backend = MyBackend(Watchout { shared_data: 0 });
+            let backend = MyBackend(Watchout { shared_data: 0 }, Pixera { shared_data: 1 });
             let mut server = Server {
                 tx,
                 backend,
@@ -91,7 +96,7 @@ async fn main() {
 
 async fn method() {
     let (tx, mut rx) = unbounded();
-    let backend = MyBackend(Watchout { shared_data: 0 });
+    let backend = MyBackend(Watchout { shared_data: 0 }, Pixera { shared_data: 1 });
     let mut server = Server {
         tx,
         backend,
