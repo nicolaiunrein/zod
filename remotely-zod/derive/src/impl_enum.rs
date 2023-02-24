@@ -63,6 +63,7 @@ pub fn expand(input: args::Input, variants: Vec<args::EnumVariant>) -> proc_macr
     }
 }
 
+// expand a single variant of an enum into a zod schema
 fn expand_variant_schema(variant: &args::EnumVariant) -> TokenStream {
     let ident_str = variant.ident.to_string();
     match variant.fields.style {
@@ -116,6 +117,8 @@ fn expand_struct_variant_schema(
     todo!()
 }
 
+// expand a tuple variant with exatly one field into a zod schema
+// Example: `A(usize)  =>  z.object({ A: z.number().int().nonnegative() })`
 fn expand_one_tuple_variant_schema(
     inner: Vec<TokenStream>,
     ident_str: &str,
@@ -125,6 +128,9 @@ fn expand_one_tuple_variant_schema(
     quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #first) }
 }
 
+// expand a tuple variant with more than one field into a zod schema
+// Example: `A(usize, String)`  ->
+// `z.object({ A: z.tuple([z.number().int().nonnegative(),  z.string()]) })`
 fn expand_n_tuple_variant_schema(
     inner: Vec<TokenStream>,
     ident_str: &str,
@@ -140,6 +146,7 @@ fn expand_n_tuple_variant_schema(
     quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #expanded_inner) }
 }
 
+// expand an enum variant to TS definition
 fn expand_variant_type_def(args::EnumVariant { ident, fields }: &args::EnumVariant) -> TokenStream {
     let ident_str = ident.to_string();
     let span = ident.span();
@@ -175,10 +182,14 @@ fn expand_tuple_variant_type_defs(
     }
 }
 
+// expand a unit variant to a TS definition
+// Example `A`  ->  `"A"`
 fn expand_unit_variant_type_defs(span: Span, ident_str: &str) -> TokenStream {
     quote_spanned!(span => format!("\"{}\"", #ident_str))
 }
 
+// expand an enum tuple variant with exatly one field to a TS definition
+// Example `A(usize)` ->  `{ A: number }`
 fn expand_one_tuple_variant_type_defs(
     span: Span,
     ident_str: &str,
@@ -187,6 +198,9 @@ fn expand_one_tuple_variant_type_defs(
     quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #inner) }
 }
 
+// expand an enum tuple variant with more than one field to a TS definition
+// Example
+// `A(usize, String)` -> `{ A: [number, string] }`
 fn expand_n_tuple_variant_type_defs(
     span: Span,
     ident_str: &str,
