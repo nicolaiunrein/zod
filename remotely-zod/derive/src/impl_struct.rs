@@ -7,6 +7,10 @@ use quote::{quote, quote_spanned};
 use serde_derive_internals::ast;
 use syn::spanned::Spanned;
 
+fn qualified_ty(ty: &syn::Type) -> proc_macro2::TokenStream {
+    quote!(<#ty as ::remotely_zod::Codegen>)
+}
+
 pub fn expand(
     input: args::Input,
     fields: Fields<args::StructField>,
@@ -174,6 +178,8 @@ fn expand_schemas(
                 quote!("")
             };
 
+            let ty = qualified_ty(ty);
+
             match (ident, is_transparent) {
                 (Some(_), false) => {
                     quote_spanned! {ty.span() =>  format!("{}: {}{},", #name, #ty::schema(), #maybe_optional) }
@@ -182,11 +188,10 @@ fn expand_schemas(
                     quote_spanned! {ty.span() =>  format!("{}{}", #ty::schema(), #maybe_optional) }
                 }
                 (None, _) => {
-                    // Newtype
                     quote_spanned! { ty.span() => format!("{}{}", #ty::schema(), #maybe_optional) }
                 }
-
             }
+
         })
         .collect()
 }
@@ -207,6 +212,8 @@ fn expand_flattened_fields_schemas(
             } else {
                 quote!("")
             };
+
+            let ty = qualified_ty(ty);
 
             match (ident, is_transparent) {
                 (Some(_), false) => {
@@ -238,6 +245,8 @@ fn expand_type_defs(
         .map(|(args::StructField { ident, ty, .. }, attrs)| {
             let name = attrs.name().deserialize_name();
             let is_optional = !attrs.default().is_none();
+            let ty = qualified_ty(ty);
+
             match (ident, is_optional, is_transparent) {
                 (Some(_), false, false) => {
                     quote_spanned! {ty.span() =>  format!("{}: {}", #name, #ty::type_name()) }
@@ -279,6 +288,9 @@ fn expand_flattened_field_type_defs(
         .filter(|(_, attrs)| attrs.flatten())
         .map(|(args::StructField { ident, ty, .. }, attrs)| {
             let is_optional = !attrs.default().is_none();
+
+            let ty = qualified_ty(ty);
+
             match (ident, is_optional, is_transparent) {
                 (Some(_), false, false) => {
                     quote_spanned! {ty.span() =>  format!(" & {}", #ty::type_name()) }
