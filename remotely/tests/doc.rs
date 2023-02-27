@@ -7,6 +7,7 @@ use remotely_zod::Codegen;
 /// Hello World
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum SingleVariantUnit {
     A,
 }
@@ -14,6 +15,7 @@ enum SingleVariantUnit {
 /// Hello World
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum MultiVariantUnit {
     A,
     B,
@@ -22,6 +24,7 @@ enum MultiVariantUnit {
 /// Hello World
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum SingleVariantTuple {
     A(usize),
 }
@@ -29,6 +32,7 @@ enum SingleVariantTuple {
 /// Hello World
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum MultiVariantTuple {
     A(usize),
     B(usize),
@@ -37,6 +41,7 @@ enum MultiVariantTuple {
 /// Hello World
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum SingleVariantStruct {
     A { s: String },
 }
@@ -44,6 +49,7 @@ enum SingleVariantStruct {
 /// Hello World
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum MultiVariantStruct {
     A { s: String },
     B { num: usize },

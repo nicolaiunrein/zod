@@ -6,6 +6,7 @@ use remotely_zod::Codegen;
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[serde(tag = "type")]
+#[allow(dead_code)]
 enum Test {
     A { s: String, num: usize },
     B { num: usize },

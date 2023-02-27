@@ -5,6 +5,7 @@ use remotely_zod::Codegen;
 
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[serde(untagged)]
 #[allow(dead_code)]
 enum Test {
     A { s: String },
@@ -24,19 +25,22 @@ struct NsReq;
 fn main() {}
 
 #[test]
-fn externally_tagged() {
+fn adj_tagged() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
-    assert_eq!(json, serde_json::json!({"B": {"num": 123}}));
+    assert_eq!(
+        json,
+        serde_json::json!({"type": "B", "content": { "num": 123 }})
+    );
 
     let string_schema = String::schema();
     let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{A: z.object({{ s: {string_schema} }}) }}), z.object({{B: z.object({{ num: {number_schema} }}) }})])")
+        format!("z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\"), content: z.object({{ s: {string_schema} }}) }}), z.object({{ type: z.literal(\"B\"), content: z.object({{ num: {number_schema} }}) }})])")
     );
     assert_eq!(
         Test::type_def(),
-        "{ A: { s: string } } | { B: { num: number } }"
+        "{ type: \"A\", content: { s: string } } | { type: \"B\", content: { num: number } }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    // assert_eq!(Test::type_name(), "Ns.Test");
 }

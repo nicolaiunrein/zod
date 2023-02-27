@@ -5,7 +5,7 @@ use darling::ast::Fields;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::{quote, quote_spanned};
-use serde_derive_internals::attr::Container;
+use serde_derive_internals::attr::{Container, TagType};
 use syn::{spanned::Spanned, Ident};
 
 pub fn expand(
@@ -119,7 +119,12 @@ impl Enum {
                     format!("{}z.discriminatedUnion(\"{}\", [{}])", #docs, #tag, variants.join(", "))
                 }
             }
-            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::Adjacent { tag, .. } => {
+                quote! {
+                    let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                    format!("{}z.discriminatedUnion(\"{}\", [{}])", #docs, #tag, variants.join(", "))
+                }
+            }
             serde_derive_internals::attr::TagType::None => todo!(),
         };
 
@@ -211,7 +216,9 @@ impl<'a> UnitVariant<'a> {
             serde_derive_internals::attr::TagType::Internal { tag } => {
                 quote_spanned!(self.ident.span() => format!("z.object({{ {}: z.literal(\"{}\") }})", #tag, #ident_str))
             }
-            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::Adjacent { .. } => {
+                todo!()
+            }
             serde_derive_internals::attr::TagType::None => todo!(),
         }
     }
@@ -227,7 +234,9 @@ impl<'a> UnitVariant<'a> {
             serde_derive_internals::attr::TagType::Internal { tag } => {
                 quote_spanned!(span => format!("{{ {}: \"{}\" }}", #tag, #ident_str))
             }
-            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::Adjacent { .. } => {
+                todo!()
+            }
             serde_derive_internals::attr::TagType::None => todo!(),
         }
     }
@@ -258,7 +267,16 @@ impl<'a> TupleVariant<'a> {
         let first = inner.first().unwrap();
         let ident_str = self.ident.to_string();
         let span = self.ident.span();
-        quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #first) }
+        match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External
+            | serde_derive_internals::attr::TagType::Internal { .. } => {
+                quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #first) }
+            }
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {}}})", #tag, #ident_str, #content, #first) }
+            }
+            serde_derive_internals::attr::TagType::None => todo!(),
+        }
     }
 
     /// expand an enum tuple variant with more than one field into a zod schema
@@ -275,14 +293,23 @@ impl<'a> TupleVariant<'a> {
                 format!("z.tuple([{}])", inner.join(", "))
             }
         };
-
-        quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #expanded_inner) }
+        match self.serde_attrs.tag() {
+            serde_derive_internals::attr::TagType::External
+            | serde_derive_internals::attr::TagType::Internal { .. } => {
+                quote_spanned! {span =>  format!("z.object({{{}: {}}})", #ident_str, #expanded_inner) }
+            }
+            TagType::Adjacent { tag, content } => {
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {}}})", #tag, #ident_str, #content, #expanded_inner) }
+            }
+            TagType::None => todo!(),
+        }
     }
 
     fn expand_type_defs(&self) -> TokenStream {
         let expanded_fields = self.fields.expand_type_defs();
         let span = self.ident.span();
         let ident_str = self.ident.to_string();
+        let tag_type = self.serde_attrs.tag();
 
         match expanded_fields.len() {
             // this case is handles by darling
@@ -291,8 +318,17 @@ impl<'a> TupleVariant<'a> {
                 let first = expanded_fields.first().expect("exactly one variant");
 
                 // expand an enum variant with exatly one field to a TS definition
-                // Example `A(usize)` ->  `{ A: number }`
-                quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #first) }
+                // Extern: `A(usize)` ->  `{ A: number }`
+                // Adj: `A(usize)` ->  `{ type: "A", content: number }`
+                match tag_type {
+                    TagType::External | TagType::Internal { .. } => {
+                        quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #first) }
+                    }
+                    TagType::Adjacent { tag, content } => {
+                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {} }}", #tag, #ident_str, #content, #first) }
+                    }
+                    TagType::None => todo!(),
+                }
             }
 
             // expand an enum tuple variant with more than one field to a TS definition
@@ -305,7 +341,17 @@ impl<'a> TupleVariant<'a> {
                         format!("[{}]", inner.join(", "))
                     }
                 };
-                quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #expanded_inner) }
+
+                match tag_type {
+                    TagType::External | TagType::Internal { .. } => {
+                        //TODO move imple on tag_type here
+                        quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #expanded_inner) }
+                    }
+                    TagType::Adjacent { tag, content } => {
+                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {} }}", #tag, #ident_str, #content, #expanded_inner) }
+                    }
+                    TagType::None => todo!(),
+                }
             }
         }
     }
@@ -344,14 +390,19 @@ impl<'a> StructVariant<'a> {
             serde_derive_internals::attr::TagType::Internal { tag } => {
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #ident_str, #first) }
             }
-            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #ident_str, #content, #first) }
+            }
             serde_derive_internals::attr::TagType::None => todo!(),
         }
     }
 
     /// expand an enum struct variant with more than one field into a zod schema
-    /// Example: `A{ num: usize, s: String}` ->
+    /// Extern: `A{ num: usize, s: String}` ->
     /// `z.object({ A: z.object({ num: z.number().int().nonnegative(),  s: z.string()}) })`
+    ///
+    /// Adj: `A{ num: usize, s: String}` ->
+    /// `z.object({ type: z.literal("A"): content: z.object({ num: z.number().int().nonnegative(),  s: z.string()}) })`
     fn expand_many_fields(&self) -> TokenStream {
         let inner = self.fields.expand_schema();
         let span = self.ident.span();
@@ -377,7 +428,16 @@ impl<'a> StructVariant<'a> {
 
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #ident_str, #expanded_inner) }
             }
-            serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                let expanded_inner = quote! {
+                    {
+                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
+                        inner.join(", ")
+                    }
+                };
+
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #ident_str, #content, #expanded_inner) }
+            }
             serde_derive_internals::attr::TagType::None => todo!(),
         }
     }
@@ -403,7 +463,9 @@ impl<'a> StructVariant<'a> {
                     serde_derive_internals::attr::TagType::Internal { tag } => {
                         quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #ident_str, #first) }
                     }
-                    serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+                    serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #ident_str, #content, #first) }
+                    }
                     serde_derive_internals::attr::TagType::None => todo!(),
                 }
             }
@@ -425,7 +487,9 @@ impl<'a> StructVariant<'a> {
                     serde_derive_internals::attr::TagType::Internal { tag } => {
                         quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #ident_str, #expanded_inner) }
                     }
-                    serde_derive_internals::attr::TagType::Adjacent { tag, content } => todo!(),
+                    serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #ident_str, #content, #expanded_inner) }
+                    }
                     serde_derive_internals::attr::TagType::None => todo!(),
                 }
             }

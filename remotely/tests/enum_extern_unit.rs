@@ -5,6 +5,7 @@ use remotely_zod::Codegen;
 
 #[derive(zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
+#[allow(dead_code)]
 enum Test {
     A,
     B,
