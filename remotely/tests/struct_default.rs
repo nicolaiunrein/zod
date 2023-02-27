@@ -15,7 +15,7 @@ fn serde_default_named_struct_field() {
     }
 
     assert!(Test::schema().contains("z.string().optional()"));
-    assert_eq!(Test::type_def(), "{s?: string | undefined,\nnum: number,}")
+    assert_eq!(Test::type_def(), "{s?: string | undefined,\nnum: number}")
 }
 
 #[test]

@@ -6,10 +6,10 @@ Remotely generates all the code neccessary to call rust functions from typescrip
 It also generates bindings using the `zod` typescript library.
 
 ## TODO
-- [x] Codegen for struct style enums
 - [ ] RPC macros
+- [x] Codegen for struct style enums
 - [ ] implement serde on newtype enums containing objects
-- [ ] consider adding tuple structs as tuples
+- [ ] consider adding tuple structs as z.tuple()
 - [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
 
    - [x] rename
@@ -22,7 +22,7 @@ It also generates bindings using the `zod` typescript library.
    - [x] skip
    - [x] skip_deserializing
    - [x] default
+   - [x] transparent structs
    - [ ] flatten
-   - [ ] transparent
 
 
