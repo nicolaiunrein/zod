@@ -95,15 +95,23 @@ fn expand_schemas(
 ) -> Vec<TokenStream> {
     fields
         .iter()
-        .zip(fields_ast.iter().map(|f| f.attrs.name().deserialize_name()))
-        .map(|(args::StructField { ty, ident }, name)| {
+        .zip(fields_ast.iter().map(|f| &f.attrs))
+        .filter(|(_, attrs)| !attrs.skip_deserializing())
+        .map(|(args::StructField { ty, ident }, attrs)| {
+            let name = attrs.name().deserialize_name();
+            let maybe_optional = if !attrs.default().is_none() {
+                quote!(".optional()")
+            } else {
+                quote!("")
+            };
+
             match ident {
                 Some(_) => {
-                    quote_spanned! {ty.span() =>  format!("{}: {},", #name, #ty::schema()) }
+                    quote_spanned! {ty.span() =>  format!("{}: {}{},", #name, #ty::schema(), #maybe_optional) }
                 }
                 None => {
                     // Newtype
-                    quote_spanned! { ty.span() => #ty::schema() }
+                    quote_spanned! { ty.span() => format!("{}{}", #ty::schema(), #maybe_optional) }
                 }
             }
         })
@@ -116,14 +124,26 @@ fn expand_type_defs(
 ) -> Vec<TokenStream> {
     fields
         .iter()
-        .zip(fields_ast.iter().map(|f| f.attrs.name().deserialize_name()))
-        .map(|(args::StructField { ident, ty, .. }, name)| match ident {
-            Some(_) => {
-                quote_spanned! {ty.span() =>  format!("{}: {},", #name, #ty::type_name()) }
-            }
-            None => {
-                // Newtype
-                quote_spanned! {ty.span() => #ty::type_name()}
+        .zip(fields_ast.iter().map(|f| &f.attrs))
+        .filter(|(_, attrs)| !attrs.skip_deserializing())
+        .map(|(args::StructField { ident, ty, .. }, attrs)| {
+            let name = attrs.name().deserialize_name();
+            let is_optional = !attrs.default().is_none();
+            match (ident, is_optional) {
+                (Some(_), false) => {
+                    quote_spanned! {ty.span() =>  format!("{}: {},", #name, #ty::type_name()) }
+                }
+                (None, false) => {
+                    // Newtype
+                    quote_spanned! {ty.span() => #ty::type_name()}
+                }
+                (Some(_), true) => {
+                    quote_spanned! {ty.span() =>  format!("{}?: {} | undefined,", #name, #ty::type_name()) }
+                }
+                (None, true) => {
+                    // Newtype
+                    quote_spanned! {ty.span() => format!("{} | undefined", #ty::type_name())}
+                }
             }
         })
         .collect()

@@ -9,18 +9,20 @@ It also generates bindings using the `zod` typescript library.
 - [x] Codegen for struct style enums
 - [ ] RPC macros
 - [ ] implement serde on newtype enums containing objects
+- [ ] consider adding tuple structs as tuples
 - [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
 
-   - [ ] rename
-   - [ ] rename-all
-   - [ ] tag
+   - [x] rename
+   - [x] rename-all
+   - [x] tag
         - [x] internally
         - [x] externally
         - [x] adjacently
         - [x] untagged
-   - [ ] skip
-   - [ ] skip_serializing
-   - [ ] skip_deserializing
-   - [ ] skip_serializing_if = "Option::is_none"
+   - [x] skip
+   - [x] skip_deserializing
+   - [x] default
    - [ ] flatten
-   - [ ] default
+   - [ ] transparent
+
+

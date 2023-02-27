@@ -1,7 +1,7 @@
 use crate::args::{get_rustdoc, EnumField};
 
 use super::args;
-use darling::ast::Fields;
+use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
 use proc_macro_error::abort;
 use quote::{quote, quote_spanned};
@@ -16,6 +16,18 @@ pub fn expand(
     variants: Vec<args::EnumVariant>,
     serde_ast: ast::Container,
 ) -> TokenStream {
+    let variant_ast = match serde_ast.data {
+        Data::Enum(ref variants) => variants,
+        Data::Struct(_, _) => unreachable!(),
+    };
+
+    let variants = variants
+        .into_iter()
+        .zip(variant_ast.iter())
+        .filter(|(_, ast)| !ast.attrs.skip_deserializing())
+        .map(|(var, _)| var)
+        .collect();
+
     Enum {
         input,
         variants,
@@ -58,9 +70,9 @@ impl<'a> Enum<'a> {
         }
     }
 
-    fn serde_variants(&'a self) -> &'a Vec<serde_derive_internals::ast::Variant<'a>> {
+    fn serde_variants(&'a self) -> impl Iterator<Item = &serde_derive_internals::ast::Variant<'a>> {
         match &self.serde_ast.data {
-            Data::Enum(variants) => variants,
+            Data::Enum(variants) => variants.iter().filter(|v| !v.attrs.skip_deserializing()),
             Data::Struct(_, _) => unreachable!(),
         }
     }
@@ -69,7 +81,7 @@ impl<'a> Enum<'a> {
         let ident = &self.input.ident;
         let name = self.serde_ast.attrs.name().deserialize_name();
         let ns_path = &self.input.namespace;
-        let serde_variants = self.serde_variants();
+        let serde_variants = self.serde_variants().collect::<Vec<_>>();
 
         let variant = self
             .variants
@@ -183,7 +195,7 @@ impl<'a> Variant<'a> {
     ) -> Self {
         let ident = &variant.ident;
         let fields = VariantFields {
-            fields: &variant.fields,
+            all_fields: &variant.fields,
             serde_variant,
         };
 
@@ -287,8 +299,13 @@ struct TupleVariant<'a> {
 impl<'a> TupleVariant<'a> {
     fn expand_schema(&self) -> TokenStream {
         match self.fields.len() {
-            // this case is handled by darling
-            0 => unreachable!(),
+            // may occur if fields are skipped. In this case we handle it like a unit variant
+            0 => UnitVariant {
+                ident: self.ident,
+                serde_ast: self.serde_ast,
+                attrs: self.attrs,
+            }
+            .expand_schema(),
             1 => self.expand_one_schema(),
             _ => self.expand_n_schemas(),
         }
@@ -351,8 +368,13 @@ impl<'a> TupleVariant<'a> {
         let name = self.attrs.name().deserialize_name();
 
         match expanded_fields.len() {
-            // this case is handles by darling
-            0 => unreachable!(),
+            // may occur if fields are skipped. In this case we handle it like a unit variant
+            0 => UnitVariant {
+                ident: self.ident,
+                serde_ast: self.serde_ast,
+                attrs: self.attrs,
+            }
+            .expand_type_defs(),
             1 => {
                 let first = expanded_fields.first().expect("exactly one variant");
 
@@ -412,7 +434,7 @@ impl<'a> StructVariant<'a> {
     fn expand_schema(&self) -> TokenStream {
         match self.fields.len() {
             // this case is handled by darling
-            0 => unreachable!(),
+            0 => unreachable!("5"),
             1 => self.expand_one_field(),
             _ => self.expand_many_fields(),
         }
@@ -509,7 +531,7 @@ impl<'a> StructVariant<'a> {
 
         match expanded_fields.len() {
             // this case is handles by darling
-            0 => unreachable!(),
+            0 => unreachable!("7"),
             1 => {
                 let first = expanded_fields.first().expect("exactly one variant");
 
@@ -563,30 +585,64 @@ impl<'a> StructVariant<'a> {
     }
 }
 
+struct VariantField<'a> {
+    enum_field: &'a EnumField,
+    name: String,
+    optional: bool,
+}
+
 /// represents the fields inside a variant
 struct VariantFields<'a> {
-    fields: &'a Fields<EnumField>,
+    all_fields: &'a Fields<EnumField>,
     serde_variant: &'a ast::Variant<'a>,
 }
 
 impl<'a> VariantFields<'a> {
     fn len(&self) -> usize {
-        self.fields.len()
+        self.fields().count()
     }
-    fn expand_type_defs(&self) -> Vec<TokenStream> {
-        self.fields
+
+    fn fields(&self) -> impl Iterator<Item = VariantField> {
+        self.all_fields
             .iter()
-            .zip(self.serde_variant.fields.iter().map(|f|f.attrs.name().deserialize_name()))
-            .map(|(field, name)| {
-                let ty = &field.ty;
-                let span = ty.span();
-                match self.fields.style {
-                    darling::ast::Style::Unit => unreachable!(),
-                    darling::ast::Style::Tuple => {
+            .zip(&self.serde_variant.fields)
+            .filter_map(|(enum_field, f)| {
+                if !f.attrs.skip_deserializing() {
+                    Some(VariantField {
+                        enum_field,
+                        name: f.attrs.name().deserialize_name(),
+                        optional: !f.attrs.default().is_none(),
+                    })
+                } else {
+                    None
+                }
+            })
+    }
+
+    fn style(&self) -> Style {
+        self.all_fields.style
+    }
+
+    fn expand_type_defs(&self) -> Vec<TokenStream> {
+        self.fields()
+            .map(|f| {
+                let ty = &f.enum_field.ty;
+                let span = f.enum_field.ty.span();
+                let name = f.name;
+
+                match (self.style(), f.optional) {
+                    (darling::ast::Style::Unit, _) => unreachable!("1"),
+                    (darling::ast::Style::Tuple, false) => {
                         quote_spanned!(span => format!("{}", <#ty as remotely_zod::Codegen>::type_def()))
                     }
-                    darling::ast::Style::Struct => {
+                    (darling::ast::Style::Struct, false) => {
                         quote_spanned!(span => format!("{}: {}", #name, <#ty as remotely_zod::Codegen>::type_def()))
+                    }
+                    (darling::ast::Style::Tuple, true) => {
+                        quote_spanned!(span => format!("{} | undefined", <#ty as remotely_zod::Codegen>::type_def()))
+                    }
+                    (darling::ast::Style::Struct, true) => {
+                        quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as remotely_zod::Codegen>::type_def()))
                     }
                 }
             })
@@ -594,19 +650,23 @@ impl<'a> VariantFields<'a> {
     }
 
     fn expand_schema(&self) -> Vec<TokenStream> {
-        self.fields
-            .iter()
-            .zip(self.serde_variant.fields.iter().map(|f|f.attrs.name().deserialize_name()))
-            .map(|(field, name)| {
-
-                let ty = &field.ty;
-                match self.fields.style {
-                    darling::ast::Style::Unit => unreachable!(),
-                    darling::ast::Style::Tuple => {
+        self.fields()
+            .map(|f| {
+                let name = f.name;
+                let ty = &f.enum_field.ty;
+                match (self.style(), f.optional) {
+                    (darling::ast::Style::Unit, _) => unreachable!("2"),
+                    (darling::ast::Style::Tuple, false) => {
                         quote_spanned!(ty.span() => format!("{}", <#ty as remotely_zod::Codegen>::schema()))
                     }
-                    darling::ast::Style::Struct => {
+                    (darling::ast::Style::Struct, false) => {
                         quote_spanned!(ty.span() => format!("{}: {}", #name, <#ty as remotely_zod::Codegen>::schema()))
+                    }
+                    (darling::ast::Style::Tuple, true) => {
+                        quote_spanned!(ty.span() => format!("{}.optional()", <#ty as remotely_zod::Codegen>::schema()))
+                    }
+                    (darling::ast::Style::Struct, true) => {
+                        quote_spanned!(ty.span() => format!("{}: {}.optional()", #name, <#ty as remotely_zod::Codegen>::schema()))
                     }
                 }
 
