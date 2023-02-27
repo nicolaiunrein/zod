@@ -8,7 +8,7 @@ use remotely_zod::Codegen;
 #[allow(dead_code)]
 #[serde(untagged)]
 enum Test {
-    A { s: String },
+    A { s: String, num: usize },
     B { num: usize },
 }
 
@@ -25,7 +25,7 @@ struct NsReq;
 fn main() {}
 
 #[test]
-fn untagged_tagged() {
+fn externally_tagged() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"num": 123}));
 
@@ -33,10 +33,11 @@ fn untagged_tagged() {
     let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!(
-            "z.union([z.object({{ s: {string_schema} }}), z.object({{ num: {number_schema} }})])"
-        )
+        format!("z.union([z.object({{ s: {string_schema}, num: {number_schema} }}), z.object({{ num: {number_schema} }})])")
     );
-    assert_eq!(Test::type_def(), "{ s: string } | { num: number }");
+    assert_eq!(
+        Test::type_def(),
+        "{ s: string, num: number } | { num: number }"
+    );
     assert_eq!(Test::type_name(), "Ns.Test");
 }

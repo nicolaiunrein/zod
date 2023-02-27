@@ -51,7 +51,7 @@ impl Enum {
                 quote!(#docs)
             }
             Ok(None) => quote!(""),
-            Err(err) => err.into_compile_error().into(),
+            Err(err) => err.into_compile_error(),
         }
     }
 
@@ -110,22 +110,28 @@ impl Enum {
             TagType::External => {
                 quote! {
                     let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
-                    format!("{}z.union([{}])", #docs, variants.join(", "))
+                    format!("z.union([{}])", variants.join(", "))
                 }
             }
             TagType::Internal { tag } => {
                 quote! {
                     let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
-                    format!("{}z.discriminatedUnion(\"{}\", [{}])", #docs, #tag, variants.join(", "))
+                    format!("z.discriminatedUnion(\"{}\", [{}])", #tag, variants.join(", "))
                 }
             }
             TagType::Adjacent { tag, .. } => {
                 quote! {
                     let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
-                    format!("{}z.discriminatedUnion(\"{}\", [{}])", #docs, #tag, variants.join(", "))
+                    format!("z.discriminatedUnion(\"{}\", [{}])", #tag, variants.join(", "))
                 }
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                quote! {
+                    let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                    format!("z.union([{}])", variants.join(", "))
+                }
+            }
         };
 
         quote! {
@@ -136,7 +142,7 @@ impl Enum {
 
                 fn type_def() -> String {
                     let type_defs: std::vec::Vec<String> = vec![#(#expanded_variant_type_defs),*];
-                    format!("{}{}", #docs, type_defs.join(" | "))
+                    type_defs.join(" | ")
                 }
 
                 fn type_name() -> String {
@@ -216,10 +222,13 @@ impl<'a> UnitVariant<'a> {
             TagType::Internal { tag } => {
                 quote_spanned!(self.ident.span() => format!("z.object({{ {}: z.literal(\"{}\") }})", #tag, #ident_str))
             }
-            TagType::Adjacent { .. } => {
-                todo!()
+            TagType::Adjacent { tag, .. } => {
+                quote_spanned!(self.ident.span() => format!("z.object({{ {}: z.literal(\"{}\") }})", #tag, #ident_str))
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                quote_spanned!(self.ident.span() => String::from("z.null()"))
+            }
         }
     }
 
@@ -234,10 +243,13 @@ impl<'a> UnitVariant<'a> {
             TagType::Internal { tag } => {
                 quote_spanned!(span => format!("{{ {}: \"{}\" }}", #tag, #ident_str))
             }
-            TagType::Adjacent { .. } => {
-                todo!()
+            TagType::Adjacent { tag, .. } => {
+                quote_spanned!(span => format!("{{ {}: \"{}\" }}", #tag, #ident_str))
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                quote_spanned!(span => String::from("null"))
+            }
         }
     }
 }
@@ -261,7 +273,10 @@ impl<'a> TupleVariant<'a> {
     }
 
     /// expand an enum variant with exatly one field into a zod schema
-    /// Example: `A(usize)  =>  z.object({ A: z.number().int().nonnegative() })`
+    /// Extern: `A(usize)  =>  z.object({ A: z.number().int().nonnegative() })`
+    /// Intern: Unsupported
+    /// Adjacent: `A(usize)  =>  z.object({ type: "A", content: z.number().int().nonnegative() })`
+    /// Untagged: `A(usize)  =>  z.number().int().nonnegative()`
     fn expand_one_schema(&self) -> TokenStream {
         let inner = self.fields.expand_schema();
         let first = inner.first().unwrap();
@@ -274,7 +289,10 @@ impl<'a> TupleVariant<'a> {
             TagType::Adjacent { tag, content } => {
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {}}})", #tag, #ident_str, #content, #first) }
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                quote_spanned! {span =>  String::from(#first) }
+            }
         }
     }
 
@@ -299,7 +317,10 @@ impl<'a> TupleVariant<'a> {
             TagType::Adjacent { tag, content } => {
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {}}})", #tag, #ident_str, #content, #expanded_inner) }
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                quote_spanned! {span =>  String::from(#expanded_inner) }
+            }
         }
     }
 
@@ -325,7 +346,10 @@ impl<'a> TupleVariant<'a> {
                     TagType::Adjacent { tag, content } => {
                         quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {} }}", #tag, #ident_str, #content, #first) }
                     }
-                    TagType::None => todo!(),
+                    TagType::None => {
+                        //wip
+                        quote_spanned! {span =>  String::from(#first) }
+                    }
                 }
             }
 
@@ -342,13 +366,15 @@ impl<'a> TupleVariant<'a> {
 
                 match tag_type {
                     TagType::External | TagType::Internal { .. } => {
-                        //TODO move imple on tag_type here
                         quote_spanned! {span =>  format!("{{ {}: {} }}", #ident_str, #expanded_inner) }
                     }
                     TagType::Adjacent { tag, content } => {
                         quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {} }}", #tag, #ident_str, #content, #expanded_inner) }
                     }
-                    TagType::None => todo!(),
+                    TagType::None => {
+                        //wip
+                        quote_spanned! {span => #expanded_inner }
+                    }
                 }
             }
         }
@@ -392,7 +418,10 @@ impl<'a> StructVariant<'a> {
             TagType::Adjacent { tag, content } => {
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #ident_str, #content, #first) }
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                quote_spanned! {span =>  format!("z.object({{ {} }})", #first) }
+            }
         }
     }
 
@@ -440,7 +469,16 @@ impl<'a> StructVariant<'a> {
 
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #ident_str, #content, #expanded_inner) }
             }
-            TagType::None => todo!(),
+            TagType::None => {
+                //wip
+                let expanded_inner = quote! {
+                    {
+                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
+                        inner.join(", ")
+                    }
+                };
+                quote_spanned! {span =>  format!("z.object({{ {} }})", #expanded_inner) }
+            }
         }
     }
 
@@ -469,7 +507,10 @@ impl<'a> StructVariant<'a> {
                     TagType::Adjacent { tag, content } => {
                         quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #ident_str, #content, #first) }
                     }
-                    TagType::None => todo!(),
+                    TagType::None => {
+                        //wip
+                        quote_spanned! {span =>  format!("{{ {} }}", #first) }
+                    }
                 }
             }
 
@@ -494,7 +535,10 @@ impl<'a> StructVariant<'a> {
                     TagType::Adjacent { tag, content } => {
                         quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #ident_str, #content, #expanded_inner) }
                     }
-                    TagType::None => todo!(),
+                    TagType::None => {
+                        //wip
+                        quote_spanned! {span =>  format!("{{ {} }}", #expanded_inner) }
+                    }
                 }
             }
         }

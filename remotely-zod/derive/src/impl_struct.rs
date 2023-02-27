@@ -30,7 +30,7 @@ pub fn expand(
             quote!(#docs)
         }
         Ok(None) => quote!(""),
-        Err(err) => err.into_compile_error().into(),
+        Err(err) => err.into_compile_error(),
     };
 
     match fields.style {
