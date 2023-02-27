@@ -1,7 +1,7 @@
-use args::get_rustdoc;
 use darling::{ast::Data, FromDeriveInput};
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
+use serde_derive_internals::Derive;
 
 mod args;
 mod impl_enum;
@@ -19,7 +19,9 @@ pub fn zod(input: TokenStream) -> TokenStream {
 
     let cx = serde_derive_internals::Ctxt::new();
 
-    let container = serde_derive_internals::attr::Container::from_ast(&cx, &parsed);
+    let container =
+        serde_derive_internals::ast::Container::from_ast(&cx, &parsed, Derive::Deserialize)
+            .unwrap();
 
     cx.check().unwrap();
 
