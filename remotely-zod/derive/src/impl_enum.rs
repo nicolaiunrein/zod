@@ -58,23 +58,23 @@ impl<'a> Enum<'a> {
         }
     }
 
-    fn variant_attrs(&self) -> Vec<&serde_derive_internals::attr::Variant> {
+    fn serde_variants(&'a self) -> &'a Vec<serde_derive_internals::ast::Variant<'a>> {
         match &self.serde_ast.data {
-            Data::Enum(variants) => variants.into_iter().map(|v| &v.attrs).collect::<Vec<_>>(),
+            Data::Enum(variants) => variants,
             Data::Struct(_, _) => unreachable!(),
         }
     }
 
     fn expand_one_variant(&self) -> TokenStream {
         let ident = &self.input.ident;
-        let ident_str = ident.to_string();
+        let name = self.serde_ast.attrs.name().deserialize_name();
         let ns_path = &self.input.namespace;
-        let mut serde_variants = self.variant_attrs();
+        let serde_variants = self.serde_variants();
 
         let variant = self
             .variants
             .first()
-            .map(|v| Variant::new(v, &self.serde_ast, serde_variants.pop().unwrap()))
+            .map(|v| Variant::new(v, &self.serde_ast, serde_variants.first().unwrap()))
             .expect("one variant");
 
         let schema = variant.expand_schema();
@@ -92,7 +92,7 @@ impl<'a> Enum<'a> {
                 }
 
                 fn type_name() -> String {
-                    format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                    format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #name)
                 }
 
                 fn docs() -> Option<&'static str> {
@@ -104,14 +104,14 @@ impl<'a> Enum<'a> {
 
     fn expand_many_variants(&self) -> TokenStream {
         let ident = &self.input.ident;
-        let ident_str = ident.to_string();
+        let name = self.serde_ast.attrs.name().deserialize_name();
         let ns_path = self.input.namespace.clone();
 
         let variants = self
             .variants
             .iter()
-            .zip(self.variant_attrs().into_iter())
-            .map(|(v, attrs)| Variant::new(v, &self.serde_ast, attrs))
+            .zip(self.serde_variants().into_iter())
+            .map(|(v, vars)| Variant::new(v, &self.serde_ast, vars))
             .collect::<Vec<_>>();
         let expanded_variant_schemas = variants.iter().map(|v| v.expand_schema());
         let expanded_variant_type_defs = variants.iter().map(|v| v.expand_type_def());
@@ -157,7 +157,7 @@ impl<'a> Enum<'a> {
                 }
 
                 fn type_name() -> String {
-                    format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #ident_str)
+                    format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #name)
                 }
 
                 fn docs() -> Option<&'static str> {
@@ -179,30 +179,31 @@ impl<'a> Variant<'a> {
     fn new(
         variant: &'a args::EnumVariant,
         serde_ast: &'a ast::Container,
-        attrs: &'a serde_derive_internals::attr::Variant,
+        serde_variant: &'a serde_derive_internals::ast::Variant,
     ) -> Self {
         let ident = &variant.ident;
         let fields = VariantFields {
             fields: &variant.fields,
+            serde_variant,
         };
 
         match variant.fields.style {
             darling::ast::Style::Unit => Self::Unit(UnitVariant {
                 ident,
                 serde_ast,
-                attrs,
+                attrs: &serde_variant.attrs,
             }),
             darling::ast::Style::Tuple => Self::Tuple(TupleVariant {
                 ident,
                 fields,
                 serde_ast,
-                attrs,
+                attrs: &serde_variant.attrs,
             }),
             darling::ast::Style::Struct => Self::Struct(StructVariant {
                 ident,
                 fields,
                 serde_ast,
-                attrs,
+                attrs: &serde_variant.attrs,
             }),
         }
     }
@@ -565,6 +566,7 @@ impl<'a> StructVariant<'a> {
 /// represents the fields inside a variant
 struct VariantFields<'a> {
     fields: &'a Fields<EnumField>,
+    serde_variant: &'a ast::Variant<'a>,
 }
 
 impl<'a> VariantFields<'a> {
@@ -574,7 +576,8 @@ impl<'a> VariantFields<'a> {
     fn expand_type_defs(&self) -> Vec<TokenStream> {
         self.fields
             .iter()
-            .map(|field| {
+            .zip(self.serde_variant.fields.iter().map(|f|f.attrs.name().deserialize_name()))
+            .map(|(field, name)| {
                 let ty = &field.ty;
                 let span = ty.span();
                 match self.fields.style {
@@ -583,7 +586,6 @@ impl<'a> VariantFields<'a> {
                         quote_spanned!(span => format!("{}", <#ty as remotely_zod::Codegen>::type_def()))
                     }
                     darling::ast::Style::Struct => {
-                        let name = field.ident.as_ref().unwrap().to_string();
                         quote_spanned!(span => format!("{}: {}", #name, <#ty as remotely_zod::Codegen>::type_def()))
                     }
                 }
@@ -594,7 +596,8 @@ impl<'a> VariantFields<'a> {
     fn expand_schema(&self) -> Vec<TokenStream> {
         self.fields
             .iter()
-            .map(|field| {
+            .zip(self.serde_variant.fields.iter().map(|f|f.attrs.name().deserialize_name()))
+            .map(|(field, name)| {
 
                 let ty = &field.ty;
                 match self.fields.style {
@@ -603,8 +606,7 @@ impl<'a> VariantFields<'a> {
                         quote_spanned!(ty.span() => format!("{}", <#ty as remotely_zod::Codegen>::schema()))
                     }
                     darling::ast::Style::Struct => {
-                        let ident_str = field.ident.as_ref().expect("named field").to_string();
-                        quote_spanned!(ty.span() => format!("{}: {}", #ident_str, <#ty as remotely_zod::Codegen>::schema()))
+                        quote_spanned!(ty.span() => format!("{}: {}", #name, <#ty as remotely_zod::Codegen>::schema()))
                     }
                 }
 
