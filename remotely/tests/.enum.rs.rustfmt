@@ -51,7 +51,7 @@ fn enum_adj_struct() {
 
     let string_schema = String::schema();
     let number_schema = usize::schema();
-    let expected =
+    let expected = 
         discriminated_union("type", &[
                             object(&[
                                    ("type", literal(escape("A"))),
@@ -63,7 +63,10 @@ fn enum_adj_struct() {
             format!("z.object({{ type: z.literal(\"B\"), content: z.object({{ num: {number_schema} }}) }})")
         ]);
 
-    assert_eq!(Test::schema(), expected);
+    assert_eq!(
+        Test::schema(),
+        expected
+    );
     assert_eq!(
         Test::type_def(),
         "{ type: \"A\", content: { s: string } } | { type: \"B\", content: { num: number } }"

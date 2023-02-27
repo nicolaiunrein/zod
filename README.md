@@ -16,8 +16,8 @@ It also generates bindings using the `zod` typescript library.
    - [ ] tag
         - [x] internally
         - [x] externally
-        - [ ] adjacently
-        - [ ] untagged
+        - [x] adjacently
+        - [x] untagged
    - [ ] skip
    - [ ] skip_serializing
    - [ ] skip_deserializing

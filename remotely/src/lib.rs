@@ -26,3 +26,23 @@ fn ui() {
     t.compile_fail("tests/ui/fail/*.rs");
     // t.pass("tests/ui/pass/*.rs");
 }
+
+#[macro_export]
+macro_rules! test_case {
+    ($($decl: tt)+) => {
+        #[derive(zod, serde::Serialize)]
+        #[zod(namespace = "Ns")]
+        #[allow(dead_code)]
+        $($decl)+
+
+        struct Ns {}
+
+        impl Namespace for Ns {
+            const NAME: &'static str = "Ns";
+            type Req = NsReq;
+        }
+
+        #[derive(serde::Deserialize)]
+        struct NsReq;
+    };
+}
