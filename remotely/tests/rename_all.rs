@@ -41,7 +41,7 @@ fn rename_all_struct() {
     let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{a: z.object({{ s: {string_schema} }}) }}), z.object({{b: z.object({{ num: {number_schema} }}) }})])")
+        format!("z.union([z.object({{ a: z.object({{ s: {string_schema} }}) }}), z.object({{ b: z.object({{ num: {number_schema} }}) }})])")
     );
     assert_eq!(
         Test::type_def(),

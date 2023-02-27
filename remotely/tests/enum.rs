@@ -5,6 +5,10 @@ use remotely::zod;
 use remotely_core::codegen::namespace::Namespace;
 use remotely_zod::Codegen;
 
+const A: &str = "z.literal(\"A\")";
+const B: &str = "z.literal(\"B\")";
+const NULL: &str = "z.null()";
+
 fn discriminated_union(t: impl AsRef<str>, items: &[impl AsRef<str>]) -> String {
     format!(
         "z.discriminatedUnion(\"{}\", [{}])",
@@ -17,20 +21,42 @@ fn discriminated_union(t: impl AsRef<str>, items: &[impl AsRef<str>]) -> String 
     )
 }
 
-fn object(fields: &[(impl AsRef<str>, impl AsRef<str>)]) -> String {
+fn zod_union(items: &[impl AsRef<str>]) -> String {
+    format!(
+        "z.union([{}])",
+        items
+            .iter()
+            .map(|i| i.as_ref())
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+macro_rules! object {
+    ($($k: tt: $v:expr),*) => {
+        zod_obj(&[$((stringify!($k), $v)),*])
+    };
+}
+
+fn zod_obj(fields: &[(impl AsRef<str>, impl AsRef<str>)]) -> String {
     let inner = fields
         .iter()
         .map(|(k, v)| format!("{}: {}", k.as_ref(), v.as_ref()))
         .collect::<Vec<_>>();
+
     format!("z.object({{ {} }})", inner.join(", "))
 }
 
-fn literal(inner: impl AsRef<str>) -> String {
-    format!("z.literal({})", inner.as_ref())
+fn tuple(fields: &[impl AsRef<str>]) -> String {
+    let inner = fields.iter().map(|f| f.as_ref()).collect::<Vec<_>>();
+    format!("z.tuple([{}])", inner.join(", "))
 }
 
-fn escape(inner: impl AsRef<str>) -> String {
-    format!("\"{}\"", inner.as_ref())
+fn adj_tagged(variant: &str, inner: impl AsRef<str>) -> String {
+    zod_obj(&[
+        ("type", format!("z.literal(\"{variant}\")")),
+        ("content", inner.as_ref().to_string()),
+    ])
 }
 
 #[test]
@@ -49,21 +75,16 @@ fn enum_adj_struct() {
         serde_json::json!({"type": "B", "content": { "num": 123 }})
     );
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
-    let expected =
-        discriminated_union("type", &[
-                            object(&[
-                                   ("type", literal(escape("A"))),
-                                   ("content", object(&[
-                                                      ("s", string_schema)
-                                   ]))
-                            ]),
-            // format!("z.object({{ type: z.literal(\"A\"), content: z.object({{ s: {string_schema} }}) }})"),
-            format!("z.object({{ type: z.literal(\"B\"), content: z.object({{ num: {number_schema} }}) }})")
-        ]);
-
-    assert_eq!(Test::schema(), expected);
+    assert_eq!(
+        Test::schema(),
+        discriminated_union(
+            "type",
+            &[
+                adj_tagged("A", object! { s : String::schema() }),
+                adj_tagged("B", object! { num : usize::schema() }),
+            ],
+        )
+    );
     assert_eq!(
         Test::type_def(),
         "{ type: \"A\", content: { s: string } } | { type: \"B\", content: { num: number } }"
@@ -90,12 +111,21 @@ fn enum_adj_struct_multiple_fields() {
         serde_json::json!({"type": "A", "content": {"s": "abc", "num": 123}})
     );
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
-
     assert_eq!(
         Test::schema(),
-        format!("z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\"), content: z.object({{ s: {string_schema}, num: {number_schema} }}) }}), z.object({{ type: z.literal(\"B\"), content: z.object({{ num: {number_schema} }}) }})])")
+        discriminated_union(
+            "type",
+            &[
+                adj_tagged(
+                    "A",
+                    object! {
+                        s: String::schema(),
+                        num: usize::schema()
+                    }
+                ),
+                adj_tagged("B", object! { num: usize::schema() }),
+            ]
+        )
     );
     assert_eq!(
         Test::type_def(),
@@ -122,11 +152,9 @@ fn enum_adj_struct_multiple_fields_single() {
         serde_json::json!({"type": "A", "content": {"s": "", "num": 123}})
     );
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.object({{ type: z.literal(\"A\"), content: z.object({{ s: {string_schema}, num: {number_schema} }}) }})")
+        adj_tagged("A", object! { s: String::schema(), num: usize::schema() })
     );
     assert_eq!(
         Test::type_def(),
@@ -147,11 +175,15 @@ fn enum_adj_tuple() {
     let json = serde_json::to_value(Test::B(123)).unwrap();
     assert_eq!(json, serde_json::json!({"type": "B", "content": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\"), content: {string_schema}}}), z.object({{ type: z.literal(\"B\"), content: {number_schema}}})])")
+        discriminated_union(
+            "type",
+            &[
+                adj_tagged("A", String::schema()),
+                adj_tagged("B", usize::schema())
+            ]
+        )
     );
     assert_eq!(
         Test::type_def(),
@@ -173,11 +205,15 @@ fn enum_adj_tuple_multiple_fields() {
     let json = serde_json::to_value(Test::A(123, 42)).unwrap();
     assert_eq!(json, serde_json::json!({"type": "A", "content": [123, 42]}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\"), content: z.tuple([{number_schema}, {number_schema}])}}), z.object({{ type: z.literal(\"B\"), content: {string_schema}}})])")
+        discriminated_union(
+            "type",
+            &[
+                adj_tagged("A", tuple(&[&usize::schema(), &usize::schema()])),
+                adj_tagged("B", String::schema())
+            ]
+        )
     );
     assert_eq!(
         Test::type_def(),
@@ -197,10 +233,9 @@ fn enum_adj_tuple_multiple_fields_single_variant() {
     let json = serde_json::to_value(Test::A(123, 42)).unwrap();
     assert_eq!(json, serde_json::json!({"type": "A", "content": [123, 42]}));
 
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.object({{ type: z.literal(\"A\"), content: z.tuple([{number_schema}, {number_schema}])}})")
+        adj_tagged("A", tuple(&[&usize::schema(), &usize::schema()]))
     );
     assert_eq!(
         Test::type_def(),
@@ -221,11 +256,7 @@ fn enum_adj_tuple_single_variant() {
     let json = serde_json::to_value(Test::A(123)).unwrap();
     assert_eq!(json, serde_json::json!({"type": "A", "content": 123}));
 
-    let number_schema = usize::schema();
-    assert_eq!(
-        Test::schema(),
-        format!("z.object({{ type: z.literal(\"A\"), content: {number_schema}}})")
-    );
+    assert_eq!(Test::schema(), adj_tagged("A", &usize::schema()));
     assert_eq!(Test::type_def(), "{ type: \"A\", content: number }");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -244,9 +275,7 @@ fn enum_adj_unit() {
 
     assert_eq!(
         Test::schema(),
-        format!(
-           "z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\") }}), z.object({{ type: z.literal(\"B\") }})])"
-        )
+        discriminated_union("type", &[object! {type: A}, object! {type: B}])
     );
     assert_eq!(Test::type_def(), "{ type: \"A\" } | { type: \"B\" }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -263,10 +292,7 @@ fn enum_adj_unit_single_variant() {
     let json = serde_json::to_value(Test::A).unwrap();
     assert_eq!(json, serde_json::json!({ "type": "A"}));
 
-    assert_eq!(
-        Test::schema(),
-        format!("z.object({{ type: z.literal(\"A\") }})")
-    );
+    assert_eq!(Test::schema(), object! { type: A });
     assert_eq!(Test::type_def(), "{ type: \"A\" }");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -283,11 +309,12 @@ fn enum_extern_struct() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"B": {"num": 123}}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{A: z.object({{ s: {string_schema} }}) }}), z.object({{B: z.object({{ num: {number_schema} }}) }})])")
+        zod_union(&[
+            object! { A: object! { s: String::schema() }},
+            object! { B: object! { num: usize::schema() }}
+        ])
     );
     assert_eq!(
         Test::type_def(),
@@ -307,11 +334,21 @@ fn enum_extern_struct_multiple_fields() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"B": {"num": 123}}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{A: z.object({{ s: {string_schema}, num: {number_schema} }}) }}), z.object({{B: z.object({{ num: {number_schema} }}) }})])")
+        zod_union(&[
+            object! {
+                A: object! {
+                    s: String::schema(),
+                    num: usize::schema()
+                }
+            },
+            object! {
+                B: object! {
+                    num: usize::schema()
+                }
+            }
+        ])
     );
     assert_eq!(
         Test::type_def(),
@@ -334,11 +371,14 @@ fn enum_extern_struct_multiple_fields_single_variant() {
     .unwrap();
     assert_eq!(json, serde_json::json!({"A": {"s": "", "num": 123}}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.object({{A: z.object({{ s: {string_schema}, num: {number_schema} }}) }})")
+        object! {
+            A: object! {
+                s: String::schema(),
+                num: usize::schema()
+            }
+        }
     );
     assert_eq!(Test::type_def(), "{ A: { s: string, num: number } }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -355,11 +395,16 @@ fn enum_extern_tuple() {
     let json = serde_json::to_value(Test::B(123)).unwrap();
     assert_eq!(json, serde_json::json!({"B": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{A: {string_schema}}}), z.object({{B: {number_schema}}})])")
+        zod_union(&[
+            object! {
+                A: String::schema()
+            },
+            object! {
+                B: usize::schema()
+            }
+        ])
     );
     assert_eq!(Test::type_def(), "{ A: string } | { B: number }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -376,11 +421,16 @@ fn enum_extern_tuple_multiple_fields() {
     let json = serde_json::to_value(Test::A(123, 42)).unwrap();
     assert_eq!(json, serde_json::json!({"A": [123, 42]}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{A: z.tuple([{number_schema}, {number_schema}])}}), z.object({{B: {string_schema}}})])")
+        zod_union(&[
+            object! {
+                A: tuple(&[usize::schema(), usize::schema()])
+            },
+            object! {
+                B: String::schema()
+            }
+        ])
     );
     assert_eq!(Test::type_def(), "{ A: [number, number] } | { B: string }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -396,10 +446,11 @@ fn enum_extern_tuple_multiple_fields_single_variant() {
     let json = serde_json::to_value(Test::A(123, 42)).unwrap();
     assert_eq!(json, serde_json::json!({"A": [123, 42]}));
 
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.object({{A: z.tuple([{number_schema}, {number_schema}])}})")
+        object! {
+            A: tuple(&[usize::schema(), usize::schema()])
+        }
     );
     assert_eq!(Test::type_def(), "{ A: [number, number] }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -415,8 +466,12 @@ fn enum_extern_tuple_single_single_field_single_variant() {
     let json = serde_json::to_value(Test::A(123)).unwrap();
     assert_eq!(json, serde_json::json!({"A": 123}));
 
-    let number_schema = usize::schema();
-    assert_eq!(Test::schema(), format!("z.object({{A: {number_schema}}})"));
+    assert_eq!(
+        Test::schema(),
+        object! {
+            A: usize::schema()
+        }
+    );
     assert_eq!(Test::type_def(), "{ A: number }");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -433,10 +488,7 @@ fn enum_extern_unit() {
     let json = serde_json::to_value(Test::B).unwrap();
     assert_eq!(json, serde_json::json!("B"));
 
-    assert_eq!(
-        Test::schema(),
-        format!("z.union([z.literal(\"A\"), z.literal(\"B\")])")
-    );
+    assert_eq!(Test::schema(), zod_union(&[A, B]));
     assert_eq!(Test::type_def(), "\"A\" | \"B\"");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -451,7 +503,7 @@ fn enum_extern_unit_single_variant() {
     let json = serde_json::to_value(Test::A).unwrap();
     assert_eq!(json, serde_json::json!("A"));
 
-    assert_eq!(Test::schema(), format!("z.literal(\"A\")"));
+    assert_eq!(Test::schema(), A);
     assert_eq!(Test::type_def(), "\"A\"");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -468,12 +520,21 @@ fn enum_intern_struct() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"type": "B", "num": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
-
     assert_eq!(
-    Test::schema(),
-    format!("z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\"), s: {string_schema} }}), z.object({{ type: z.literal(\"B\"), num: {number_schema} }})])")
+        Test::schema(),
+        discriminated_union(
+            "type",
+            &[
+                object! {
+                    type: A,
+                    s: &String::schema()
+                },
+                object! {
+                    type: B,
+                    num: &usize::schema()
+                }
+            ]
+        )
     );
     assert_eq!(
         Test::type_def(),
@@ -495,11 +556,22 @@ fn enum_intern_struct_multiple_fields() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"type": "B", "num": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\"), s: {string_schema}, num: {number_schema} }}), z.object({{ type: z.literal(\"B\"), num: {number_schema} }})])")
+        discriminated_union(
+            "type",
+            &[
+                object! {
+                    type: A,
+                    s: &String::schema(),
+                    num: &usize::schema()
+                },
+                object! {
+                    type: B,
+                    num: &usize::schema()
+                }
+            ]
+        )
     );
     assert_eq!(
         Test::type_def(),
@@ -524,11 +596,13 @@ fn enum_intern_struct_multiple_fields_single_variant() {
     .unwrap();
     assert_eq!(json, serde_json::json!({"type": "A", "s": "", "num": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.object({{ type: z.literal(\"A\"), s: {string_schema}, num: {number_schema} }})")
+        object! {
+            type: A,
+            s: &String::schema(),
+            num: &usize::schema()
+        }
     );
     assert_eq!(Test::type_def(), "{ type: \"A\", s: string, num: number }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -548,9 +622,7 @@ fn enum_intern_unit() {
 
     assert_eq!(
         Test::schema(),
-        format!(
-            "z.discriminatedUnion(\"type\", [z.object({{ type: z.literal(\"A\") }}), z.object({{ type: z.literal(\"B\") }})])"
-        )
+        discriminated_union("type", &[object! { type: A }, object! { type: B }])
     );
     assert_eq!(Test::type_def(), "{ type: \"A\" } | { type: \"B\" }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -568,10 +640,7 @@ fn enum_intern_unit_single_variant() {
     let json = serde_json::to_value(Test::A).unwrap();
     assert_eq!(json, serde_json::json!({ "type": "A"}));
 
-    assert_eq!(
-        Test::schema(),
-        format!("z.object({{ type: z.literal(\"A\") }})")
-    );
+    assert_eq!(Test::schema(), object! { type: A });
     assert_eq!(Test::type_def(), "{ type: \"A\" }");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -588,13 +657,12 @@ fn enum_untagged_struct() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"num": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!(
-            "z.union([z.object({{ s: {string_schema} }}), z.object({{ num: {number_schema} }})])"
-        )
+        zod_union(&[
+            object! { s: String::schema() },
+            object! { num: usize::schema() }
+        ])
     );
     assert_eq!(Test::type_def(), "{ s: string } | { num: number }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -612,11 +680,12 @@ fn enum_untagged_struct_multiple_fields() {
     let json = serde_json::to_value(Test::B { num: 123 }).unwrap();
     assert_eq!(json, serde_json::json!({"num": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.object({{ s: {string_schema}, num: {number_schema} }}), z.object({{ num: {number_schema} }})])")
+        zod_union(&[
+            object! { s: String::schema(), num: usize::schema() },
+            object! { num: usize::schema() }
+        ])
     );
     assert_eq!(
         Test::type_def(),
@@ -640,11 +709,9 @@ fn enum_untagged_struct_multiple_fields_single_variant() {
     .unwrap();
     assert_eq!(json, serde_json::json!({"s": "", "num": 123}));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.object({{ s: {string_schema}, num: {number_schema} }})")
+        object! { s: String::schema(), num: usize::schema() }
     );
     assert_eq!(Test::type_def(), "{ s: string, num: number }");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -662,11 +729,9 @@ fn enum_untagged_tuple() {
     let json = serde_json::to_value(Test::B(123)).unwrap();
     assert_eq!(json, serde_json::json!(123));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([{string_schema}, {number_schema}])")
+        zod_union(&[String::schema(), usize::schema()])
     );
     assert_eq!(Test::type_def(), "string | number");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -684,11 +749,9 @@ fn enum_untagged_tuple_multiple_fields() {
     let json = serde_json::to_value(Test::A(123, 42)).unwrap();
     assert_eq!(json, serde_json::json!([123, 42]));
 
-    let string_schema = String::schema();
-    let number_schema = usize::schema();
     assert_eq!(
         Test::schema(),
-        format!("z.union([z.tuple([{number_schema}, {number_schema}]), {string_schema}])")
+        zod_union(&[tuple(&[usize::schema(), usize::schema()]), String::schema()])
     );
     assert_eq!(Test::type_def(), "[number, number] | string");
     assert_eq!(Test::type_name(), "Ns.Test");
@@ -705,12 +768,7 @@ fn enum_untagged_tuple_multiple_fields_single_variant() {
 
     let json = serde_json::to_value(Test::A(123, 42)).unwrap();
     assert_eq!(json, serde_json::json!([123, 42]));
-
-    let number_schema = usize::schema();
-    assert_eq!(
-        Test::schema(),
-        format!("z.tuple([{number_schema}, {number_schema}])")
-    );
+    assert_eq!(Test::schema(), tuple(&[usize::schema(), usize::schema()]));
     assert_eq!(Test::type_def(), "[number, number]");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -725,9 +783,7 @@ fn enum_untagged_tuple_single_field_single_variant() {
     }
     let json = serde_json::to_value(Test::A(123)).unwrap();
     assert_eq!(json, serde_json::json!(123));
-
-    let number_schema = usize::schema();
-    assert_eq!(Test::schema(), format!("{number_schema}"));
+    assert_eq!(Test::schema(), usize::schema());
     assert_eq!(Test::type_def(), "number");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -743,8 +799,7 @@ fn enum_untagged_unit() {
     }
     let json = serde_json::to_value(Test::B).unwrap();
     assert_eq!(json, serde_json::json!(null));
-
-    assert_eq!(Test::schema(), format!("z.union([z.null(), z.null()])"));
+    assert_eq!(Test::schema(), zod_union(&[NULL, NULL]));
     assert_eq!(Test::type_def(), "null | null");
     assert_eq!(Test::type_name(), "Ns.Test");
 }
@@ -759,8 +814,7 @@ fn enum_untagged_unit_single_variant() {
     }
     let json = serde_json::to_value(Test::A).unwrap();
     assert_eq!(json, serde_json::json!(null));
-
-    assert_eq!(Test::schema(), String::from("z.null()"));
+    assert_eq!(Test::schema(), NULL);
     assert_eq!(Test::type_def(), "null");
     assert_eq!(Test::type_name(), "Ns.Test");
 }

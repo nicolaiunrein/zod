@@ -305,10 +305,10 @@ impl<'a> TupleVariant<'a> {
         let span = self.ident.span();
         match self.serde_ast.attrs.tag() {
             TagType::External | TagType::Internal { .. } => {
-                quote_spanned! {span =>  format!("z.object({{{}: {}}})", #name, #first) }
+                quote_spanned! {span =>  format!("z.object({{ {}: {} }})", #name, #first) }
             }
             TagType::Adjacent { tag, content } => {
-                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {}}})", #tag, #name, #content, #first) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {} }})", #tag, #name, #content, #first) }
             }
             TagType::None => {
                 quote_spanned! {span =>  String::from(#first) }
@@ -332,10 +332,10 @@ impl<'a> TupleVariant<'a> {
         };
         match self.serde_ast.attrs.tag() {
             TagType::External | TagType::Internal { .. } => {
-                quote_spanned! {span =>  format!("z.object({{{}: {}}})", #name, #expanded_inner) }
+                quote_spanned! {span =>  format!("z.object({{ {}: {} }})", #name, #expanded_inner) }
             }
             TagType::Adjacent { tag, content } => {
-                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {}}})", #tag, #name, #content, #expanded_inner) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: {} }})", #tag, #name, #content, #expanded_inner) }
             }
             TagType::None => {
                 quote_spanned! {span =>  String::from(#expanded_inner) }
@@ -431,7 +431,7 @@ impl<'a> StructVariant<'a> {
 
         match self.serde_ast.attrs.tag() {
             TagType::External => {
-                quote_spanned! {span =>  format!("z.object({{{}: z.object({{ {} }}) }})", #name, #first) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.object({{ {} }}) }})", #name, #first) }
             }
             TagType::Internal { tag } => {
                 quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #name, #first) }
@@ -467,7 +467,7 @@ impl<'a> StructVariant<'a> {
                         inner.join(", ")
                     }
                 };
-                quote_spanned! {span =>  format!("z.object({{{}: z.object({{ {} }}) }})", #name, #expanded_inner) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.object({{ {} }}) }})", #name, #expanded_inner) }
             }
             TagType::Internal { tag } => {
                 let expanded_inner = quote! {
