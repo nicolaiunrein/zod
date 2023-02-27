@@ -29,4 +29,4 @@ It also generates bindings using the `zod` typescript library.
 
 
 ## Points to consider?
-- flattening a hashmap onto a struct. This is because we represent the hashmap as a typescript/js `Map` type (`z.map([..])`)
+- flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.
