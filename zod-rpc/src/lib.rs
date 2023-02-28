@@ -16,6 +16,12 @@ pub trait Server {
         Self: Sized;
 }
 
+#[doc(hidden)]
 pub mod __private {
+    pub use futures;
+    pub use inventory;
+    pub use serde;
+    pub use serde_json;
+    pub use tokio;
     pub use zod_rpc_core::*;
 }

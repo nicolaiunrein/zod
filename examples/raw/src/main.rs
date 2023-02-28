@@ -22,10 +22,12 @@ pub struct MyEntity2 {
     value: usize,
 }
 
+#[derive(zod::Namespace)]
 pub struct Watchout {
     shared_data: usize,
 }
 
+#[derive(zod::Namespace)]
 pub struct Pixera {
     shared_data: usize,
 }
