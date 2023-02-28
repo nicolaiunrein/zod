@@ -72,7 +72,7 @@ impl<'a> Enum<'a> {
                 }
 
                 fn type_name() -> String {
-                    format!("{}.{}", <#ns_path as ::remotely::__private::codegen::namespace::Namespace>::NAME, #name)
+                    format!("{}.{}", <#ns_path as ::remotely_zod::Namespace>::NAME, #name)
                 }
 
                 fn docs() -> Option<&'static str> {
