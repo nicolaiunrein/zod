@@ -15,38 +15,39 @@ pub struct StructVariant<'a> {
 
 impl<'a> StructVariant<'a> {
     pub fn expand_schema(&self) -> TokenStream {
-        match self.fields.len() {
-            // this case is handled by darling
-            0 => unreachable!("5"),
-            1 => self.expand_one_field(),
-            _ => self.expand_many_fields(),
-        }
-    }
+        let inner = match self.fields.len() {
+            0 => unreachable!("Empty tuple structs are handled by darling"),
+            1 => {
+                let inner = self.fields.expand_schema();
+                inner.first().expect("one field").clone()
+            }
 
-    /// expand an enum variant with exatly one field into a zod schema
-    /// External: `A{ num: usize } =>  z.object({ A: z.object({ num: z.number().int().nonnegative() }) })`
-    /// Internal: `A{ num: usize } =>  z.object({ type: z.literal("A"), num: z.number().int().nonnegative() })`
-    /// Adjacent: `A{ num: usize } =>  z.object({ type: z.literal("A"), content: z.object({ num: z.number().int().nonnegative() }) })`
-    fn expand_one_field(&self) -> TokenStream {
-        let inner = self.fields.expand_schema();
-        let name = self.attrs.name().deserialize_name();
+            _ => {
+                let inner = self.fields.expand_schema();
+                quote! {
+                    {
+                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
+                        inner.join(", ")
+                    }
+                }
+            }
+        };
 
         let span = self.ident.span();
-        let first = inner.first().unwrap();
-        // let name = variant_names.first().unwrap();
+        let name = self.attrs.name().deserialize_name();
 
         match self.serde_ast.attrs.tag() {
             TagType::External => {
-                quote_spanned! {span =>  format!("z.object({{ {}: z.object({{ {} }}) }})", #name, #first) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.object({{ {} }}) }})", #name, #inner) }
             }
             TagType::Internal { tag } => {
-                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #name, #first) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #name, #inner) }
             }
             TagType::Adjacent { tag, content } => {
-                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #name, #content, #first) }
+                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #name, #content, #inner) }
             }
             TagType::None => {
-                quote_spanned! {span =>  format!("z.object({{ {} }})", #first) }
+                quote_spanned! {span =>  format!("z.object({{ {} }})", #inner) }
             }
         }
     }
@@ -56,113 +57,40 @@ impl<'a> StructVariant<'a> {
         let span = self.ident.span();
         let name = self.attrs.name().deserialize_name();
 
-        match expanded_fields.len() {
-            // this case is handles by darling
-            0 => unreachable!("7"),
-            1 => {
-                let first = expanded_fields.first().expect("exactly one variant");
+        let inner = match expanded_fields.len() {
+            0 => unreachable!("Empty tuple structs are handled by darling"),
+            1 => expanded_fields
+                .first()
+                .expect("exactly one variant")
+                .clone(),
 
-                // expand an enum variant with exatly one field to a TS definition
-                // External: `A{ num: usize }` ->  `{ A: { num: number }}`
-                // Internal: `A{ num: usize }` ->  `{ type: "A", num: number }`
-                // Adjacent: `A{ num: usize }` ->  `{ type: "A", content: { num: number }}`
-                match self.serde_ast.attrs.tag() {
-                    TagType::External => {
-                        quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #name, #first) }
-                    }
-                    TagType::Internal { tag } => {
-                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #name, #first) }
-                    }
-                    TagType::Adjacent { tag, content } => {
-                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #name, #content, #first) }
-                    }
-                    TagType::None => {
-                        quote_spanned! {span =>  format!("{{ {} }}", #first) }
-                    }
-                }
-            }
-
-            // expand an enum tuple variant with more than one field to a TS definition
-            // External: `A{ num: usize, s: String }` -> `{ A: { num: number, s: string } }`
-            // Internal: `A{ num: usize, s: String }` -> `{ type: "A", num: number, s: string }`
-            // Adjacent: `A{ num: usize, s: String }` -> `{ type: "A", content: { num: number, s: string }}`
             _ => {
-                let expanded_inner = quote! {
+                quote! {
                     {
                         let inner: std::vec::Vec<String> = vec![#(#expanded_fields),*];
                         inner.join(", ")
                     }
-                };
-                match self.serde_ast.attrs.tag() {
-                    TagType::External => {
-                        quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #name, #expanded_inner) }
-                    }
-                    TagType::Internal { tag } => {
-                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #name, #expanded_inner) }
-                    }
-                    TagType::Adjacent { tag, content } => {
-                        quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #name, #content, #expanded_inner) }
-                    }
-                    TagType::None => {
-                        quote_spanned! {span =>  format!("{{ {} }}", #expanded_inner) }
-                    }
                 }
             }
-        }
-    }
-
-    /// expand an enum struct variant with more than one field into a zod schema
-    /// External: `A{ num: usize, s: String}` ->
-    /// `z.object({ A: z.object({ num: z.number().int().nonnegative(),  s: z.string()}) })`
-    ///
-    /// Internal: `A{ num: usize, s: String}` ->
-    /// `z.object({ type: z.literal("A"), num: z.number().int().nonnegative(), s: z.string()})`
-    ///
-    /// Adjacent: `A{ num: usize, s: String}` ->
-    /// `z.object({ type: z.literal("A"): content: z.object({ num: z.number().int().nonnegative(),  s: z.string()}) })`
-    fn expand_many_fields(&self) -> TokenStream {
-        let inner = self.fields.expand_schema();
-        let span = self.ident.span();
-        let name = self.attrs.name().deserialize_name();
+        };
 
         match self.serde_ast.attrs.tag() {
+            // `A{ num: usize, s: String }` -> `{ A: { num: number, s: string } }`
             TagType::External => {
-                let expanded_inner = quote! {
-                    {
-                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
-                        inner.join(", ")
-                    }
-                };
-                quote_spanned! {span =>  format!("z.object({{ {}: z.object({{ {} }}) }})", #name, #expanded_inner) }
+                quote_spanned! {span =>  format!("{{ {}: {{ {} }} }}", #name, #inner) }
             }
+            // `A{ num: usize, s: String }` -> `{ type: "A", num: number, s: string }`
             TagType::Internal { tag } => {
-                let expanded_inner = quote! {
-                    {
-                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
-                        inner.join(", ")
-                    }
-                };
-
-                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {} }})", #tag, #name, #expanded_inner) }
+                quote_spanned! {span =>  format!("{{ {}: \"{}\", {} }}", #tag, #name, #inner) }
             }
+
+            // `A{ num: usize, s: String }` -> `{ type: "A", content: { num: number, s: string }}`
             TagType::Adjacent { tag, content } => {
-                let expanded_inner = quote! {
-                    {
-                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
-                        inner.join(", ")
-                    }
-                };
-
-                quote_spanned! {span =>  format!("z.object({{ {}: z.literal(\"{}\"), {}: z.object({{ {} }}) }})", #tag, #name, #content, #expanded_inner) }
+                quote_spanned! {span =>  format!("{{ {}: \"{}\", {}: {{ {} }} }}", #tag, #name, #content, #inner) }
             }
+            // `A{ num: usize, s: String }` -> `{ num: number, s: string }`
             TagType::None => {
-                let expanded_inner = quote! {
-                    {
-                        let inner: std::vec::Vec<String> = vec![#(#inner),*];
-                        inner.join(", ")
-                    }
-                };
-                quote_spanned! {span =>  format!("z.object({{ {} }})", #expanded_inner) }
+                quote_spanned! {span =>  format!("{{ {} }}", #inner) }
             }
         }
     }
