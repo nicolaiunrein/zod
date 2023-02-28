@@ -3,6 +3,7 @@ use crate::docs::RustDocs;
 use super::args;
 use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
+use proc_macro_error::abort;
 use quote::{quote, quote_spanned};
 use serde_derive_internals::ast;
 use syn::{spanned::Spanned, Ident, Path};
@@ -106,12 +107,23 @@ impl<'a> Struct<'a> {
                 .expect("At least one field")
                 .expand_type_defs(),
 
-            (false, Style::Tuple) => fields
-                .into_iter()
-                .next()
-                .or_else(|| flat_fields.into_iter().next())
-                .expect("Newtype")
-                .expand_type_defs(),
+            (false, Style::Tuple) => match fields.len() {
+                0 => unreachable!("handled by darling"),
+                1 => fields
+                    .into_iter()
+                    .next()
+                    .or_else(|| flat_fields.into_iter().next())
+                    .expect("Newtype")
+                    .expand_type_defs(),
+                _ => {
+                    let fields = fields.into_iter().map(|f| f.expand_type_defs());
+
+                    quote! {
+                        let fields: Vec<String> = vec![#(#fields),*];
+                        format!("[{}]", fields.join(", "))
+                    }
+                }
+            },
 
             (false, Style::Struct) => {
                 let fields = fields.into_iter().map(|f| f.expand_type_defs());
@@ -138,12 +150,32 @@ impl<'a> Struct<'a> {
                 .expect("At least one field")
                 .expand_schema(),
 
-            (false, Style::Tuple) => fields
-                .into_iter()
-                .next()
-                .or_else(|| flat_fields.into_iter().next())
-                .expect("Newtype")
-                .expand_schema(),
+            (false, Style::Tuple) => match fields.len() {
+                0 => unreachable!("handled by darling"),
+                1 => fields
+                    .into_iter()
+                    .next()
+                    .or_else(|| flat_fields.into_iter().next())
+                    .expect("Newtype")
+                    .expand_schema(),
+                _ => {
+                    // make sure all fields followed an optional field are also optional
+                    if let Some(f) = fields
+                        .iter()
+                        .skip_while(|f| !f.optional)
+                        .find(|f| !f.optional)
+                    {
+                        abort!(f.ty.span(), "zod: non-default field follows default field")
+                    }
+
+                    let fields = fields.into_iter().map(|f| f.expand_schema());
+
+                    quote! {
+                        let fields: Vec<String> = vec![#(#fields),*];
+                        format!("z.tuple([{}])", fields.join(", "))
+                    }
+                }
+            },
 
             (false, Style::Struct) => {
                 let fields = fields.into_iter().map(|f| f.expand_schema());

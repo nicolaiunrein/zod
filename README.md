@@ -22,7 +22,8 @@ It also generates bindings using the `zod` typescript library.
    - [x] transparent structs
    - [x] flatten
 
-- [ ] implement tuple structs as z.tuple()
+- [x] implement tuple structs as z.tuple()
+- [x] Restrict non-default fields in tuple structs to only come before the first default field
 - [ ] implement missing tags on newtype enums containing objects
 - [ ] RPC macros
 

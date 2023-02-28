@@ -8,7 +8,7 @@ use syn::{Attribute, Type};
 #[darling(
     attributes(zod),
     forward_attrs(allow, doc, cfg),
-    supports(struct_named, struct_newtype, enum_any)
+    supports(struct_named, struct_newtype, struct_tuple, enum_any)
 )]
 pub struct Input {
     pub ident: syn::Ident,

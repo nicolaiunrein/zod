@@ -1,0 +1,5 @@
+error: zod: non-default field follows default field
+ --> tests/ui/fail/tuple_structs_default_before_non_default_field.rs:6:39
+  |
+6 | struct Test(#[serde(default)] String, String);
+  |                                       ^^^^^^

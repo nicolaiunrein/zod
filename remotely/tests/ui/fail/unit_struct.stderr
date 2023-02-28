@@ -1,4 +1,4 @@
-error: Unsupported shape `no fields`. Expected named fields or one unnamed field.
+error: Unsupported shape `no fields`. Expected named fields or unnamed fields.
  --> tests/ui/fail/unit_struct.rs:4:10
   |
 4 | #[derive(zod)]

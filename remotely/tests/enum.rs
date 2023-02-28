@@ -1,63 +1,11 @@
 #![cfg(test)]
 use pretty_assertions::assert_eq;
-use remotely::test_case;
 use remotely::zod;
 use remotely_core::codegen::namespace::Namespace;
 use remotely_zod::Codegen;
 
-const A: &str = "z.literal(\"A\")";
-const B: &str = "z.literal(\"B\")";
-const NULL: &str = "z.null()";
-
-fn discriminated_union(t: impl AsRef<str>, items: &[impl AsRef<str>]) -> String {
-    format!(
-        "z.discriminatedUnion(\"{}\", [{}])",
-        t.as_ref(),
-        items
-            .iter()
-            .map(|i| i.as_ref())
-            .collect::<Vec<_>>()
-            .join(", ")
-    )
-}
-
-fn zod_union(items: &[impl AsRef<str>]) -> String {
-    format!(
-        "z.union([{}])",
-        items
-            .iter()
-            .map(|i| i.as_ref())
-            .collect::<Vec<_>>()
-            .join(", ")
-    )
-}
-
-macro_rules! object {
-    ($($k: tt: $v:expr),*) => {
-        zod_obj(&[$((stringify!($k), $v)),*])
-    };
-}
-
-fn zod_obj(fields: &[(impl AsRef<str>, impl AsRef<str>)]) -> String {
-    let inner = fields
-        .iter()
-        .map(|(k, v)| format!("{}: {}", k.as_ref(), v.as_ref()))
-        .collect::<Vec<_>>();
-
-    format!("z.object({{ {} }})", inner.join(", "))
-}
-
-fn tuple(fields: &[impl AsRef<str>]) -> String {
-    let inner = fields.iter().map(|f| f.as_ref()).collect::<Vec<_>>();
-    format!("z.tuple([{}])", inner.join(", "))
-}
-
-fn adj_tagged(variant: &str, inner: impl AsRef<str>) -> String {
-    zod_obj(&[
-        ("type", format!("z.literal(\"{variant}\")")),
-        ("content", inner.as_ref().to_string()),
-    ])
-}
+mod test_utils;
+use test_utils::*;
 
 #[test]
 fn enum_adj_struct() {

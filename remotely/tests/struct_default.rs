@@ -1,7 +1,9 @@
-use remotely::test_case;
 use remotely::zod;
 use remotely_core::codegen::namespace::Namespace;
 use remotely_zod::Codegen;
+
+mod test_utils;
+use test_utils::*;
 
 #[test]
 fn serde_default_named_struct_field() {
@@ -27,4 +29,16 @@ fn serde_default_tuple_struct_field() {
 
     assert!(Test::schema().contains("z.string().optional()"));
     assert_eq!(Test::type_def(), "string | undefined")
+}
+
+#[test]
+fn flatten() {
+    test_case! {
+        #[derive(Debug, serde::Deserialize, PartialEq)]
+        struct Test(#[serde(default)]usize);
+    }
+
+    assert_eq!(Test::schema(), optional(usize::schema()));
+    assert_eq!(Test::type_def(), "number | undefined");
+    assert_eq!(Test::type_name(), "Ns.Test")
 }
