@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+inventory_crate = { version = "0.3.3", package = "inventory", optional = true }
 
 [dev-dependencies]
 serde_json = "1.0.93"
+
+
+[features]
+default = ["inventory"]
+inventory = ["inventory_crate"]
