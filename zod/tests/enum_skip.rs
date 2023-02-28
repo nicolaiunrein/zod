@@ -1,4 +1,4 @@
-use zod::{zod, Codegen, Namespace};
+use zod::{Codegen, Namespace};
 
 mod test_utils;
 // use test_utils::test_case;
@@ -73,7 +73,7 @@ fn serde_skip_enum_only_tuple_field() {
         }
     }
 
-    #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize, zod)]
+    #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize, zod::Zod)]
     #[zod(namespace = "Ns")]
     enum Test2 {
         A(#[serde(skip)] String),
@@ -101,7 +101,7 @@ fn serde_skip_struct_field() {
         }
     }
 
-    #[derive(Debug, PartialEq, serde::Deserialize, zod)]
+    #[derive(Debug, PartialEq, serde::Deserialize, zod::Zod)]
     #[zod(namespace = "Ns")]
     enum TestExpected {
         A { num: usize },

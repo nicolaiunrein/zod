@@ -62,7 +62,7 @@ pub fn optional(inner: impl AsRef<str>) -> String {
 #[macro_export]
 macro_rules! test_case {
     ($($decl: tt)+) => {
-        #[derive(zod, serde::Serialize)]
+        #[derive(zod::Zod, serde::Serialize)]
         #[zod(namespace = "Ns")]
         #[allow(dead_code)]
         $($decl)+

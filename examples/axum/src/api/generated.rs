@@ -13,23 +13,23 @@ impl Pixera {
     const MyEntity2: () = ();
 }
 
-// inventory::submit!(
-// ::zod::rpc::__private::codegen::namespace::NsMember::Interface {
-// ns_name: "Watchout",
-// name: "MyEntity",
-// schema: &<MyEntity as ::zod::Codegen>::schema,
-// type_def: &<MyEntity as ::zod::Codegen>::type_def,
-// }
-// );
+inventory::submit!(
+    ::zod::rpc::__private::codegen::namespace::NsMember::Interface {
+        ns_name: "Watchout",
+        name: "MyEntity",
+        schema: &<MyEntity as ::zod::Codegen>::schema,
+        type_def: &<MyEntity as ::zod::Codegen>::type_def,
+    }
+);
 
-// inventory::submit!(
-// ::zod::rpc::__private::codegen::namespace::NsMember::Interface {
-// ns_name: "Pixera",
-// name: "MyEntity2",
-// schema: &<MyEntity2 as ::zod::Codegen>::schema,
-// type_def: &<MyEntity2 as ::zod::Codegen>::type_def,
-// }
-// );
+inventory::submit!(
+    ::zod::rpc::__private::codegen::namespace::NsMember::Interface {
+        ns_name: "Pixera",
+        name: "MyEntity2",
+        schema: &<MyEntity2 as ::zod::Codegen>::schema,
+        type_def: &<MyEntity2 as ::zod::Codegen>::type_def,
+    }
+);
 
 impl ::zod::rpc::__private::codegen::namespace::Namespace for Watchout {
     type Req = WatchoutReq;

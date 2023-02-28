@@ -1,29 +1,29 @@
 use futures::{Stream, StreamExt};
-use zod::zod;
+use zod::Zod;
 
 mod generated;
 
-#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Watchout")]
 pub struct T(usize);
 
 mod nested_mod {
     use super::*;
 
-    #[derive(serde::Serialize, serde::Deserialize, zod)]
+    #[derive(serde::Serialize, serde::Deserialize, Zod)]
     #[zod(namespace = "Watchout")]
     pub struct MyEntity {
         value: MyEntity2,
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Pixera")]
 pub struct MyEntity2 {
     value: usize,

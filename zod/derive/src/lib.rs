@@ -10,7 +10,7 @@ use proc_macro_error::proc_macro_error;
 use serde_derive_internals::Derive;
 
 #[proc_macro_error]
-#[proc_macro_derive(zod, attributes(zod))]
+#[proc_macro_derive(Zod, attributes(zod))]
 pub fn zod(input: TokenStream) -> TokenStream {
     let parsed = match syn::parse(input) {
         Ok(parsed) => parsed,

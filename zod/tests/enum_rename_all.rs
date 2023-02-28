@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use zod::{zod, Codegen, Namespace};
+use zod::{Codegen, Namespace};
 
 mod test_utils;
 // use test_utils::test_case;

@@ -1,6 +1,6 @@
-use zod::zod;
+use zod::Zod;
 
-#[derive(zod)]
+#[derive(Zod)]
 struct Test(usize);
 
 fn main() {}

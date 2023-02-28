@@ -1,5 +1,5 @@
 mod test_utils;
-use zod::{zod, Codegen, Namespace};
+use zod::{Codegen, Namespace};
 
 #[test]
 fn serde_skip_enum_tuple_variant() {

@@ -1,7 +1,7 @@
-use zod::zod;
 use zod::Namespace;
+use zod::Zod;
 
-#[derive(zod)]
+#[derive(Zod)]
 #[zod(namespace = "Ns")]
 struct Test;
 

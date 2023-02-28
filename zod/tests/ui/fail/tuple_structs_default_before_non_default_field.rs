@@ -1,7 +1,7 @@
-use zod::zod;
 use zod::Namespace;
+use zod::Zod;
 
-#[derive(zod, serde::Deserialize)]
+#[derive(Zod, serde::Deserialize)]
 #[zod(namespace = "Ns")]
 struct Test(#[serde(default)] String, String);
 

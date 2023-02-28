@@ -1,4 +1,4 @@
-use zod::{zod, Codegen, Namespace};
+use zod::{Codegen, Namespace, Zod};
 
 mod test_utils;
 
@@ -12,13 +12,13 @@ fn serde_flatten_struct() {
             false_value: bool
         }
 
-        #[derive(serde::Deserialize, serde::Serialize, zod)]
+        #[derive(serde::Deserialize, serde::Serialize, Zod)]
         #[zod(namespace = "Ns")]
         struct Nested {
             true_value: bool
         }
 
-        #[derive(serde::Deserialize, serde::Serialize, zod)]
+        #[derive(serde::Deserialize, serde::Serialize, Zod)]
         #[zod(namespace = "Ns")]
         struct Base{
             false_value: bool

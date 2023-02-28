@@ -3,18 +3,20 @@ use futures::{
     Stream, StreamExt,
 };
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-use zod::rpc::{clients::WebsocketClient, Backend, Request, Response, SubscriberMap};
-use zod::zod;
+use zod::{
+    rpc::{clients::WebsocketClient, Backend, Request, Response, SubscriberMap},
+    Zod,
+};
 
 mod generated;
 
-#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, zod)]
+#[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Pixera")]
 pub struct MyEntity2 {
     value: usize,

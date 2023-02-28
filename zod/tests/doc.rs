@@ -1,9 +1,9 @@
 use paste::paste;
 use pretty_assertions::assert_eq;
-use zod::{zod, Codegen, Namespace};
+use zod::{Codegen, Namespace, Zod};
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum SingleVariantUnit {
@@ -11,7 +11,7 @@ enum SingleVariantUnit {
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum MultiVariantUnit {
@@ -20,7 +20,7 @@ enum MultiVariantUnit {
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum SingleVariantTuple {
@@ -28,7 +28,7 @@ enum SingleVariantTuple {
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum MultiVariantTuple {
@@ -37,7 +37,7 @@ enum MultiVariantTuple {
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum SingleVariantStruct {
@@ -45,7 +45,7 @@ enum SingleVariantStruct {
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum MultiVariantStruct {
@@ -54,25 +54,25 @@ enum MultiVariantStruct {
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 struct Newtype(usize);
 
 // TODO
 // /// Hello World
-// #[derive(zod, serde::Serialize)]
+// #[derive(Zod, serde::Serialize)]
 // #[zod(namespace = "Ns")]
 // struct TupleStructMulti(usize, String);
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 struct StructSingle {
     num: usize,
 }
 
 /// Hello World
-#[derive(zod, serde::Serialize)]
+#[derive(Zod, serde::Serialize)]
 #[zod(namespace = "Ns")]
 struct StructMulti {
     num: usize,
