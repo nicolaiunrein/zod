@@ -24,11 +24,9 @@ It also generates bindings using the `zod` typescript library.
 
 - [x] implement tuple structs as z.tuple()
 - [x] Restrict non-default fields in tuple structs to only come before the first default field
+- [x] create namespace macro
 - [ ] Consider to allow the use of generics otherwise force implementors to not have generics
 - [ ] RPC macros
-- [ ] create namespace macro
-
-
 
 ## Points to consider?
 - flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.
