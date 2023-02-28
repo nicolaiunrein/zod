@@ -1,6 +1,5 @@
-# Remotely
-**simple and safe typescript RPC for rust**
-
+# Zod
+**generate [zod](https://github.com/colinhacks/zod) schemas from your Rust types and call your function from typescript clients**
 ## Overview
 Remotely generates all the code neccessary to call rust functions from typescript.
 It also generates bindings using the `zod` typescript library.
