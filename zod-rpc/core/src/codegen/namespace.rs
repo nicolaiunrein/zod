@@ -5,7 +5,7 @@ pub trait Namespace: zod_core::Namespace {
 
     fn code() -> String {
         let members =
-            || inventory::iter::<NsMember>().filter(|member| member.ns_name() == Self::NAME);
+            || inventory::iter::<RpcMember>().filter(|member| member.ns_name() == Self::NAME);
 
         let member_code = members().map(|member| member.decl()).collect::<String>();
 
@@ -13,7 +13,7 @@ pub trait Namespace: zod_core::Namespace {
     }
 }
 
-pub enum NsMember {
+pub enum RpcMember {
     Interface {
         ns_name: &'static str,
         name: &'static str,
@@ -34,12 +34,12 @@ pub enum NsMember {
     },
 }
 
-inventory::collect!(NsMember);
+inventory::collect!(RpcMember);
 
-impl NsMember {
+impl RpcMember {
     pub fn decl(&self) -> String {
         match self {
-            NsMember::Interface {
+            RpcMember::Interface {
                 name,
                 schema,
                 type_def,
@@ -52,7 +52,7 @@ impl NsMember {
                 let interface_export = format!("export interface {name} {type_def}");
                 format!("{schema_export}\n{interface_export}")
             }
-            NsMember::Method {
+            RpcMember::Method {
                 name,
                 args,
                 res,
@@ -83,7 +83,7 @@ impl NsMember {
                 }};"
                 )
             }
-            NsMember::Stream {
+            RpcMember::Stream {
                 name,
                 args,
                 res,
@@ -119,9 +119,9 @@ impl NsMember {
 
     pub fn ns_name(&self) -> &str {
         match self {
-            NsMember::Interface { ns_name, .. } => ns_name,
-            NsMember::Method { ns_name, .. } => ns_name,
-            NsMember::Stream { ns_name, .. } => ns_name,
+            RpcMember::Interface { ns_name, .. } => ns_name,
+            RpcMember::Method { ns_name, .. } => ns_name,
+            RpcMember::Stream { ns_name, .. } => ns_name,
         }
     }
 }

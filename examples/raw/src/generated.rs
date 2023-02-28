@@ -14,7 +14,7 @@ impl Pixera {
 }
 
 inventory::submit!(
-    ::zod::rpc::__private::codegen::namespace::NsMember::Interface {
+    ::zod::rpc::__private::codegen::namespace::RpcMember::Interface {
         ns_name: "Watchout",
         name: "MyEntity",
         schema: &<MyEntity as zod::Codegen>::schema,
@@ -23,7 +23,7 @@ inventory::submit!(
 );
 
 inventory::submit!(
-    ::zod::rpc::__private::codegen::namespace::NsMember::Interface {
+    ::zod::rpc::__private::codegen::namespace::RpcMember::Interface {
         ns_name: "Pixera",
         name: "MyEntity2",
         schema: &<MyEntity2 as zod::Codegen>::schema,
@@ -48,7 +48,7 @@ impl ::zod::Namespace for Pixera {
 }
 
 inventory::submit!(
-    ::zod::rpc::__private::codegen::namespace::NsMember::Method {
+    ::zod::rpc::__private::codegen::namespace::RpcMember::Method {
         ns_name: "Watchout",
         name: "hello",
         args: &|| vec![
@@ -69,7 +69,7 @@ inventory::submit!(
 );
 
 inventory::submit!(
-    ::zod::rpc::__private::codegen::namespace::NsMember::Method {
+    ::zod::rpc::__private::codegen::namespace::RpcMember::Method {
         ns_name: "Watchout",
         name: "nested",
         args: &|| vec![(
@@ -83,7 +83,7 @@ inventory::submit!(
 );
 
 inventory::submit!(
-    ::zod::rpc::__private::codegen::namespace::NsMember::Stream {
+    ::zod::rpc::__private::codegen::namespace::RpcMember::Stream {
         ns_name: "Watchout",
         name: "hello_stream",
         args: &|| vec![(
