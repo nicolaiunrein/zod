@@ -4,7 +4,7 @@ use super::args;
 use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
-use serde_derive_internals::ast;
+use serde_derive_internals::ast::{self, Field};
 use syn::spanned::Spanned;
 
 fn qualified_ty(ty: &syn::Type) -> proc_macro2::TokenStream {
@@ -28,121 +28,95 @@ pub fn expand(
         ast::Data::Struct(_, fields) => fields,
     };
 
-    let field_schemas = expand_schemas(transparent, &fields, &fields_ast);
-    let flattened_field_schemas =
-        expand_flattened_fields_schemas(transparent, &fields, &fields_ast);
+    let schema = expand_schema(transparent, &fields, &fields_ast);
+    let type_def = expand_type_def(transparent, &fields, &fields_ast);
 
+    quote! {
+        impl remotely_zod::Codegen for #ident {
+            fn schema() -> String {
+                #schema
+            }
+
+            fn type_def() -> String {
+                #type_def
+            }
+
+            fn type_name() -> String {
+                format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #name)
+            }
+
+            fn docs() -> Option<&'static str> {
+                Some(#docs)
+            }
+        }
+    }
+}
+
+fn expand_type_def(
+    transparent: bool,
+    fields: &Fields<args::StructField>,
+    fields_ast: &[Field],
+) -> TokenStream {
     let field_type_defs = expand_type_defs(transparent, &fields, &fields_ast);
 
     let flattened_field_type_defs =
         expand_flattened_field_type_defs(transparent, &fields, &fields_ast);
 
-    match (fields.style, transparent) {
-        (Style::Tuple, false) => {
-            let schema = field_schemas
-                .first()
-                .or_else(|| flattened_field_schemas.first())
-                .expect("Newtype");
-
-            let type_def = field_type_defs
-                .first()
-                .or_else(|| flattened_field_type_defs.first())
-                .expect("Newtype");
-
-            quote! {
-                impl remotely_zod::Codegen for #ident {
-                    fn schema() -> String {
-                        #schema
-                    }
-
-                    fn type_def() -> String {
-                        #type_def
-                    }
-
-                    fn type_name() -> String {
-                        format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #name)
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
+    if transparent {
+        field_type_defs
+            .into_iter()
+            .next()
+            .expect("At least one field")
+    } else {
+        match fields.style {
+            Style::Tuple => field_type_defs
+                .into_iter()
+                .next()
+                .or_else(|| flattened_field_type_defs.into_iter().next())
+                .expect("Newtype"),
+            Style::Struct => {
+                quote! {
+                    let fields: Vec<String> = vec![#(#field_type_defs),*];
+                    let extensions: Vec<String> = vec![#(#flattened_field_type_defs),*];
+                    format!("{{{}}}{}", fields.join(",\n"), extensions.join(""))
                 }
             }
+
+            Style::Unit => unreachable!(),
         }
-        (Style::Struct, false) => {
-            quote! {
-                impl remotely_zod::Codegen for #ident {
-                    fn schema() -> String {
-                        let fields: Vec<String> = vec![#(#field_schemas),*];
-                        let extensions: Vec<String> = vec![#(#flattened_field_schemas),*];
-                        format!("z.object({{{}}}){}", fields.join(",\n"), extensions.join(""))
-                    }
+    }
+}
 
-                    fn type_def() -> String {
-                        let fields: Vec<String> = vec![#(#field_type_defs),*];
-                        let extensions: Vec<String> = vec![#(#flattened_field_type_defs),*];
-                        format!("{{{}}}{}", fields.join(",\n"), extensions.join(""))
-                    }
-
-                    fn type_name() -> String {
-                        format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #name)
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
+fn expand_schema(
+    transparent: bool,
+    fields: &Fields<args::StructField>,
+    fields_ast: &[Field],
+) -> TokenStream {
+    let field_schemas = expand_schemas(transparent, &fields, &fields_ast);
+    let flattened_field_schemas =
+        expand_flattened_fields_schemas(transparent, &fields, &fields_ast);
+    if transparent {
+        field_schemas
+            .into_iter()
+            .next()
+            .expect("At least one field")
+    } else {
+        match fields.style {
+            Style::Tuple => field_schemas
+                .into_iter()
+                .next()
+                .or_else(|| flattened_field_schemas.into_iter().next())
+                .expect("Newtype"),
+            Style::Struct => {
+                quote! {
+                    let fields: Vec<String> = vec![#(#field_schemas),*];
+                    let extensions: Vec<String> = vec![#(#flattened_field_schemas),*];
+                    format!("z.object({{{}}}){}", fields.join(",\n"), extensions.join(""))
                 }
             }
+
+            Style::Unit => unreachable!(),
         }
-
-        (Style::Tuple, true) => {
-            let schema = field_schemas.first().expect("Newtype");
-            let type_def = field_type_defs.first().expect("Newtype");
-            quote! {
-                impl remotely_zod::Codegen for #ident {
-                    fn schema() -> String {
-                        format!("{}", #schema)
-                    }
-
-                    fn type_def() -> String {
-                        format!("{}", #type_def)
-                    }
-
-                    fn type_name() -> String {
-                        format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #name)
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
-                }
-            }
-        }
-        (Style::Struct, true) => {
-            let schema = field_schemas.first().expect("At least one field");
-            let type_def = field_type_defs.first().expect("At least one field");
-            quote! {
-                impl remotely_zod::Codegen for #ident {
-                    fn schema() -> String {
-                        #schema
-                    }
-
-                    fn type_def() -> String {
-                        #type_def
-                    }
-
-                    fn type_name() -> String {
-                        format!("{}.{}", <#ns_path as remotely::__private::codegen::namespace::Namespace>::NAME, #name)
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
-                }
-            }
-        }
-
-        (Style::Unit, _) => unreachable!(),
     }
 }
 
