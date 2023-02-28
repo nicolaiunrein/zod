@@ -34,3 +34,13 @@ pub struct EnumField {
     pub ident: Option<syn::Ident>,
     pub ty: Type,
 }
+
+#[derive(FromDeriveInput)]
+#[darling(attributes(namespace), forward_attrs(allow, doc, cfg))]
+pub struct NamespaceInput {
+    pub ident: syn::Ident,
+    pub data: Data<EnumVariant, StructField>,
+    pub name: Option<String>,
+    pub attrs: Vec<Attribute>,
+    pub generics: syn::Generics,
+}

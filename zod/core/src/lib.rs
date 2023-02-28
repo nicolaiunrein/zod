@@ -16,6 +16,10 @@ pub trait Codegen {
 pub trait Namespace {
     const NAME: &'static str;
 
+    fn docs() -> Option<&'static str> {
+        None
+    }
+
     // fn code() -> String {
     // let members =
     // || inventory::iter::<NsMember>().filter(|member| member.ns_name() == Self::NAME);

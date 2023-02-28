@@ -39,15 +39,6 @@ impl ::zod::rpc::__private::codegen::namespace::Namespace for Pixera {
     type Req = PixeraReq;
 }
 
-// this should be implemented by user
-impl ::zod::Namespace for Watchout {
-    const NAME: &'static str = "Watchout";
-}
-
-impl ::zod::Namespace for Pixera {
-    const NAME: &'static str = "Pixera";
-}
-
 inventory::submit!(
     ::zod::rpc::__private::codegen::namespace::NsMember::Method {
         ns_name: "Watchout",

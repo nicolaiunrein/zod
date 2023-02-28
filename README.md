@@ -24,6 +24,7 @@ It also generates bindings using the `zod` typescript library.
 
 - [x] implement tuple structs as z.tuple()
 - [x] Restrict non-default fields in tuple structs to only come before the first default field
+- [ ] Consider to allow the use of generics otherwise force implementors to not have generics
 - [ ] RPC macros
 - [ ] create namespace macro
 

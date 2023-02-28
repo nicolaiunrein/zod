@@ -29,10 +29,13 @@ pub struct MyEntity2 {
     value: usize,
 }
 
+#[derive(zod::Namespace)]
+#[namespace(name = "abc")]
 pub struct Watchout {
     pub shared_data: usize,
 }
 
+#[derive(zod::Namespace)]
 pub struct Pixera {
     pub shared_data: usize,
 }
