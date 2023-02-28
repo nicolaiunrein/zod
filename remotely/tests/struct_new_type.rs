@@ -1,6 +1,8 @@
-use remotely::{test_case, zod};
+use remotely::zod;
 use remotely_core::codegen::namespace::Namespace;
 use remotely_zod::Codegen;
+
+mod test_utils;
 
 fn main() {}
 

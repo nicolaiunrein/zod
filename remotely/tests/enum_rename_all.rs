@@ -1,8 +1,10 @@
 use pretty_assertions::assert_eq;
-use remotely::test_case;
 use remotely::zod;
 use remotely_core::codegen::namespace::Namespace;
 use remotely_zod::Codegen;
+
+mod test_utils;
+// use test_utils::test_case;
 
 fn main() {}
 

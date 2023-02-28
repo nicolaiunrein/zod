@@ -1,7 +1,9 @@
-use remotely::test_case;
 use remotely::zod;
 use remotely_core::codegen::namespace::Namespace;
 use remotely_zod::Codegen;
+
+mod test_utils;
+// use test_utils::test_case;
 
 #[test]
 fn serde_skip_enum_tuple_variant() {
