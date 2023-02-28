@@ -177,3 +177,52 @@ impl<K: Codegen, V: Codegen> Codegen for std::collections::HashMap<K, V> {
         format!("Map<{}, {}>", K::type_def(), V::type_def())
     }
 }
+
+impl<T: Codegen> Codegen for Option<T> {
+    fn schema() -> String {
+        format!("{}.optional()", T::schema())
+    }
+
+    fn type_def() -> String {
+        format!("({} | undefined)", T::type_def())
+    }
+}
+
+impl<T: Codegen, E: Codegen> Codegen for Result<T, E> {
+    fn schema() -> String {
+        format!(
+            "z.union([z.object({{ Ok: {} }}), z.object({{ Err: {} }})])",
+            T::schema(),
+            E::schema()
+        )
+    }
+
+    fn type_def() -> String {
+        format!("{{ Ok: {} }} | {{ Err: {} }}", T::type_def(), E::type_def())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Codegen;
+
+    #[test]
+    fn result_ok() {
+        type Res = Result<usize, String>;
+        let res_ok: Result<usize, String> = Ok(1);
+        let res_err: Result<usize, String> = Err(String::from("abc"));
+        let json_ok = serde_json::to_value(&res_ok).unwrap();
+        let json_err = serde_json::to_value(&res_err).unwrap();
+        assert_eq!(json_ok, serde_json::json!({"Ok": 1}));
+        assert_eq!(json_err, serde_json::json!({"Err": "abc"}));
+
+        assert_eq!(
+            Res::schema(),
+            format!(
+                "z.union([z.object({{ Ok: {} }}), z.object({{ Err: {} }})])",
+                usize::schema(),
+                String::schema(),
+            )
+        )
+    }
+}
