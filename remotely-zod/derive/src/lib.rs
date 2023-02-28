@@ -1,11 +1,13 @@
+mod args;
+mod docs;
+mod impl_enum;
+mod impl_struct;
+
 use darling::{ast::Data, FromDeriveInput};
+use docs::RustDocs;
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
 use serde_derive_internals::Derive;
-
-mod args;
-mod impl_enum;
-mod impl_struct;
 
 #[proc_macro_error]
 #[proc_macro_derive(zod, attributes(zod))]
@@ -25,6 +27,13 @@ pub fn zod(input: TokenStream) -> TokenStream {
 
     cx.check().unwrap();
 
+    let docs = match RustDocs::from_attrs(&parsed.attrs) {
+        Ok(docs) => docs,
+        Err(err) => {
+            return err.into_compile_error().into();
+        }
+    };
+
     let input = match args::Input::from_derive_input(&parsed) {
         Ok(input) => input,
         Err(err) => {
@@ -33,8 +42,8 @@ pub fn zod(input: TokenStream) -> TokenStream {
     };
 
     let expanded = match input.data.clone() {
-        Data::Enum(e) => impl_enum::expand(input, e, container),
-        Data::Struct(e) => impl_struct::expand(input, e, container),
+        Data::Enum(e) => impl_enum::expand(input, &e, container, docs),
+        Data::Struct(e) => impl_struct::expand(input, e, container, docs),
     };
     expanded.into()
 }

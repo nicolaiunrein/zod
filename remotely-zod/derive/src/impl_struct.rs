@@ -1,4 +1,4 @@
-use crate::args::get_rustdoc;
+use crate::docs::RustDocs;
 
 use super::args;
 use darling::ast::{Fields, Style};
@@ -15,6 +15,7 @@ pub fn expand(
     input: args::Input,
     fields: Fields<args::StructField>,
     serde_ast: ast::Container,
+    docs: RustDocs,
 ) -> proc_macro2::TokenStream {
     let transparent = serde_ast.attrs.transparent();
 
@@ -35,20 +36,6 @@ pub fn expand(
 
     let flattened_field_type_defs =
         expand_flattened_field_type_defs(transparent, &fields, &fields_ast);
-
-    let docs = match get_rustdoc(&input.attrs) {
-        Ok(Some(docs)) => {
-            let docs = format!(
-                "/**\n{}*/\n",
-                docs.lines()
-                    .map(|line| format!("* {}\n", line))
-                    .collect::<String>()
-            );
-            quote!(#docs)
-        }
-        Ok(None) => quote!(""),
-        Err(err) => err.into_compile_error(),
-    };
 
     match (fields.style, transparent) {
         (Style::Tuple, false) => {

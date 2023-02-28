@@ -1,7 +1,7 @@
 mod field;
 mod variant;
 
-use crate::args::get_rustdoc;
+use crate::docs::RustDocs;
 use variant::Variant;
 
 use super::args;
@@ -15,43 +15,51 @@ use serde_derive_internals::{
 
 pub fn expand(
     input: args::Input,
-    variants: Vec<args::EnumVariant>,
+    variants: &[args::EnumVariant],
     serde_ast: ast::Container,
+    docs: RustDocs,
 ) -> TokenStream {
     let variant_ast = match serde_ast.data {
         Data::Enum(ref variants) => variants,
         Data::Struct(_, _) => unreachable!(),
     };
 
+    let name = serde_ast.attrs.name().deserialize_name();
+    let tag = serde_ast.attrs.tag().clone();
+
     let variants = variants
         .into_iter()
         .zip(variant_ast.iter())
         .filter(|(_, ast)| !ast.attrs.skip_deserializing())
-        .map(|(var, _)| var)
+        .map(|(v, ast)| Variant::new(v, &serde_ast, &ast))
         .collect();
 
     Enum {
         input,
         variants,
-        serde_ast,
+        name,
+        tag,
+        docs,
     }
     .expand()
 }
 
 struct Enum<'a> {
     input: args::Input,
-    variants: Vec<args::EnumVariant>,
-    serde_ast: ast::Container<'a>,
+    variants: Vec<Variant<'a>>,
+    name: String,
+    tag: &'a TagType,
+    docs: RustDocs,
 }
 
 impl<'a> Enum<'a> {
     pub fn expand(&self) -> TokenStream {
         let ident = &self.input.ident;
-        let name = self.serde_ast.attrs.name().deserialize_name();
+        let name = &self.name;
         let ns_path = &self.input.namespace;
+        let docs = &self.docs;
         let schema = self.expand_schema();
         let type_def = self.expand_typ_defs();
-        let docs = self.docs();
 
         quote! {
             impl remotely_zod::Codegen for #ident {
@@ -84,10 +92,11 @@ impl<'a> Enum<'a> {
     fn expand_schema(&self) -> TokenStream {
         match self.variants.len() {
             0 => self.abort_empty(),
-            1 => self.variants().next().expect("one variant").expand_schema(),
+            1 => self.variants.first().expect("one variant").expand_schema(),
             _ => {
-                let expanded_variant_schemas = self.variants().map(|v| v.expand_schema());
-                match self.serde_ast.attrs.tag() {
+                let expanded_variant_schemas = self.variants.iter().map(|v| v.expand_schema());
+
+                match self.tag {
                     TagType::External => {
                         quote! {
                             let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
@@ -115,12 +124,12 @@ impl<'a> Enum<'a> {
         match self.variants.len() {
             0 => self.abort_empty(),
             1 => self
-                .variants()
-                .next()
+                .variants
+                .first()
                 .expect("one variant")
                 .expand_type_def(),
             _ => {
-                let expanded_variant_type_defs = self.variants().map(|v| v.expand_type_def());
+                let expanded_variant_type_defs = self.variants.iter().map(|v| v.expand_type_def());
 
                 quote! {
                     let type_defs: std::vec::Vec<String> = vec![#(#expanded_variant_type_defs),*];
@@ -128,35 +137,5 @@ impl<'a> Enum<'a> {
                 }
             }
         }
-    }
-
-    fn docs(&self) -> TokenStream {
-        match get_rustdoc(&self.input.attrs) {
-            Ok(Some(docs)) => {
-                let docs = format!(
-                    "/**\n{}*/\n",
-                    docs.lines()
-                        .map(|line| format!("* {}\n", line))
-                        .collect::<String>()
-                );
-                quote!(#docs)
-            }
-            Ok(None) => quote!(""),
-            Err(err) => err.into_compile_error(),
-        }
-    }
-
-    fn serde_variants(&'a self) -> impl Iterator<Item = &serde_derive_internals::ast::Variant<'a>> {
-        match &self.serde_ast.data {
-            Data::Enum(variants) => variants.iter().filter(|v| !v.attrs.skip_deserializing()),
-            Data::Struct(_, _) => unreachable!(),
-        }
-    }
-
-    fn variants(&'a self) -> impl Iterator<Item = Variant<'a>> {
-        self.variants
-            .iter()
-            .zip(self.serde_variants().into_iter())
-            .map(|(v, vars)| Variant::new(v, &self.serde_ast, vars))
     }
 }

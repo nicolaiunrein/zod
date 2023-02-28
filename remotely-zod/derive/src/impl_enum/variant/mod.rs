@@ -27,18 +27,17 @@ impl<'a> Variant<'a> {
     ) -> Self {
         let ident = &variant.ident;
         let fields = field::VariantFields::new(variant, serde_variant);
+        let name = serde_variant.attrs.name().deserialize_name();
+        let tag = serde_ast.attrs.tag();
+        let span = ident.span();
 
         match variant.fields.style {
-            Style::Unit => Self::Unit(UnitVariant {
-                ident,
-                serde_ast,
-                attrs: &serde_variant.attrs,
-            }),
+            Style::Unit => Self::Unit(UnitVariant { span, tag, name }),
             Style::Tuple => Self::Tuple(TupleVariant {
-                ident,
+                span,
+                tag,
+                name,
                 fields,
-                serde_ast,
-                attrs: &serde_variant.attrs,
             }),
             Style::Struct => Self::Struct(StructVariant {
                 ident,
