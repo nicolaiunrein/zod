@@ -24,10 +24,12 @@ It also generates bindings using the `zod` typescript library.
 
 - [x] implement tuple structs as z.tuple()
 - [x] Restrict non-default fields in tuple structs to only come before the first default field
-- [ ] implement missing tags on newtype enums containing objects
 - [ ] RPC macros
 
 
 
 ## Points to consider?
 - flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.
+
+## Contributing
+Contribution is more than welcome. This crate is extensively tested but there are a lot of edge-cases. If you find anything that is not working but should, please let meknow.
