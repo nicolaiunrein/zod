@@ -97,77 +97,66 @@ impl<'a> Struct<'a> {
     }
 
     fn expand_type_def(&self) -> TokenStream {
-        let (flattened_field_type_defs, field_type_defs) =
-            self.fields.iter().partition::<Vec<_>, _>(|f| f.flatten);
+        let (flat_fields, fields) = self.fields.iter().partition::<Vec<_>, _>(|f| f.flatten);
 
-        if self.transparent {
-            field_type_defs
+        match (self.transparent, self.style) {
+            (true, _) => fields
                 .into_iter()
                 .next()
                 .expect("At least one field")
-                .expand_type_defs()
-        } else {
-            match self.style {
-                Style::Tuple => field_type_defs
-                    .into_iter()
-                    .next()
-                    .or_else(|| flattened_field_type_defs.into_iter().next())
-                    .expect("Newtype")
-                    .expand_type_defs(),
+                .expand_type_defs(),
 
-                Style::Struct => {
-                    let field_type_defs = field_type_defs.into_iter().map(|f| f.expand_type_defs());
-                    let flattened_field_type_defs = flattened_field_type_defs
-                        .into_iter()
-                        .map(|f| f.expand_type_defs());
+            (false, Style::Tuple) => fields
+                .into_iter()
+                .next()
+                .or_else(|| flat_fields.into_iter().next())
+                .expect("Newtype")
+                .expand_type_defs(),
 
-                    quote! {
-                        let fields: Vec<String> = vec![#(#field_type_defs),*];
-                        let extensions: Vec<String> = vec![#(#flattened_field_type_defs),*];
-                        format!("{{{}}}{}", fields.join(",\n"), extensions.join(""))
-                    }
+            (false, Style::Struct) => {
+                let fields = fields.into_iter().map(|f| f.expand_type_defs());
+                let flat_fields = flat_fields.into_iter().map(|f| f.expand_type_defs());
+
+                quote! {
+                    let fields: Vec<String> = vec![#(#fields),*];
+                    let extensions: Vec<String> = vec![#(#flat_fields),*];
+                    format!("{{{}}}{}", fields.join(",\n"), extensions.join(""))
                 }
-
-                Style::Unit => unreachable!(),
             }
+
+            (false, Style::Unit) => unreachable!(),
         }
     }
 
     fn expand_schema(&self) -> TokenStream {
-        let (flattened_field_schemas, field_schemas): (Vec<_>, Vec<_>) =
-            self.fields.iter().partition(|f| f.flatten);
+        let (flat_fields, fields) = self.fields.iter().partition::<Vec<_>, _>(|f| f.flatten);
 
-        if self.transparent {
-            field_schemas
+        match (self.transparent, self.style) {
+            (true, _) => fields
                 .into_iter()
                 .next()
                 .expect("At least one field")
-                .expand_schema()
-        } else {
-            match self.style {
-                Style::Tuple => field_schemas
-                    .into_iter()
-                    .next()
-                    .or_else(|| flattened_field_schemas.into_iter().next())
-                    .expect("Newtype")
-                    .expand_schema(),
+                .expand_schema(),
 
-                Style::Struct => {
-                    let field_schemas = field_schemas.into_iter().map(|f| f.expand_schema());
+            (false, Style::Tuple) => fields
+                .into_iter()
+                .next()
+                .or_else(|| flat_fields.into_iter().next())
+                .expect("Newtype")
+                .expand_schema(),
 
-                    let flattened_field_schemas = flattened_field_schemas
-                        .into_iter()
-                        .map(|f| f.expand_schema());
+            (false, Style::Struct) => {
+                let fields = fields.into_iter().map(|f| f.expand_schema());
+                let flat_fields = flat_fields.into_iter().map(|f| f.expand_schema());
 
-                    quote! {
-                        let fields: Vec<String> = vec![#(#field_schemas),*];
-                        let extensions: Vec<String> = vec![#(#flattened_field_schemas),*];
-                        format!("z.object({{{}}}){}", fields.join(",\n"), extensions.join(""))
-                    }
+                quote! {
+                    let fields: Vec<String> = vec![#(#fields),*];
+                    let extensions: Vec<String> = vec![#(#flat_fields),*];
+                    format!("z.object({{{}}}){}", fields.join(",\n"), extensions.join(""))
                 }
-
-                Style::Unit => unreachable!(),
             }
+
+            (false, Style::Unit) => unreachable!(),
         }
     }
 }
