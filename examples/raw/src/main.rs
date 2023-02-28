@@ -2,9 +2,9 @@ use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     Stream, StreamExt,
 };
-use remotely::zod;
-use remotely::{clients::WebsocketClient, Backend, Request, Response, SubscriberMap};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use zod::rpc::{clients::WebsocketClient, Backend, Request, Response, SubscriberMap};
+use zod::zod;
 
 mod generated;
 

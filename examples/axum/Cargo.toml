@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-remotely = { path = "../../remotely" }
-remotely-zod = { path = "../../remotely-zod" }
+zod-rpc = { path = "../../zod-rpc" }
+zod = { path = "../../zod" }
 
 async-trait = "0.1.64"
 axum = { version = "0.6.7", features = ["ws"] }

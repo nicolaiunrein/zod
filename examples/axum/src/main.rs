@@ -1,11 +1,12 @@
 mod api;
 use api::MyBackend;
 use axum::{extract::Extension, routing::get, Router, Server};
-use remotely::{
+use zod::rpc::{
     clients::WebsocketClient,
     servers::{axum::websocket_handler, proxy::BackendProxy},
-    Backend, Codegen,
+    Backend,
 };
+
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[tokio::main]

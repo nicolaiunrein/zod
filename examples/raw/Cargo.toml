@@ -5,8 +5,7 @@ edition = "2021"
 
 [dependencies]
 
-remotely = { path = "../../remotely" }
-remotely-zod = { path = "../../remotely-zod" }
+zod = { path = "../../zod" }
 
 async-trait = "0.1.64"
 futures = "0.3.26"

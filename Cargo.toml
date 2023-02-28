@@ -1,10 +1,11 @@
 [workspace]
 members = [
-    "remotely",
-    "remotely-core",
-    "remotely-derive",
-    "remotely-zod",
-    "remotely-zod/derive",
+    "zod",
+    "zod/core",
+    "zod/derive",
+    "zod-rpc",
+    "zod-rpc/core",
+    # "zod-rpc/derive",
     "examples/axum",
     "examples/raw"
 ]

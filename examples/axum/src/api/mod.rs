@@ -1,5 +1,5 @@
 use futures::{Stream, StreamExt};
-use remotely::zod;
+use zod::zod;
 
 mod generated;
 
