@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-use crate::args::{self, get_private, RpcItemKind};
+use crate::args::{self, get_private, get_zod, RpcArg, RpcItemKind};
 
 pub fn expand(input: args::RpcInput) -> TokenStream {
     let __private = get_private();
@@ -13,6 +13,10 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
 
     let req_variant_defs = input.items.iter().map(expand_req_variant_decl);
     let req_variant_impls = input.items.iter().map(|item| expand_req_variant_impl(item));
+    let inventory_submits = input
+        .items
+        .iter()
+        .map(|item| expand_inventory_submit(&ident, item));
 
     quote! {
         impl #__private::codegen::Rpc for #ident {
@@ -40,12 +44,53 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
                 }
             }
         }
+
+        #(#inventory_submits)*
+    }
+}
+
+pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenStream {
+    let __private = get_private();
+    let zod = get_zod();
+    let name = item.ident.to_string();
+
+    let args = item
+        .arg_types
+        .iter()
+        .map(|RpcArg { ty, name }| quote!(#__private::codegen::RpcArgument::new::<#ty>(#name)));
+
+    // Todo output
+
+    match item.kind {
+        RpcItemKind::Method => quote! {
+            #__private::inventory::submit!(#__private::codegen::RpcMember::Method {
+                ns_name: <#ns_ident as #zod::Namespace>::NAME,
+                name: #name,
+                args: &|| vec![
+                    #(#args),*
+                ],
+                res: &<usize as ::zod::ZodType>::type_def,
+            });
+
+        },
+        RpcItemKind::Stream => {
+            quote! {
+                #__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Stream {
+                    ns_name: <#ns_ident as ::zod::Namespace>::NAME,
+                    name: #name,
+                    args: &|| vec![
+                        #(#args),*
+                    ],
+                    res: &<usize as ::zod::ZodType>::type_def,
+                });
+            }
+        }
     }
 }
 
 pub fn expand_req_variant_decl(item: &args::RpcItem) -> TokenStream {
     let ident = &item.ident;
-    let arg_types = item.arg_types.iter().map(|arg| quote!(#arg,));
+    let arg_types = item.arg_types.iter().map(|RpcArg { ty, .. }| quote!(#ty,));
     quote! {
         #ident { args: (#(#arg_types)*) }
     }

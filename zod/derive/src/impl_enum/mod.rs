@@ -1,7 +1,7 @@
 mod field;
 mod variant;
 
-use crate::{docs::RustDocs, expand_type_registration};
+use crate::{docs::RustDocs, expand_type_registration, impl_inventory};
 use variant::Variant;
 
 use super::args;
@@ -62,6 +62,7 @@ impl<'a> Enum<'a> {
         let type_def = self.expand_typ_defs();
 
         let type_register = expand_type_registration(ident, ns_path);
+        let inventory = impl_inventory::expand(ident, ns_path, name);
 
         quote! {
             impl ::zod::ZodType for #ident {
@@ -82,6 +83,7 @@ impl<'a> Enum<'a> {
                 }
             }
 
+            #inventory
 
             #type_register
 

@@ -68,8 +68,13 @@ impl RpcInput {
 
 pub struct RpcItem {
     pub ident: syn::Ident,
-    pub arg_types: Vec<Box<Type>>,
+    pub arg_types: Vec<RpcArg>,
     pub kind: RpcItemKind,
+}
+
+pub struct RpcArg {
+    pub name: String,
+    pub ty: Box<Type>,
 }
 
 impl RpcItem {
@@ -89,7 +94,13 @@ impl RpcItem {
             .iter()
             .filter_map(|arg| match arg {
                 syn::FnArg::Receiver(_) => None,
-                syn::FnArg::Typed(t) => Some(t.ty.clone()),
+                syn::FnArg::Typed(t) => Some(RpcArg {
+                    ty: t.ty.clone(),
+                    name: match t.pat.as_ref() {
+                        syn::Pat::Ident(ident) => ident.ident.to_string(),
+                        _ => abort_call_site!("Expected an ident, got {:?}", t.pat),
+                    },
+                }),
             })
             .collect();
 

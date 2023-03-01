@@ -1,13 +1,16 @@
 mod build_ins;
 
+use std::collections::BTreeMap;
+
 pub use build_ins::*;
 
 pub trait ZodType {
     fn schema() -> String;
+    fn type_def() -> String;
+
     fn docs() -> Option<&'static str> {
         None
     }
-    fn type_def() -> String;
     fn type_name() -> String {
         Self::type_def()
     }
@@ -39,6 +42,16 @@ pub struct NamespaceMemberDefinition {
 }
 
 impl NamespaceMemberDefinition {
+    #[doc(hidden)]
+    pub const fn new_for<T: ZodType + 'static>(ns_name: &'static str, name: &'static str) -> Self {
+        Self {
+            ns_name,
+            name,
+            schema: &<T as ZodType>::schema,
+            type_def: &<T as ZodType>::type_def,
+        }
+    }
+
     pub fn namespace(&self) -> &'static str {
         self.ns_name
     }
@@ -52,6 +65,14 @@ impl NamespaceMemberDefinition {
 
     pub fn type_def(&self) -> String {
         (self.type_def)()
+    }
+
+    pub fn collect() -> BTreeMap<&'static str, Vec<&'static NamespaceMemberDefinition>> {
+        let mut out = BTreeMap::<&'static str, Vec<&'static NamespaceMemberDefinition>>::default();
+        for def in inventory_crate::iter::<NamespaceMemberDefinition>() {
+            out.entry(def.namespace()).or_default().push(def);
+        }
+        out
     }
 }
 

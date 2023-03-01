@@ -41,6 +41,9 @@ pub struct Pixera {
 }
 
 #[zod::rpc::rpc]
+impl Pixera {}
+
+#[zod::rpc::rpc]
 impl Watchout {
     pub async fn nested(&mut self, _value: MyEntity) -> usize {
         self.shared_data += 1;

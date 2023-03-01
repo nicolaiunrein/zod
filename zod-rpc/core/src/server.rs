@@ -1,5 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
+
+use zod_core::NamespaceMemberDefinition;
 
 use crate::{
     codegen::{self, RpcMember},
@@ -37,15 +39,26 @@ impl Drop for SubscriberMap {
 
 #[async_trait::async_trait]
 pub trait Backend {
-    fn is_member_of_self(_member: &'static RpcMember) -> bool;
+    const NS_NAMES: &'static [&'static str];
 
-    fn rpc_members() -> HashMap<&'static str, Vec<&'static RpcMember>> {
-        let mut out = HashMap::<&'static str, Vec<&'static RpcMember>>::new();
-        let members =
-            inventory::iter::<RpcMember>().filter(|member| Self::is_member_of_self(member));
+    fn rpc_members() -> HashMap<&'static str, Vec<String>> {
+        let mut out = HashMap::<&'static str, Vec<String>>::new();
+        let members = inventory::iter::<RpcMember>()
+            .filter(|member| Self::NS_NAMES.contains(&member.ns_name()));
 
         for member in members {
-            out.entry(member.ns_name()).or_default().push(member);
+            out.entry(member.ns_name()).or_default().push(member.decl());
+        }
+        out
+    }
+
+    fn zod_namespaces() -> HashMap<&'static str, Vec<&'static NamespaceMemberDefinition>> {
+        let mut out = HashMap::<&'static str, Vec<&'static NamespaceMemberDefinition>>::new();
+        let members = inventory::iter::<NamespaceMemberDefinition>()
+            .filter(|member| Self::NS_NAMES.contains(&member.namespace()));
+
+        for member in members {
+            out.entry(member.namespace()).or_default().push(member);
         }
         out
     }
@@ -54,10 +67,41 @@ pub trait Backend {
     where
         T: codegen::ClientCodegen,
     {
+        let rpc_records = inventory::iter::<RpcMember>()
+            .filter(|member| Self::NS_NAMES.contains(&member.ns_name()))
+            .map(|m| (m.ns_name(), m.decl()));
+
+        let mut records: BTreeMap<&'static str, String> =
+            zod_core::NamespaceMemberDefinition::collect()
+                .into_iter()
+                .filter(|(ns, _)| Self::NS_NAMES.contains(ns))
+                .map(|(ns, defs)| {
+                    (
+                        ns,
+                        defs.into_iter()
+                            .map(|def| {
+                                format!(
+                                    "export const {}Schema = {}\nexport interface {} {}\n\n",
+                                    def.name(),
+                                    def.schema(),
+                                    def.name(),
+                                    def.type_def()
+                                )
+                            })
+                            .collect(),
+                    )
+                })
+                .collect();
+
+        for (name, code) in rpc_records.into_iter() {
+            let s = records.entry(name).or_default();
+            write!(s, "{}", code).unwrap();
+        }
+
         let mut code = T::get();
-        for (ns, members) in Self::rpc_members().into_iter() {
-            let s: String = members.into_iter().map(|member| member.decl()).collect();
-            write!(code, "export namespace {} {{ {} }}", ns, &s).expect("write failed");
+
+        for (ns, ns_code) in records.into_iter() {
+            write!(code, "export namespace {} {{ {} }}", ns, ns_code).expect("write failed");
         }
         code
     }

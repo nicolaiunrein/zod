@@ -41,10 +41,7 @@ fn expand_backend_impl(
     quote! {
         #[async_trait::async_trait]
         impl #__private::server::Backend for #ident {
-            fn is_member_of_self(member: &'static #__private::codegen::RpcMember) -> bool {
-                static NAMES: &'static [&'static str] = &[#(#namespaces),*];
-                NAMES.contains(&member.ns_name())
-            }
+            const NS_NAMES: &'static[&'static str] = &[#(#namespaces),*];
 
             async fn handle_request(
                 &mut self,

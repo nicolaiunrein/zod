@@ -1,6 +1,7 @@
 mod args;
 mod docs;
 mod impl_enum;
+mod impl_inventory;
 mod impl_namespace;
 mod impl_struct;
 

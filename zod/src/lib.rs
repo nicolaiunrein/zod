@@ -5,6 +5,11 @@ pub mod rpc {
     pub use zod_rpc::*;
 }
 
+#[doc(hidden)]
+pub mod __private {
+    pub use inventory;
+}
+
 #[test]
 fn ui() {
     let t = trybuild::TestCases::new();
