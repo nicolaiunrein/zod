@@ -2,8 +2,6 @@ use futures::Stream;
 use futures::StreamExt;
 use zod::Zod;
 
-mod generated;
-
 #[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
 #[zod(namespace = "Watchout")]
 pub struct MyEntity {

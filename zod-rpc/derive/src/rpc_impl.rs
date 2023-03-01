@@ -19,33 +19,36 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
         .map(|item| expand_inventory_submit(&ident, item));
 
     quote! {
-        impl #__private::codegen::Rpc for #ident {
-            type Req = #req_ident;
-        }
+        const _: () = {
+            impl #__private::codegen::RpcNamespace for #ident {
+                type Req = #req_ident;
+            }
 
-        #[derive(#__private::serde::Deserialize, Debug)]
-        #[serde(tag = "method")]
-        #[allow(non_camel_case_types)]
-        #[allow(non_snake_case)]
-        #[allow(non_upper_case_globals)]
-        pub enum #req_ident {
-            #(#req_variant_defs),*
-        }
+            #[derive(#__private::serde::Deserialize, Debug)]
+            #[serde(tag = "method")]
+            #[allow(non_camel_case_types)]
+            #[allow(non_snake_case)]
+            #[allow(non_upper_case_globals)]
+            pub enum #req_ident {
+                #(#req_variant_defs),*
+            }
 
-        impl #req_ident {
-            pub async fn call(
-                self,
-                id: usize,
-                ctx: &mut #ident,
-                sender: #__private::ResponseSender,
-            ) -> ::std::option::Option<#__private::tokio::task::JoinHandle<()>> {
-                match self {
-                    #(#req_variant_impls),*
+            impl #req_ident {
+                pub async fn call(
+                    self,
+                    id: usize,
+                    ctx: &mut #ident,
+                    sender: #__private::ResponseSender,
+                ) -> ::std::option::Option<#__private::tokio::task::JoinHandle<()>> {
+                    match self {
+                        #(#req_variant_impls),*
+                    }
                 }
             }
-        }
 
-        #(#inventory_submits)*
+
+            #(#inventory_submits)*
+        };
     }
 }
 

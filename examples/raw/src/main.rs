@@ -8,8 +8,6 @@ use zod::{
     Zod,
 };
 
-mod generated;
-
 #[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Watchout")]
 pub struct MyEntity {

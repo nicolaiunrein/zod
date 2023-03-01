@@ -4,7 +4,7 @@ pub trait ClientCodegen {
 
 type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
 
-pub trait Rpc: zod_core::Namespace {
+pub trait RpcNamespace: zod_core::Namespace {
     type Req: serde::de::DeserializeOwned;
 
     fn rpc_members() -> Vec<&'static RpcMember> {
@@ -122,3 +122,7 @@ impl RpcMember {
         }
     }
 }
+
+#[doc(hidden)]
+/// marker trait for better errors
+pub trait RpcHandler {}

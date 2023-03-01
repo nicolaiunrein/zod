@@ -80,7 +80,7 @@ pub fn expand_req_enum(ident: &Ident, fields: &Fields<BackendField>) -> TokenStr
     let req_variants = fields.iter().map(|f| {
         let ty = &f.ty;
         let variant_ident = variant_ident_from_ty(ty);
-        quote_spanned!(ty.span() => #variant_ident(<#ty as #__private::codegen::Rpc>::Req))
+        quote_spanned!(ty.span() => #variant_ident(<#ty as #__private::codegen::RpcNamespace>::Req))
     });
     quote! {
 

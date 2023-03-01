@@ -37,6 +37,18 @@ impl Drop for SubscriberMap {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct CodegenOptions {
+    prefix_schema: String,
+    suffix_schema: String,
+
+    prefix_type: String,
+    suffix_type: String,
+
+    prefix_interface: String,
+    suffix_interface: String,
+}
+
 #[async_trait::async_trait]
 pub trait Backend {
     const NS_NAMES: &'static [&'static str];
@@ -62,8 +74,14 @@ pub trait Backend {
         }
         out
     }
-
     fn generate<T>() -> String
+    where
+        T: codegen::ClientCodegen,
+    {
+        Self::generate_with_options::<T>(Default::default())
+    }
+
+    fn generate_with_options<T>(options: CodegenOptions) -> String
     where
         T: codegen::ClientCodegen,
     {
@@ -82,17 +100,31 @@ pub trait Backend {
                             .map(|def| {
                                 let td = match def.type_def() {
                                     zod_core::TsTypeDef::Interface(inner) => {
-                                        format!("export interface {} {}", def.name(), inner)
+                                        format!(
+                                            "export interface {}{}{} {}",
+                                            options.prefix_interface,
+                                            def.name(),
+                                            options.suffix_interface,
+                                            inner
+                                        )
                                     }
 
                                     zod_core::TsTypeDef::Type(inner) => {
-                                        format!("export type {} = {};", def.name(), inner)
+                                        format!(
+                                            "export type {}{}{} = {};",
+                                            options.prefix_type,
+                                            def.name(),
+                                            options.suffix_type,
+                                            inner
+                                        )
                                     }
                                 };
 
                                 format!(
-                                    "export const {}Schema = {}\n{}\n\n",
+                                    "export const {}{}{}= {}\n{}\n\n",
+                                    options.prefix_schema,
                                     def.name(),
+                                    options.suffix_schema,
                                     def.schema(),
                                     td
                                 )

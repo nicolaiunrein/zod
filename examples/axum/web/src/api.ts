@@ -202,21 +202,21 @@ export async function request<T>(
     .finally(() => unsubscribe && unsubscribe());
 }
 export namespace Pixera {
-  export const MyEntity2Schema = z.object({
+  export const MyEntity2 = z.object({
     value: z.number().finite().int().nonnegative(),
   });
   export type MyEntity2 = { value: number };
 }
 export namespace Watchout {
-  export const TSchema = z.number().finite().int().nonnegative();
+  export const T = z.number().finite().int().nonnegative();
   export type T = number;
 
-  export const MyEntitySchema = z.object({
+  export const MyEntity = z.object({
     value: z.object({ value: z.number().finite().int().nonnegative() }),
   });
   export type MyEntity = { value: Pixera.MyEntity2 };
 
-  export const MyEntity3Schema = z.object({
+  export const MyEntity3 = z.object({
     value: z.object({ value: z.number().finite().int().nonnegative() }),
   });
   export type MyEntity3 = { value: Pixera.MyEntity2 };
