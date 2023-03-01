@@ -205,30 +205,21 @@ export namespace Pixera {
   export const MyEntity2Schema = z.object({
     value: z.number().finite().int().nonnegative(),
   });
-
-  export interface MyEntity2 {
-    value: number;
-  }
+  export type MyEntity2 = { value: number };
 }
 export namespace Watchout {
   export const TSchema = z.number().finite().int().nonnegative();
+  export type T = number;
 
-  // export interface T number
   export const MyEntitySchema = z.object({
     value: z.object({ value: z.number().finite().int().nonnegative() }),
   });
-
-  export interface MyEntity {
-    value: Pixera.MyEntity2;
-  }
+  export type MyEntity = { value: Pixera.MyEntity2 };
 
   export const MyEntity3Schema = z.object({
     value: z.object({ value: z.number().finite().int().nonnegative() }),
   });
-
-  export interface MyEntity3 {
-    value: Pixera.MyEntity2;
-  }
+  export type MyEntity3 = { value: Pixera.MyEntity2 };
 
   // @ts-ignore
   export function hello_stream(num: number): Store<number> {

@@ -69,7 +69,7 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                 args: &|| vec![
                     #(#args),*
                 ],
-                res: &<usize as ::zod::ZodType>::type_def,
+                res: &|| <usize as ::zod::ZodType>::type_def().to_string(),
             });
 
         },
@@ -81,7 +81,7 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                     args: &|| vec![
                         #(#args),*
                     ],
-                    res: &<usize as ::zod::ZodType>::type_def,
+                    res: &|| <usize as ::zod::ZodType>::type_def().to_string(),
                 });
             }
         }

@@ -80,12 +80,21 @@ pub trait Backend {
                         ns,
                         defs.into_iter()
                             .map(|def| {
+                                let td = match def.type_def() {
+                                    zod_core::TsTypeDef::Interface(inner) => {
+                                        format!("export interface {} {}", def.name(), inner)
+                                    }
+
+                                    zod_core::TsTypeDef::Type(inner) => {
+                                        format!("export type {} = {};", def.name(), inner)
+                                    }
+                                };
+
                                 format!(
-                                    "export const {}Schema = {}\nexport interface {} {}\n\n",
+                                    "export const {}Schema = {}\n{}\n\n",
                                     def.name(),
                                     def.schema(),
-                                    def.name(),
-                                    def.type_def()
+                                    td
                                 )
                             })
                             .collect(),

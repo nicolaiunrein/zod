@@ -1,10 +1,11 @@
+use crate::TsTypeDef;
 use crate::ZodType;
 
 macro_rules! impl_primitive {
     ($name:literal, $T:ty, $schema: literal) => {
         impl ZodType for $T {
-            fn type_def() -> String {
-                String::from($name)
+            fn type_def() -> TsTypeDef {
+                TsTypeDef::Type(String::from($name))
             }
 
             fn schema() -> String {
@@ -17,7 +18,7 @@ macro_rules! impl_primitive {
 macro_rules! impl_shadow {
     ($s:ty; $($impl:tt)*) => {
         $($impl)* {
-            fn type_def() -> String {
+            fn type_def() -> TsTypeDef {
                 <$s>::type_def()
             }
             fn schema() -> String {
@@ -31,8 +32,8 @@ macro_rules! impl_shadow {
 macro_rules! impl_tuples {
     ( impl $($i:ident),* ) => {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
-            fn type_def() -> String {
-                format!("[{}]", vec![$($i::type_def()),*].join(", "))
+            fn type_def() -> TsTypeDef {
+                TsTypeDef::Type(format!("[{}]", vec![$($i::type_def().to_string()),*].join(", ")))
             }
 
 
@@ -51,7 +52,7 @@ macro_rules! impl_tuples {
 macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
-            fn type_def() -> String {
+            fn type_def() -> TsTypeDef {
                 T::type_def()
             }
 
@@ -143,8 +144,8 @@ impl<T: ZodType> ZodType for Vec<T> {
         format!("z.array({})", T::schema())
     }
 
-    fn type_def() -> String {
-        format!("Array<{}>", T::type_def())
+    fn type_def() -> TsTypeDef {
+        TsTypeDef::Type(format!("Array<{}>", T::type_def()))
     }
 }
 
@@ -153,8 +154,8 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
         format!("z.set({})", T::schema())
     }
 
-    fn type_def() -> String {
-        format!("Array<{}>", T::type_def())
+    fn type_def() -> TsTypeDef {
+        TsTypeDef::Type(format!("Array<{}>", T::type_def()))
     }
 }
 
@@ -162,8 +163,8 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
     fn schema() -> String {
         format!("z.map({}, {})", K::schema(), V::schema())
     }
-    fn type_def() -> String {
-        format!("Map<{}, {}>", K::type_def(), V::type_def())
+    fn type_def() -> TsTypeDef {
+        TsTypeDef::Type(format!("Map<{}, {}>", K::type_def(), V::type_def()))
     }
 }
 
@@ -172,8 +173,9 @@ impl<T: ZodType> ZodType for Option<T> {
         format!("{}.optional()", T::schema())
     }
 
-    fn type_def() -> String {
-        format!("({} | undefined)", T::type_def())
+    fn type_def() -> TsTypeDef {
+        // Todo
+        TsTypeDef::Type(format!("({} | undefined)", T::type_def()))
     }
 }
 
@@ -186,8 +188,12 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
         )
     }
 
-    fn type_def() -> String {
-        format!("{{ Ok: {} }} | {{ Err: {} }}", T::type_def(), E::type_def())
+    fn type_def() -> TsTypeDef {
+        TsTypeDef::Type(format!(
+            "{{ Ok: {} }} | {{ Err: {} }}",
+            T::type_def(),
+            E::type_def()
+        ))
     }
 }
 

@@ -70,8 +70,8 @@ impl<'a> Enum<'a> {
                     #schema
                 }
 
-                fn type_def() -> String {
-                    #type_def
+                fn type_def() -> ::zod::TsTypeDef {
+                    ::zod::TsTypeDef::Type({ #type_def })
                 }
 
                 fn type_name() -> String {
