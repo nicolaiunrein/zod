@@ -8,6 +8,8 @@ pub use zod_rpc_core::server::SubscriberMap;
 pub use zod_rpc_core::Request;
 pub use zod_rpc_core::Response;
 
+pub use zod_rpc_derive::*;
+
 #[async_trait::async_trait]
 pub trait Server {
     async fn serve<T>(self, backend: T) -> Result<(), Box<dyn std::error::Error>>

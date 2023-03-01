@@ -58,4 +58,5 @@ impl Watchout {
     }
 }
 
+#[derive(zod::rpc::Backend)]
 pub struct MyBackend(pub Watchout, pub Pixera);

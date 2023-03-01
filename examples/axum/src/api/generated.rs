@@ -1,4 +1,4 @@
-use super::{MyBackend, MyEntity, Pixera, Watchout};
+use super::{MyEntity, Pixera, Watchout};
 
 const _: () = {
     // ================================================================================================
@@ -34,70 +34,6 @@ const _: () = {
     });
 
     // ================================================================================================
-    // ======================================== backend impl ==========================================
-    // ================================================================================================
-    #[async_trait::async_trait]
-    impl ::zod::rpc::__private::server::Backend for MyBackend {
-        fn is_member_of_self(member: &'static ::zod::rpc::__private::codegen::RpcMember) -> bool {
-            static NAMES: &'static [&'static str] = &[<Watchout as ::zod::Namespace>::NAME];
-            NAMES.contains(&member.ns_name())
-        }
-
-        async fn handle_request(
-            &mut self,
-            req: ::zod::rpc::__private::Request,
-            sender: ::zod::rpc::__private::ResponseSender,
-            subscribers: &mut ::zod::rpc::__private::server::SubscriberMap,
-        ) {
-            match req {
-                ::zod::rpc::__private::Request::Exec { id, value } => {
-                    match zod::rpc::__private::serde_json::from_value::<MyBackendReq>(value) {
-                        ::std::result::Result::<_, _>::Ok(evt) => {
-                            if let Some(jh) = evt.call(id, self, sender).await {
-                                subscribers.insert(id, jh);
-                            }
-                        }
-                        ::std::result::Result::<_, _>::Err(err) => {
-                            let _ = sender
-                                .unbounded_send(::zod::rpc::__private::Response::error(id, err))
-                                .ok();
-                        }
-                    }
-                }
-                ::zod::rpc::__private::Request::CancelStream { id } => {
-                    if let Some(jh) = subscribers.remove(&id) {
-                        jh.abort();
-                    }
-                }
-            }
-        }
-    }
-
-    // ================================================================================================
-    // ====================================== BackendReq impl =========================================
-    // ================================================================================================
-    #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
-    #[serde(tag = "namespace")]
-    enum MyBackendReq {
-        Watchout(<Watchout as ::zod::rpc::__private::codegen::Rpc>::Req),
-        Pixera(<Pixera as ::zod::rpc::__private::codegen::Rpc>::Req),
-    }
-
-    impl MyBackendReq {
-        async fn call(
-            self,
-            id: usize,
-            backend: &mut MyBackend,
-            sender: ::zod::rpc::__private::ResponseSender,
-        ) -> ::std::option::Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
-            match self {
-                MyBackendReq::Watchout(req) => req.call(id, &mut backend.0, sender).await,
-                MyBackendReq::Pixera(req) => req.call(id, &mut backend.1, sender).await,
-            }
-        }
-    }
-
-    // ================================================================================================
     // ===================================== NamespaceReq impl ========================================
     // ================================================================================================
     #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
@@ -111,7 +47,7 @@ const _: () = {
     }
 
     impl WatchoutReq {
-        async fn call(
+        pub async fn call(
             self,
             id: usize,
             ctx: &mut Watchout,
@@ -168,7 +104,7 @@ const _: () = {
     pub enum PixeraReq {}
 
     impl PixeraReq {
-        async fn call(
+        pub async fn call(
             self,
             _id: usize,
             _ctx: &mut Pixera,
