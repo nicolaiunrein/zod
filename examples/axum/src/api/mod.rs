@@ -30,7 +30,6 @@ pub struct MyEntity2 {
 }
 
 #[derive(zod::Namespace)]
-#[namespace(name = "abc")]
 pub struct Watchout {
     pub shared_data: usize,
 }
@@ -41,7 +40,7 @@ pub struct Pixera {
 }
 
 impl Watchout {
-    pub async fn _nested(&mut self, _value: MyEntity) -> usize {
+    pub async fn nested(&mut self, _value: MyEntity) -> usize {
         self.shared_data += 1;
         self.shared_data
     }

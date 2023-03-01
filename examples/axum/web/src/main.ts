@@ -1,5 +1,5 @@
 import "./style.css";
-import { Pixera, Watchout } from "./api";
+import { Watchout } from "./api";
 
 const btn = document.getElementById("btn");
 const resField = document.getElementById("res");
@@ -10,8 +10,8 @@ let unsubscribe: (() => void) | undefined = undefined;
 
 btn &&
   btn.addEventListener("click", async () => {
-    let pix: Pixera.MyEntity2 = { value: 123 };
-    let res = await Watchout.nested({ value: pix });
+    // let pix: Pixera.MyEntity2 = { value: 123 };
+    let res = await Watchout.hello("abc", 123);
     if (resField) {
       resField.innerHTML = res.toString();
     }
