@@ -4,9 +4,9 @@ const _: () = {
     // ================================================================================================
     // ========================================= Rpc impl =============================================
     // ================================================================================================
-    impl ::zod::rpc::__private::codegen::Rpc for Watchout {
-        type Req = WatchoutReq;
-    }
+    // impl ::zod::rpc::__private::codegen::Rpc for Watchout {
+    // type Req = WatchoutReq;
+    // }
 
     // ================================================================================================
     // ======================================== method impl ===========================================
@@ -36,50 +36,50 @@ const _: () = {
     // ================================================================================================
     // ===================================== NamespaceReq impl ========================================
     // ================================================================================================
-    #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
-    #[serde(tag = "method")]
-    #[allow(non_camel_case_types)]
-    #[allow(non_snake_case)]
-    #[allow(non_upper_case_globals)]
-    pub enum WatchoutReq {
-        hello { args: (String, usize) },
-        hello_stream { args: (usize,) },
-    }
+    // #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
+    // #[serde(tag = "method")]
+    // #[allow(non_camel_case_types)]
+    // #[allow(non_snake_case)]
+    // #[allow(non_upper_case_globals)]
+    // pub enum WatchoutReq {
+    // hello { args: (String, usize) },
+    // hello_stream { args: (usize,) },
+    // }
 
-    impl WatchoutReq {
-        pub async fn call(
-            self,
-            id: usize,
-            ctx: &mut Watchout,
-            sender: ::zod::rpc::__private::ResponseSender,
-        ) -> ::std::option::Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
-            match self {
-                WatchoutReq::hello { args } => {
-                    let res = ctx.hello(args.0, args.1).await;
-                    sender
-                        .unbounded_send(::zod::rpc::__private::Response::method(id, res))
-                        .unwrap();
-                    None
-                }
-                WatchoutReq::hello_stream { args } => {
-                    let s = ctx.hello_stream(args.0);
-                    Some(::zod::rpc::__private::tokio::spawn(async move {
-                        ::zod::rpc::__private::futures::pin_mut!(s);
-                        while let ::std::option::Option::Some(evt) =
-                            ::zod::rpc::__private::futures::StreamExt::next(&mut s).await
-                        {
-                            if let ::std::result::Result::<_, _>::Err(err) = sender
-                                .unbounded_send(::zod::rpc::__private::Response::stream(id, evt))
-                            {
-                                tracing::warn!(?err, "Failed to emit event");
-                                break;
-                            }
-                        }
-                    }))
-                }
-            }
-        }
-    }
+    // impl WatchoutReq {
+    // pub async fn call(
+    // self,
+    // id: usize,
+    // ctx: &mut Watchout,
+    // sender: ::zod::rpc::__private::ResponseSender,
+    // ) -> ::std::option::Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
+    // match self {
+    // WatchoutReq::hello { args } => {
+    // let res = ctx.hello(args.0, args.1).await;
+    // sender
+    // .unbounded_send(::zod::rpc::__private::Response::method(id, res))
+    // .unwrap();
+    // None
+    // }
+    // WatchoutReq::hello_stream { args } => {
+    // let s = ctx.hello_stream(args.0);
+    // Some(::zod::rpc::__private::tokio::spawn(async move {
+    // ::zod::rpc::__private::futures::pin_mut!(s);
+    // while let ::std::option::Option::Some(evt) =
+    // ::zod::rpc::__private::futures::StreamExt::next(&mut s).await
+    // {
+    // if let ::std::result::Result::<_, _>::Err(err) = sender
+    // .unbounded_send(::zod::rpc::__private::Response::stream(id, evt))
+    // {
+    // tracing::warn!(?err, "Failed to emit event");
+    // break;
+    // }
+    // }
+    // }))
+    // }
+    // }
+    // }
+    // }
 
     // ================================================================================================
     // ===================================== ** Duplicates  ** ========================================

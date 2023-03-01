@@ -1,9 +1,11 @@
 use darling::{ast::Data, FromDeriveInput};
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
+use quote::quote;
 
 mod args;
 mod backend_impl;
+mod rpc_impl;
 
 #[proc_macro_error]
 #[proc_macro_derive(Backend, attributes(rpc))]
@@ -27,5 +29,25 @@ pub fn backend(input: TokenStream) -> TokenStream {
         Data::Struct(e) => backend_impl::expand(input, e),
     };
     expanded.into()
+}
+
+
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn rpc(_attr: TokenStream, input: TokenStream) -> TokenStream {
+
+    let orig = proc_macro2::TokenStream::from(input.clone());
+
+    let ast = syn::parse_macro_input!(input as syn::ItemImpl);
+    let extra = rpc_impl::expand(args::RpcInput::from_ast(ast));
+
+
+    let output =quote! {
+        #orig
+
+        #extra
+    };
+
+    output.into()
 }
 

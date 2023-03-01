@@ -25,5 +25,6 @@ pub mod __private {
     pub use serde;
     pub use serde_json;
     pub use tokio;
+    pub use tracing;
     pub use zod_rpc_core::*;
 }

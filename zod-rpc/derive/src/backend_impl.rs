@@ -15,13 +15,13 @@ pub fn expand(input: BackendInput, fields: Fields<BackendField>) -> TokenStream 
     let req_enum_impl = expand_req_enum_impl(&ident, &req_ident, &fields);
 
     quote! {
-        #backend_impl
+        const _: () = {
+            #backend_impl
 
-        #req_enum
+            #req_enum
 
-        #req_enum_impl
-
-
+            #req_enum_impl
+        };
     }
 }
 
