@@ -62,15 +62,15 @@ pub fn optional(inner: impl AsRef<str>) -> String {
 #[macro_export]
 macro_rules! test_case {
     ($($decl: tt)+) => {
+        #[derive(zod::Namespace)]
+        #[namespace(name = "Ns")]
+        struct Ns {}
+
         #[derive(zod::Zod, serde::Serialize)]
         #[zod(namespace = "Ns")]
         #[allow(dead_code)]
         $($decl)+
 
-        struct Ns {}
 
-        impl Namespace for Ns {
-            const NAME: &'static str = "Ns";
-        }
     };
 }

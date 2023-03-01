@@ -1,6 +1,6 @@
 #![cfg(test)]
 use pretty_assertions::assert_eq;
-use zod::{Namespace, ZodType};
+use zod::ZodType;
 
 mod test_utils;
 use test_utils::*;

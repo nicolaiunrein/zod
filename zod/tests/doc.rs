@@ -1,6 +1,6 @@
 use paste::paste;
 use pretty_assertions::assert_eq;
-use zod::{Namespace, Zod, ZodType};
+use zod::{Zod, ZodType};
 
 /// Hello World
 #[derive(Zod, serde::Serialize)]
@@ -79,14 +79,8 @@ struct StructMulti {
     s: String,
 }
 
-struct Ns {}
-
-impl Namespace for Ns {
-    const NAME: &'static str = "Ns";
-}
-
-#[derive(serde::Deserialize)]
-struct NsReq;
+#[derive(zod::Namespace)]
+struct Ns;
 
 fn main() {}
 

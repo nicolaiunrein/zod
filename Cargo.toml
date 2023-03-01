@@ -5,7 +5,7 @@ members = [
     "zod/derive",
     "zod-rpc",
     "zod-rpc/core",
-    # "zod-rpc/derive",
+    "zod-rpc/derive",
     "examples/axum",
     "examples/raw"
 ]
