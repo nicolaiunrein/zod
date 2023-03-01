@@ -2,7 +2,7 @@ mod build_ins;
 
 pub use build_ins::*;
 
-pub trait Codegen {
+pub trait ZodType {
     fn schema() -> String;
     fn docs() -> Option<&'static str> {
         None
@@ -56,3 +56,5 @@ impl NamespaceMemberDefinition {
 }
 
 inventory_crate::collect!(NamespaceMemberDefinition);
+
+pub trait TypeRegister<T> {}

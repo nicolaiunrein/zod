@@ -1,13 +1,6 @@
 use super::{MyBackend, MyEntity, Pixera, Watchout};
 
 const _: () = {
-    // Prevent duplicate interfaces
-    impl WatchoutReq {
-        #[allow(dead_code)]
-        #[allow(non_upper_case_globals)]
-        const MyEntity: () = ();
-    }
-
     // ================================================================================================
     // ========================================= Rpc impl =============================================
     // ================================================================================================
@@ -19,36 +12,25 @@ const _: () = {
     // ======================================== method impl ===========================================
     // ================================================================================================
     ::zod::rpc::__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Method {
-        ns_name: "Watchout",
+        ns_name: <Watchout as ::zod::Namespace>::NAME,
         name: "hello",
         args: &|| vec![
-            (
-                "s",
-                <String as ::zod::Codegen>::type_def(),
-                <String as ::zod::Codegen>::schema()
-            ),
-            (
-                "num",
-                <usize as ::zod::Codegen>::type_def(),
-                <usize as ::zod::Codegen>::schema()
-            )
+            ::zod::rpc::__private::codegen::RpcArgument::new::<String>("s"),
+            ::zod::rpc::__private::codegen::RpcArgument::new::<usize>("num"),
         ],
-
-        res: &<usize as ::zod::Codegen>::type_def,
+        res: &<usize as ::zod::ZodType>::type_def,
     });
 
     // ================================================================================================
     // ======================================== stream impl ===========================================
     // ================================================================================================
     ::zod::rpc::__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Stream {
-        ns_name: "Watchout",
+        ns_name: <Watchout as ::zod::Namespace>::NAME,
         name: "hello_stream",
-        args: &|| vec![(
-            "num",
-            <usize as ::zod::Codegen>::type_def(),
-            <usize as ::zod::Codegen>::schema()
-        )],
-        res: &<usize as ::zod::Codegen>::type_def,
+        args: &|| vec![::zod::rpc::__private::codegen::RpcArgument::new::<usize>(
+            "num"
+        ),],
+        res: &<usize as ::zod::ZodType>::type_def,
     });
 
     // ================================================================================================
@@ -56,15 +38,9 @@ const _: () = {
     // ================================================================================================
     #[async_trait::async_trait]
     impl ::zod::rpc::__private::server::Backend for MyBackend {
-        fn generate<T>() -> String
-        where
-            T: ::zod::rpc::__private::codegen::ClientCodegen,
-        {
-            let mut code = T::get();
-            // repeat for all namespaces
-            code.push_str(&<Watchout as ::zod::rpc::__private::codegen::Rpc>::code());
-            code.push_str(&<Pixera as ::zod::rpc::__private::codegen::Rpc>::code());
-            code
+        fn is_member_of_self(member: &'static ::zod::rpc::__private::codegen::RpcMember) -> bool {
+            static NAMES: &'static [&'static str] = &[<Watchout as ::zod::Namespace>::NAME];
+            NAMES.contains(&member.ns_name())
         }
 
         async fn handle_request(
@@ -76,12 +52,12 @@ const _: () = {
             match req {
                 ::zod::rpc::__private::Request::Exec { id, value } => {
                     match zod::rpc::__private::serde_json::from_value::<MyBackendReq>(value) {
-                        Ok(evt) => {
+                        ::std::result::Result::<_, _>::Ok(evt) => {
                             if let Some(jh) = evt.call(id, self, sender).await {
                                 subscribers.insert(id, jh);
                             }
                         }
-                        Err(err) => {
+                        ::std::result::Result::<_, _>::Err(err) => {
                             let _ = sender
                                 .unbounded_send(::zod::rpc::__private::Response::error(id, err))
                                 .ok();
@@ -100,9 +76,7 @@ const _: () = {
     // ================================================================================================
     // ====================================== BackendReq impl =========================================
     // ================================================================================================
-    #[derive(
-        ::zod::rpc::__private::serde::Serialize, ::zod::rpc::__private::serde::Deserialize, Debug,
-    )]
+    #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
     #[serde(tag = "namespace")]
     enum MyBackendReq {
         Watchout(<Watchout as ::zod::rpc::__private::codegen::Rpc>::Req),
@@ -115,7 +89,7 @@ const _: () = {
             id: usize,
             backend: &mut MyBackend,
             sender: ::zod::rpc::__private::ResponseSender,
-        ) -> Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
+        ) -> ::std::option::Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
             match self {
                 MyBackendReq::Watchout(req) => req.call(id, &mut backend.0, sender).await,
                 MyBackendReq::Pixera(req) => req.call(id, &mut backend.1, sender).await,
@@ -126,9 +100,7 @@ const _: () = {
     // ================================================================================================
     // ===================================== NamespaceReq impl ========================================
     // ================================================================================================
-    #[derive(
-        ::zod::rpc::__private::serde::Serialize, ::zod::rpc::__private::serde::Deserialize, Debug,
-    )]
+    #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
     #[serde(tag = "method")]
     #[allow(non_camel_case_types)]
     #[allow(non_snake_case)]
@@ -144,7 +116,7 @@ const _: () = {
             id: usize,
             ctx: &mut Watchout,
             sender: ::zod::rpc::__private::ResponseSender,
-        ) -> Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
+        ) -> ::std::option::Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
             match self {
                 WatchoutReq::hello { args } => {
                     let res = ctx.hello(args.0, args.1).await;
@@ -156,11 +128,11 @@ const _: () = {
                 WatchoutReq::hello_stream { args } => {
                     let s = ctx.hello_stream(args.0);
                     Some(::zod::rpc::__private::tokio::spawn(async move {
-                        futures::pin_mut!(s);
-                        while let Some(evt) =
+                        ::zod::rpc::__private::futures::pin_mut!(s);
+                        while let ::std::option::Option::Some(evt) =
                             ::zod::rpc::__private::futures::StreamExt::next(&mut s).await
                         {
-                            if let Err(err) = sender
+                            if let ::std::result::Result::<_, _>::Err(err) = sender
                                 .unbounded_send(::zod::rpc::__private::Response::stream(id, evt))
                             {
                                 tracing::warn!(?err, "Failed to emit event");
@@ -176,31 +148,19 @@ const _: () = {
     // ================================================================================================
     // ===================================== ** Duplicates  ** ========================================
     // ================================================================================================
-    impl Pixera {
-        #[allow(dead_code)]
-        #[allow(non_upper_case_globals)]
-        const MyEntity2: () = ();
-    }
 
     impl ::zod::rpc::__private::codegen::Rpc for Pixera {
         type Req = PixeraReq;
     }
 
     ::zod::rpc::__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Method {
-        ns_name: "Watchout",
+        ns_name: <Watchout as ::zod::Namespace>::NAME,
         name: "nested",
-        args: &|| vec![(
-            "value",
-            <MyEntity as zod::Codegen>::type_def(),
-            <MyEntity as zod::Codegen>::schema()
-        )],
-
-        res: &<usize as zod::Codegen>::type_def,
+        args: &|| vec![::zod::rpc::__private::codegen::RpcArgument::new::<MyEntity>("value"),],
+        res: &<usize as zod::ZodType>::type_def,
     });
 
-    #[derive(
-        ::zod::rpc::__private::serde::Serialize, ::zod::rpc::__private::serde::Deserialize, Debug,
-    )]
+    #[derive(::zod::rpc::__private::serde::Deserialize, Debug)]
     #[serde(tag = "method")]
     #[allow(non_camel_case_types)]
     #[allow(non_snake_case)]
@@ -213,7 +173,7 @@ const _: () = {
             _id: usize,
             _ctx: &mut Pixera,
             _sender: ::zod::rpc::__private::ResponseSender,
-        ) -> Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
+        ) -> ::std::option::Option<::zod::rpc::__private::tokio::task::JoinHandle<()>> {
             None
         }
     }

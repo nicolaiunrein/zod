@@ -1,8 +1,8 @@
-use crate::Codegen;
+use crate::ZodType;
 
 macro_rules! impl_primitive {
     ($name:literal, $T:ty, $schema: literal) => {
-        impl Codegen for $T {
+        impl ZodType for $T {
             fn type_def() -> String {
                 String::from($name)
             }
@@ -30,7 +30,7 @@ macro_rules! impl_shadow {
 
 macro_rules! impl_tuples {
     ( impl $($i:ident),* ) => {
-        impl<$($i: Codegen),*> Codegen for ($($i,)*) {
+        impl<$($i: ZodType),*> ZodType for ($($i,)*) {
             fn type_def() -> String {
                 format!("[{}]", vec![$($i::type_def()),*].join(", "))
             }
@@ -124,21 +124,21 @@ impl_tuples!(
     T22, T23, T24, T25, T26, T27, T28, T29, T30
 );
 
-impl_wrapper!(impl<T: Codegen> Codegen for Box<T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::sync::Arc<T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::rc::Rc<T>);
-impl_wrapper!(impl<T: Codegen + ToOwned> Codegen for std::borrow::Cow<'static, T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::cell::Cell<T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::cell::RefCell<T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::sync::Mutex<T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::sync::Weak<T>);
-impl_wrapper!(impl<T: Codegen> Codegen for std::marker::PhantomData<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for Box<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Arc<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::rc::Rc<T>);
+impl_wrapper!(impl<T: ZodType + ToOwned> ZodType for std::borrow::Cow<'static, T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::cell::Cell<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::cell::RefCell<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Mutex<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Weak<T>);
+impl_wrapper!(impl<T: ZodType> ZodType for std::marker::PhantomData<T>);
 
-impl_shadow!(std::collections::HashSet<T>; impl<T: Codegen> Codegen for std::collections::BTreeSet<T>);
-impl_shadow!(std::collections::HashMap<K, V>; impl<K: Codegen, V: Codegen> Codegen for std::collections::BTreeMap<K, V>);
-impl_shadow!(Vec<T>; impl<T: Codegen, const N: usize> Codegen for [T; N]);
+impl_shadow!(std::collections::HashSet<T>; impl<T: ZodType> ZodType for std::collections::BTreeSet<T>);
+impl_shadow!(std::collections::HashMap<K, V>; impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V>);
+impl_shadow!(Vec<T>; impl<T: ZodType, const N: usize> ZodType for [T; N]);
 
-impl<T: Codegen> Codegen for Vec<T> {
+impl<T: ZodType> ZodType for Vec<T> {
     fn schema() -> String {
         format!("z.array({})", T::schema())
     }
@@ -148,7 +148,7 @@ impl<T: Codegen> Codegen for Vec<T> {
     }
 }
 
-impl<T: Codegen> Codegen for std::collections::HashSet<T> {
+impl<T: ZodType> ZodType for std::collections::HashSet<T> {
     fn schema() -> String {
         format!("z.set({})", T::schema())
     }
@@ -158,7 +158,7 @@ impl<T: Codegen> Codegen for std::collections::HashSet<T> {
     }
 }
 
-impl<K: Codegen, V: Codegen> Codegen for std::collections::HashMap<K, V> {
+impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
     fn schema() -> String {
         format!("z.map({}, {})", K::schema(), V::schema())
     }
@@ -167,7 +167,7 @@ impl<K: Codegen, V: Codegen> Codegen for std::collections::HashMap<K, V> {
     }
 }
 
-impl<T: Codegen> Codegen for Option<T> {
+impl<T: ZodType> ZodType for Option<T> {
     fn schema() -> String {
         format!("{}.optional()", T::schema())
     }
@@ -177,7 +177,7 @@ impl<T: Codegen> Codegen for Option<T> {
     }
 }
 
-impl<T: Codegen, E: Codegen> Codegen for Result<T, E> {
+impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
     fn schema() -> String {
         format!(
             "z.union([z.object({{ Ok: {} }}), z.object({{ Err: {} }})])",
@@ -193,7 +193,7 @@ impl<T: Codegen, E: Codegen> Codegen for Result<T, E> {
 
 #[cfg(test)]
 mod test {
-    use super::Codegen;
+    use super::ZodType;
 
     #[test]
     fn result_ok() {

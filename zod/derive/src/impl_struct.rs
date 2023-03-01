@@ -1,4 +1,4 @@
-use crate::docs::RustDocs;
+use crate::{docs::RustDocs, expand_type_registration};
 
 use super::args;
 use darling::ast::{Fields, Style};
@@ -9,7 +9,7 @@ use serde_derive_internals::ast;
 use syn::{spanned::Spanned, Ident, Path};
 
 fn qualified_ty(ty: &syn::Type) -> proc_macro2::TokenStream {
-    quote!(<#ty as ::zod::Codegen>)
+    quote!(<#ty as ::zod::ZodType>)
 }
 
 pub fn expand(
@@ -76,8 +76,10 @@ impl<'a> Struct<'a> {
         let name = &self.name;
         let docs = &self.docs;
 
+        let type_register = expand_type_registration(ident, ns_path);
+
         quote! {
-            impl ::zod::Codegen for #ident {
+            impl ::zod::ZodType for #ident {
                 fn schema() -> String {
                     #schema
                 }
@@ -94,6 +96,9 @@ impl<'a> Struct<'a> {
                     Some(#docs)
                 }
             }
+
+            #type_register
+
         }
     }
 

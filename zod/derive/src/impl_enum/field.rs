@@ -94,9 +94,9 @@ impl<'a> NamedField<'a> {
         let name = &self.name;
 
         if self.optional {
-            quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as ::zod::Codegen>::type_def()))
+            quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as ::zod::ZodType>::type_def()))
         } else {
-            quote_spanned!(span => format!("{}: {}", #name, <#ty as ::zod::Codegen>::type_def()))
+            quote_spanned!(span => format!("{}: {}", #name, <#ty as ::zod::ZodType>::type_def()))
         }
     }
 
@@ -109,7 +109,7 @@ impl<'a> NamedField<'a> {
             quote!("")
         };
 
-        quote_spanned!(ty.span() => format!("{}: {}{}", #name, <#ty as ::zod::Codegen>::schema(), #maybe_optional))
+        quote_spanned!(ty.span() => format!("{}: {}{}", #name, <#ty as ::zod::ZodType>::schema(), #maybe_optional))
     }
 }
 
@@ -119,9 +119,9 @@ impl<'a> TupleField<'a> {
         let span = self.enum_field.ty.span();
 
         if self.optional {
-            quote_spanned!(span => format!("{} | undefined", <#ty as ::zod::Codegen>::type_def()))
+            quote_spanned!(span => format!("{} | undefined", <#ty as ::zod::ZodType>::type_def()))
         } else {
-            quote_spanned!(span => format!("{}", <#ty as ::zod::Codegen>::type_def()))
+            quote_spanned!(span => format!("{}", <#ty as ::zod::ZodType>::type_def()))
         }
     }
 
@@ -133,6 +133,6 @@ impl<'a> TupleField<'a> {
             quote!("")
         };
 
-        quote_spanned!(ty.span() => format!("{}{}", <#ty as ::zod::Codegen>::schema(), #maybe_optional))
+        quote_spanned!(ty.span() => format!("{}{}", <#ty as ::zod::ZodType>::schema(), #maybe_optional))
     }
 }

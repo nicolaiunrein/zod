@@ -201,29 +201,19 @@ export async function request<T>(
     })
     .finally(() => unsubscribe && unsubscribe());
 }
-export namespace Watchout {
-  // @ts-ignore
-  export function hello_stream(num: number): Store<number> {
-    z.tuple([z.number().finite().int().nonnegative()]).parse([...arguments]);
-    return subscribe("Watchout", "hello_stream", arguments);
-  }
-  // @ts-ignore
-  export async function nested(value: {
-    value: Pixera.MyEntity2;
-  }): Promise<number> {
-    z.tuple([
-      z.object({
-        value: z.object({ value: z.number().finite().int().nonnegative() }),
-      }),
-    ]).parse([...arguments]);
-    return request("Watchout", "nested", arguments);
-  }
-  // @ts-ignore
-  export async function hello(s: string, num: number): Promise<number> {
-    z.tuple([z.string(), z.number().finite().int().nonnegative()]).parse([
-      ...arguments,
-    ]);
-    return request("Watchout", "hello", arguments);
-  }
-}
-export namespace Pixera {}
+export namespace abc { 
+                    // @ts-ignore
+                    export async function nested(value: {value: Pixera.MyEntity2}): Promise<number> {
+                    z.tuple([z.object({value: z.object({value: z.number().finite().int().nonnegative(),}),})]).parse([...arguments]);
+                    return request("abc", "nested", arguments);
+                };
+                    // @ts-ignore
+                    export function hello_stream(num: number): Store<number> {
+                    z.tuple([z.number().finite().int().nonnegative()]).parse([...arguments]);
+                    return subscribe("abc", "hello_stream", arguments);
+                };
+                    // @ts-ignore
+                    export async function hello(s: string,num: number): Promise<number> {
+                    z.tuple([z.string(),z.number().finite().int().nonnegative()]).parse([...arguments]);
+                    return request("abc", "hello", arguments);
+                }; }

@@ -1,7 +1,7 @@
 mod field;
 mod variant;
 
-use crate::docs::RustDocs;
+use crate::{docs::RustDocs, expand_type_registration};
 use variant::Variant;
 
 use super::args;
@@ -61,8 +61,10 @@ impl<'a> Enum<'a> {
         let schema = self.expand_schema();
         let type_def = self.expand_typ_defs();
 
+        let type_register = expand_type_registration(ident, ns_path);
+
         quote! {
-            impl ::zod::Codegen for #ident {
+            impl ::zod::ZodType for #ident {
                 fn schema() -> String {
                     #schema
                 }
@@ -79,6 +81,10 @@ impl<'a> Enum<'a> {
                     Some(#docs)
                 }
             }
+
+
+            #type_register
+
         }
     }
 

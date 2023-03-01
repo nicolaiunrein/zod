@@ -1,4 +1,4 @@
-use zod::{Codegen, Namespace};
+use zod::{Namespace, ZodType};
 mod test_utils;
 
 #[test]

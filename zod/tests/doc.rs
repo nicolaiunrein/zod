@@ -1,6 +1,6 @@
 use paste::paste;
 use pretty_assertions::assert_eq;
-use zod::{Codegen, Namespace, Zod};
+use zod::{Namespace, Zod, ZodType};
 
 /// Hello World
 #[derive(Zod, serde::Serialize)]

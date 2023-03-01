@@ -8,7 +8,9 @@ use darling::{ast::Data, FromDeriveInput};
 use docs::RustDocs;
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
+use quote::{format_ident, quote_spanned};
 use serde_derive_internals::Derive;
+use syn::{Ident, Path};
 
 #[proc_macro_error]
 #[proc_macro_derive(Zod, attributes(zod))]
@@ -73,4 +75,28 @@ pub fn namespace(input: TokenStream) -> TokenStream {
     };
 
     impl_namespace::expand(input, docs).into()
+}
+
+fn format_ident_for_registration(p: &syn::Path) -> syn::Path {
+    let mut segments = p.segments.clone();
+    let last = segments.last_mut().unwrap();
+    last.ident = format_ident!("__ZodRegister__{}", last.ident);
+
+    syn::Path {
+        leading_colon: p.leading_colon,
+        segments,
+    }
+}
+
+/// Prevent duplicate interfaces
+fn expand_type_registration(ident: &Ident, ns_path: &Path) -> proc_macro2::TokenStream {
+    let register_path = format_ident_for_registration(ns_path);
+
+    quote_spanned! {ident.span() =>
+        impl #register_path {
+            #[allow(dead_code)]
+            #[allow(non_upper_case_globals)]
+            const #ident: () = ();
+        }
+    }
 }

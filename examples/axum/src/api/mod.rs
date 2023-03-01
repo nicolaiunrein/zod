@@ -18,7 +18,7 @@ mod nested_mod {
 
     #[derive(serde::Serialize, serde::Deserialize, Zod)]
     #[zod(namespace = "Watchout")]
-    pub struct MyEntity {
+    pub struct MyEntity3 {
         value: MyEntity2,
     }
 }
@@ -41,7 +41,7 @@ pub struct Pixera {
 }
 
 impl Watchout {
-    pub async fn nested(&mut self, _value: MyEntity) -> usize {
+    pub async fn _nested(&mut self, _value: MyEntity) -> usize {
         self.shared_data += 1;
         self.shared_data
     }
