@@ -15,10 +15,26 @@ pub trait ZodType {
         None
     }
 
-    fn type_name() -> String {
-        match Self::type_def() {
-            TsTypeDef::Interface(inner) => inner,
-            TsTypeDef::Type(inner) => inner,
+    fn inline() -> InlinedType {
+        InlinedType::Literal(Self::type_def().to_string())
+    }
+}
+
+pub enum InlinedType {
+    Literal(String),
+    Ref {
+        ns_name: &'static str,
+        name: &'static str,
+    },
+}
+
+impl std::fmt::Display for InlinedType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Literal(inner) => write!(f, "{}", inner),
+            Self::Ref { ns_name, name } => {
+                write!(f, "{}.{}", ns_name, name)
+            }
         }
     }
 }

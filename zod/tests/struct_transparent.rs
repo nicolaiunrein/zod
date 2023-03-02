@@ -13,7 +13,7 @@ fn serde_transparent_struct() {
 
     assert_eq!(Test::schema(), String::schema());
     assert_eq!(Test::type_def(), String::type_def());
-    assert_eq!(Test::type_name(), "Ns.Test")
+    assert_eq!(Test::inline().to_string(), "Ns.Test")
 }
 
 #[test]
@@ -26,5 +26,5 @@ fn serde_transparent_newtype_struct() {
 
     assert_eq!(Test::schema(), String::schema());
     assert_eq!(Test::type_def(), String::type_def());
-    assert_eq!(Test::type_name(), "Ns.Test")
+    assert_eq!(Test::inline().to_string(), "Ns.Test")
 }

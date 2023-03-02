@@ -31,5 +31,5 @@ fn rename_all_struct() {
     assert!(Test::type_def().contains("after"),);
     assert!(!Test::type_def().contains("before"),);
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }

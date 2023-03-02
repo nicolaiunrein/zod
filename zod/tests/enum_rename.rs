@@ -13,7 +13,7 @@ fn serde_name_struct() {
         }
     }
 
-    assert_eq!(Test::type_name(), "Ns.Hello");
+    assert_eq!(Test::inline().to_string(), "Ns.Hello");
 }
 
 #[test]
@@ -25,7 +25,7 @@ fn serde_name_tuple() {
         AnotherValue(usize, usize)
         }
     }
-    assert_eq!(Test::type_name(), "Ns.Hello");
+    assert_eq!(Test::inline().to_string(), "Ns.Hello");
 }
 
 #[test]
@@ -37,5 +37,5 @@ fn serde_name_unit() {
             AnotherValue
         }
     }
-    assert_eq!(Test::type_name(), "Ns.Hello");
+    assert_eq!(Test::inline().to_string(), "Ns.Hello");
 }

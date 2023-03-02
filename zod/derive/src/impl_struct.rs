@@ -89,8 +89,11 @@ impl<'a> Struct<'a> {
                     ::zod::TsTypeDef::Type({ #type_def })
                 }
 
-                fn type_name() -> String {
-                    format!("{}.{}", <#ns_path as ::zod::Namespace>::NAME, #name)
+                fn inline() -> ::zod::InlinedType {
+                    ::zod::InlinedType::Ref {
+                        ns_name: <#ns_path as ::zod::Namespace>::NAME,
+                        name: #name
+                    }
                 }
 
                 fn docs() -> Option<&'static str> {
@@ -251,49 +254,49 @@ impl<'a> StructField<'a> {
 
         match (self.flatten, &self.name, self.optional, self.transparent) {
             (false, Some(name), false, false) => {
-                quote_spanned! {ty.span() =>  format!("{}: {}", #name, #ty::type_name()) }
+                quote_spanned! {ty.span() =>  format!("{}: {}", #name, #ty::inline()) }
             }
             (false, None, false, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::type_name()}
+                quote_spanned! {ty.span() => #ty::inline().to_string()}
             }
             (false, Some(name), true, false) => {
-                quote_spanned! {ty.span() =>  format!("{}?: {} | undefined", #name, #ty::type_name()) }
+                quote_spanned! {ty.span() =>  format!("{}?: {} | undefined", #name, #ty::inline()) }
             }
             (false, None, true, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => format!("{} | undefined", #ty::type_name())}
+                quote_spanned! {ty.span() => format!("{} | undefined", #ty::inline())}
             }
 
             (false, _, false, true) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::type_name()}
+                quote_spanned! {ty.span() => #ty::inline().to_string()}
             }
             (false, _, true, true) => {
-                quote_spanned! {ty.span() =>  format!("{} | undefined", #ty::type_name()) }
+                quote_spanned! {ty.span() =>  format!("{} | undefined", #ty::inline()) }
             }
 
             (true, Some(_), false, false) => {
-                quote_spanned! {ty.span() =>  format!(" & {}", #ty::type_name()) }
+                quote_spanned! {ty.span() =>  format!(" & {}", #ty::inline()) }
             }
             (true, None, false, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::type_name()}
+                quote_spanned! {ty.span() => #ty::inline().to_string()}
             }
             (true, Some(_), true, false) => {
-                quote_spanned! {ty.span() =>  format!("& ({} | undefined)", #ty::type_name()) }
+                quote_spanned! {ty.span() =>  format!("& ({} | undefined)", #ty::inline()) }
             }
             (true, None, true, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => format!("& ({} | undefined)", #ty::type_name())}
+                quote_spanned! {ty.span() => format!("& ({} | undefined)", #ty::inline())}
             }
 
             (true, _, false, true) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::type_name()}
+                quote_spanned! {ty.span() => #ty::inline().to_string()}
             }
             (true, _, true, true) => {
-                quote_spanned! {ty.span() =>  format!("& ({} | undefined)", #ty::type_name()) }
+                quote_spanned! {ty.span() =>  format!("& ({} | undefined)", #ty::inline()) }
             }
         }
     }

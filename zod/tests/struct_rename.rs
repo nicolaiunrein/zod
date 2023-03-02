@@ -13,7 +13,7 @@ fn serde_name_named_struct() {
         }
     }
 
-    assert_eq!(Test::type_name(), "Ns.Hello");
+    assert_eq!(Test::inline().to_string(), "Ns.Hello");
 }
 
 #[test]
@@ -22,7 +22,7 @@ fn serde_name_tuple_str() {
         #[serde(rename= "Hello")]
         struct Test(String);
     }
-    assert_eq!(Test::type_name(), "Ns.Hello");
+    assert_eq!(Test::inline().to_string(), "Ns.Hello");
 }
 
 #[test]

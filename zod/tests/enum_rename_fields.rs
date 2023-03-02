@@ -26,7 +26,7 @@ fn rename_variant_struct() {
     assert!(Test::type_def().contains("after"));
     assert!(!Test::type_def().contains("AnotherValue"));
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn rename_struct_field() {
     assert!(Test::type_def().contains("AnotherValue"),);
     assert!(Test::type_def().contains("after"));
     assert!(!Test::type_def().contains("before"));
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn rename_all_tuple() {
     assert!(Test::type_def().contains("after"),);
     assert!(!Test::type_def().contains("before"));
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -101,5 +101,5 @@ fn rename_all_unit() {
     assert!(Test::type_def().contains("after"));
     assert!(!Test::type_def().contains("before"));
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }

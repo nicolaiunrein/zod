@@ -31,5 +31,5 @@ fn rename_all_struct() {
     assert!(Test::type_def().contains("USIZE_VALUE"),);
     assert!(Test::type_def().contains("STRING_VALUE"),);
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }

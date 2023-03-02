@@ -25,7 +25,7 @@ fn rename_all_struct() {
     assert!(Test::type_def().contains("hello_world"),);
     assert!(Test::type_def().contains("another_value"),);
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -47,7 +47,7 @@ fn rename_all_tuple() {
     assert!(Test::type_def().contains("hello_world"),);
     assert!(Test::type_def().contains("another_value"),);
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -69,5 +69,5 @@ fn rename_all_unit() {
     assert!(Test::type_def().contains("hello_world"),);
     assert!(Test::type_def().contains("another_value"),);
 
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }

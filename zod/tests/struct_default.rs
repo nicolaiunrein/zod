@@ -38,5 +38,5 @@ fn flatten() {
 
     assert_eq!(Test::schema(), optional(usize::schema()));
     assert_eq!(Test::type_def(), "number | undefined");
-    assert_eq!(Test::type_name(), "Ns.Test")
+    assert_eq!(Test::inline().to_string(), "Ns.Test")
 }

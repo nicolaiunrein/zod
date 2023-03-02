@@ -74,8 +74,11 @@ impl<'a> Enum<'a> {
                     ::zod::TsTypeDef::Type({ #type_def })
                 }
 
-                fn type_name() -> String {
-                    format!("{}.{}", <#ns_path as ::zod::Namespace>::NAME, #name)
+                fn inline() -> ::zod::InlinedType {
+                    ::zod::InlinedType::Ref {
+                        ns_name: <#ns_path as ::zod::Namespace>::NAME,
+                        name: #name
+                    }
                 }
 
                 fn docs() -> Option<&'static str> {

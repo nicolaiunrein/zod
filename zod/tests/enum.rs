@@ -35,7 +35,7 @@ fn enum_adj_struct() {
         Test::type_def(),
         "{ type: \"A\", content: { s: string } } | { type: \"B\", content: { num: number } }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn enum_adj_struct_multiple_fields() {
         Test::type_def(),
         "{ type: \"A\", content: { s: string, num: number } } | { type: \"B\", content: { num: number } }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -106,7 +106,7 @@ fn enum_adj_struct_multiple_fields_single() {
         Test::type_def(),
         "{ type: \"A\", content: { s: string, num: number } }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn enum_adj_tuple() {
         Test::type_def(),
         "{ type: \"A\", content: string } | { type: \"B\", content: number }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -165,7 +165,7 @@ fn enum_adj_tuple_multiple_fields() {
         Test::type_def(),
         "{ type: \"A\", content: [number, number] } | { type: \"B\", content: string }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -187,7 +187,7 @@ fn enum_adj_tuple_multiple_fields_single_variant() {
         Test::type_def(),
         "{ type: \"A\", content: [number, number] }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -204,7 +204,7 @@ fn enum_adj_tuple_single_variant() {
 
     assert_eq!(Test::schema(), adj_tagged("A", &usize::schema()));
     assert_eq!(Test::type_def(), "{ type: \"A\", content: number }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -224,7 +224,7 @@ fn enum_adj_unit() {
         discriminated_union("type", &[object! {type: A}, object! {type: B}])
     );
     assert_eq!(Test::type_def(), "{ type: \"A\" } | { type: \"B\" }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn enum_adj_unit_single_variant() {
 
     assert_eq!(Test::schema(), object! { type: A });
     assert_eq!(Test::type_def(), "{ type: \"A\" }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -266,7 +266,7 @@ fn enum_extern_struct() {
         Test::type_def(),
         "{ A: { s: string } } | { B: { num: number } }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -300,7 +300,7 @@ fn enum_extern_struct_multiple_fields() {
         Test::type_def(),
         "{ A: { s: string, num: number } } | { B: { num: number } }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -327,7 +327,7 @@ fn enum_extern_struct_multiple_fields_single_variant() {
         }
     );
     assert_eq!(Test::type_def(), "{ A: { s: string, num: number } }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -353,7 +353,7 @@ fn enum_extern_tuple() {
         ])
     );
     assert_eq!(Test::type_def(), "{ A: string } | { B: number }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -379,7 +379,7 @@ fn enum_extern_tuple_multiple_fields() {
         ])
     );
     assert_eq!(Test::type_def(), "{ A: [number, number] } | { B: string }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -399,7 +399,7 @@ fn enum_extern_tuple_multiple_fields_single_variant() {
         }
     );
     assert_eq!(Test::type_def(), "{ A: [number, number] }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -419,7 +419,7 @@ fn enum_extern_tuple_single_single_field_single_variant() {
         }
     );
     assert_eq!(Test::type_def(), "{ A: number }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -436,7 +436,7 @@ fn enum_extern_unit() {
 
     assert_eq!(Test::schema(), zod_union(&[A, B]));
     assert_eq!(Test::type_def(), "\"A\" | \"B\"");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -451,7 +451,7 @@ fn enum_extern_unit_single_variant() {
 
     assert_eq!(Test::schema(), A);
     assert_eq!(Test::type_def(), "\"A\"");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -486,7 +486,7 @@ fn enum_intern_struct() {
         Test::type_def(),
         "{ type: \"A\", s: string } | { type: \"B\", num: number }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -523,7 +523,7 @@ fn enum_intern_struct_multiple_fields() {
         Test::type_def(),
         "{ type: \"A\", s: string, num: number } | { type: \"B\", num: number }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -551,7 +551,7 @@ fn enum_intern_struct_multiple_fields_single_variant() {
         }
     );
     assert_eq!(Test::type_def(), "{ type: \"A\", s: string, num: number }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -571,7 +571,7 @@ fn enum_intern_unit() {
         discriminated_union("type", &[object! { type: A }, object! { type: B }])
     );
     assert_eq!(Test::type_def(), "{ type: \"A\" } | { type: \"B\" }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -588,7 +588,7 @@ fn enum_intern_unit_single_variant() {
 
     assert_eq!(Test::schema(), object! { type: A });
     assert_eq!(Test::type_def(), "{ type: \"A\" }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -611,7 +611,7 @@ fn enum_untagged_struct() {
         ])
     );
     assert_eq!(Test::type_def(), "{ s: string } | { num: number }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -637,7 +637,7 @@ fn enum_untagged_struct_multiple_fields() {
         Test::type_def(),
         "{ s: string, num: number } | { num: number }"
     );
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -660,7 +660,7 @@ fn enum_untagged_struct_multiple_fields_single_variant() {
         object! { s: String::schema(), num: usize::schema() }
     );
     assert_eq!(Test::type_def(), "{ s: string, num: number }");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -680,7 +680,7 @@ fn enum_untagged_tuple() {
         zod_union(&[String::schema(), usize::schema()])
     );
     assert_eq!(Test::type_def(), "string | number");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -700,7 +700,7 @@ fn enum_untagged_tuple_multiple_fields() {
         zod_union(&[tuple(&[usize::schema(), usize::schema()]), String::schema()])
     );
     assert_eq!(Test::type_def(), "[number, number] | string");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -716,7 +716,7 @@ fn enum_untagged_tuple_multiple_fields_single_variant() {
     assert_eq!(json, serde_json::json!([123, 42]));
     assert_eq!(Test::schema(), tuple(&[usize::schema(), usize::schema()]));
     assert_eq!(Test::type_def(), "[number, number]");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -731,7 +731,7 @@ fn enum_untagged_tuple_single_field_single_variant() {
     assert_eq!(json, serde_json::json!(123));
     assert_eq!(Test::schema(), usize::schema());
     assert_eq!(Test::type_def(), "number");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -747,7 +747,7 @@ fn enum_untagged_unit() {
     assert_eq!(json, serde_json::json!(null));
     assert_eq!(Test::schema(), zod_union(&[NULL, NULL]));
     assert_eq!(Test::type_def(), "null | null");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }
 
 #[test]
@@ -762,5 +762,5 @@ fn enum_untagged_unit_single_variant() {
     assert_eq!(json, serde_json::json!(null));
     assert_eq!(Test::schema(), NULL);
     assert_eq!(Test::type_def(), "null");
-    assert_eq!(Test::type_name(), "Ns.Test");
+    assert_eq!(Test::inline().to_string(), "Ns.Test");
 }

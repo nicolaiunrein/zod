@@ -44,5 +44,5 @@ fn serde_flatten_struct() {
         Test::type_def(),
         format!("{} & Ns.Nested", Base::type_def())
     );
-    assert_eq!(Test::type_name(), "Ns.Test")
+    assert_eq!(Test::inline().to_string(), "Ns.Test")
 }

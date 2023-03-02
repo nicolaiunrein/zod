@@ -19,7 +19,7 @@ fn ok() {
         tuple(&[usize::schema(), usize::schema(), String::schema()])
     );
     assert_eq!(Test::type_def(), "[number, number, string]");
-    assert_eq!(Test::type_name(), "Ns.Test")
+    assert_eq!(Test::inline().to_string(), "Ns.Test")
 }
 
 #[test]
@@ -41,5 +41,5 @@ fn with_default_fields() {
     );
 
     assert_eq!(Test::type_def(), "[number, number | undefined]");
-    assert_eq!(Test::type_name(), "Ns.Test")
+    assert_eq!(Test::inline().to_string(), "Ns.Test")
 }
