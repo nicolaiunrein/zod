@@ -1,5 +1,5 @@
-//! **simply derive your `typescript` / `Rust` interop!**
-//!
+//! **Derive your `typescript` / `Rust` interop**
+
 //! [![ci status](https://github.com/nicolaiunrein/zod/workflows/CI/badge.svg)](https://github.com/nicolaiunrein/zod/workflows/CI)
 //! [![Unsafe Rust forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square&logo=rust)](https://github.com/rust-secure-code/safety-dance/)
 //! [![Crates.io version](https://img.shields.io/crates/v/zod.svg?style=flat-square)](https://crates.io/crates/zod)
@@ -10,8 +10,6 @@
 //! ## Overview
 //! This crate generates [zod](https://github.com/colinhacks/zod) bindings for your `rust` types and
 //! optionally generates an sdk fully automatically.
-//!
-//! *please see [docs](https://docs.rs/zod) for more details*
 //!
 //! ## Example
 //! ```rust
