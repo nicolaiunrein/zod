@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 pub mod clients;
 pub mod servers;
 

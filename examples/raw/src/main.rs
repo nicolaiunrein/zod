@@ -4,7 +4,7 @@ use futures::{
 };
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use zod::{
-    rpc::{clients::WebsocketClient, rpc, Backend, Request, Response, SubscriberMap},
+    rpc::{self, clients::WebsocketClient, Backend, Request, Response, SubscriberMap},
     Zod,
 };
 
@@ -28,7 +28,7 @@ pub struct Watchout {
 #[derive(zod::Namespace)]
 pub struct Pixera;
 
-#[rpc]
+#[rpc::namespace]
 impl Watchout {
     pub async fn hello(&mut self, _s: String, _n: usize) -> usize {
         self.shared_data += 1;
@@ -43,7 +43,7 @@ impl Watchout {
     }
 }
 
-#[rpc]
+#[rpc::namespace]
 impl Pixera {}
 
 #[derive(Backend)]

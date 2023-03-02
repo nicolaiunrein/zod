@@ -83,6 +83,10 @@
 //! - [x] create namespace macro
 //! - [x] RPC macros
 //! - [x] codegen options (eg. schema prefix/suffix, type prefix/suffix)
+//! - [x] add a mapping table to README.md
+//! - [x] write detailed intro
+//! - [x] write rust-docs
+//!
 //! - [ ] Consider to allow the use of generics otherwise force implementors to not have generics
 //! - [ ] RPC ui tests
 //! - [ ] improve diagnostics on rpc (eg. correct spans, better compile time errors)
@@ -91,9 +95,6 @@
 //!     - [ ] const scope where possible
 //!
 //! - [ ] add integration tests with jest
-//! - [ ] add a mapping table to README.md
-//! - [ ] write detailed intro
-//! - [ ] write rust-docs
 //! - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
 //! - [ ] make rpc a feature or consider splitting the crates entirely
 //!
@@ -106,16 +107,19 @@
 //!
 //!
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/type-table.md"))]
+#![deny(unsafe_code)]
 
 pub use zod_core::*;
 pub use zod_derive::*;
 
+#[cfg(feature = "rpc")]
 pub mod rpc {
     pub use zod_rpc::*;
 }
 
 #[doc(hidden)]
 pub mod __private {
+    #[cfg(feature = "rpc")]
     pub use inventory;
 }
 

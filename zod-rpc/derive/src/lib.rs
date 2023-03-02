@@ -33,7 +33,7 @@ pub fn backend(input: TokenStream) -> TokenStream {
 
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn rpc(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn namespace(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let orig = proc_macro2::TokenStream::from(input.clone());
 
     let ast = syn::parse_macro_input!(input as syn::ItemImpl);

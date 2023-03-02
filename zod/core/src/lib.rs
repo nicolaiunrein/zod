@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 mod build_ins;
 
 #[cfg(debug_assertions)]
@@ -48,7 +50,7 @@ pub trait Namespace {
 
     #[cfg(feature = "inventory")]
     fn members() -> Vec<&'static NamespaceMemberDefinition> {
-        let members = inventory_crate::iter::<NamespaceMemberDefinition>()
+        let members = inventory::iter::<NamespaceMemberDefinition>()
             .filter(|namespace| namespace.ns_name == Self::NAME);
 
         members.collect()
@@ -92,7 +94,7 @@ impl NamespaceMemberDefinition {
 
     pub fn collect() -> BTreeMap<&'static str, Vec<&'static NamespaceMemberDefinition>> {
         let mut out = BTreeMap::<&'static str, Vec<&'static NamespaceMemberDefinition>>::default();
-        for def in inventory_crate::iter::<NamespaceMemberDefinition>() {
+        for def in inventory::iter::<NamespaceMemberDefinition>() {
             out.entry(def.namespace()).or_default().push(def);
         }
         out
@@ -145,6 +147,6 @@ impl std::cmp::PartialEq<String> for TsTypeDef {
     }
 }
 
-inventory_crate::collect!(NamespaceMemberDefinition);
+inventory::collect!(NamespaceMemberDefinition);
 
 pub trait TypeRegister<T> {}

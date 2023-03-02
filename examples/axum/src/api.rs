@@ -1,6 +1,6 @@
 use futures::Stream;
 use futures::StreamExt;
-use zod::Zod;
+use zod::{rpc, Namespace, Zod};
 
 #[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
 #[zod(namespace = "Watchout")]
@@ -28,7 +28,7 @@ pub struct MyEntity2 {
     value: usize,
 }
 
-#[derive(zod::Namespace)]
+#[derive(Namespace)]
 pub struct Watchout {
     pub shared_data: usize,
 }
@@ -38,10 +38,10 @@ pub struct Pixera {
     pub shared_data: usize,
 }
 
-#[zod::rpc::rpc]
+#[rpc::namespace]
 impl Pixera {}
 
-#[zod::rpc::rpc]
+#[rpc::namespace]
 impl Watchout {
     pub async fn nested(&mut self, _value: MyEntity) -> usize {
         self.shared_data += 1;
@@ -66,5 +66,5 @@ impl Watchout {
     }
 }
 
-#[derive(zod::rpc::Backend)]
+#[derive(rpc::Backend)]
 pub struct MyBackend(pub Watchout, pub Pixera);

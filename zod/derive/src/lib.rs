@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 mod args;
 mod docs;
 mod impl_enum;

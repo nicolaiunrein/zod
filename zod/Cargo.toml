@@ -7,8 +7,8 @@ build = "build.rs"
 [dependencies]
 zod-derive = { path = "./derive" }
 zod-core = { path = "./core" }
-zod-rpc = { path = "../zod-rpc" }
-inventory = "0.3.3"
+zod-rpc = { path = "../zod-rpc", optional = true }
+inventory = { version = "0.3.3", optional = true }
 
 
 [dev-dependencies]
@@ -21,3 +21,7 @@ trybuild = { version = "1.0.77", features = ["diff"] }
 [build-dependencies]
 zod-core = { path = "./core" }
 zod-derive = { path = "./derive" }
+
+[features]
+default = ["rpc"]
+rpc = ["zod-rpc", "inventory"]
