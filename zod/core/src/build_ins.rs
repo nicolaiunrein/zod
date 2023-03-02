@@ -4,10 +4,18 @@ use crate::ZodType;
 macro_rules! impl_primitive {
     ($name:literal, $T:ty, $schema: literal) => {
         impl ZodType for $T {
+            /// ```ts
+            /// // TS-type
+            #[doc = $name]
+            /// ```
             fn type_def() -> TsTypeDef {
                 TsTypeDef::Type(String::from($name))
             }
 
+            /// ```ts
+            /// // zod schema
+            #[doc = $schema]
+            /// ```
             fn schema() -> String {
                 String::from($schema)
             }
@@ -16,11 +24,14 @@ macro_rules! impl_primitive {
 }
 
 macro_rules! impl_shadow {
-    ($s:ty; $($impl:tt)*) => {
+    ($other:literal, $other_link:literal, $s:ty; $($impl:tt)*) => {
         $($impl)* {
+            #[doc = concat!("shadows impl for [", $other, "](#impl-ZodType-for-", $other_link, ")")]
             fn type_def() -> TsTypeDef {
                 <$s>::type_def()
             }
+
+            #[doc = concat!("shadows impl for [", $other, "](#impl-ZodType-for-", $other_link, ")")]
             fn schema() -> String {
                 String::from(<$s>::schema())
             }
@@ -32,11 +43,19 @@ macro_rules! impl_shadow {
 macro_rules! impl_tuples {
     ( impl $($i:ident),* ) => {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
+            /// ```ts
+            /// // TS-type
+            /// [T1, T2, ... ]
+            /// ```
             fn type_def() -> TsTypeDef {
                 TsTypeDef::Type(format!("[{}]", vec![$($i::type_def().to_string()),*].join(", ")))
             }
 
 
+            /// ```ts
+            /// // zod schema
+            /// z.tuple([T1, T2, ... ])
+            /// ```
             fn schema() -> String {
                 format!("z.tuple([{}])", vec![$($i::schema()),*].join(", "))
             }
@@ -52,10 +71,18 @@ macro_rules! impl_tuples {
 macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
+            /// ```ts
+            /// // TS-type
+            /// T
+            /// ```
             fn type_def() -> TsTypeDef {
                 T::type_def()
             }
 
+            /// ```ts
+            /// // zod schema
+            /// T
+            /// ```
             fn schema() -> String {
                 T::schema()
             }
@@ -111,7 +138,7 @@ impl_primitive!(
     "z.number().finite().int().lte(9223372036854775807).gte(-9223372036854775808)"
 );
 impl_primitive!("number", i128, "z.number().finite().int().lte(170141183460469231731687303715884105727).gte(-170141183460469231731687303715884105728)");
-impl_primitive!("number", isize, "z.number().finitie().int()");
+impl_primitive!("number", isize, "z.number().finite().int()");
 
 impl_primitive!("number", f32, "z.number()");
 impl_primitive!("number", f64, "z.number()");
@@ -135,65 +162,110 @@ impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Mutex<T>);
 impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Weak<T>);
 impl_wrapper!(impl<T: ZodType> ZodType for std::marker::PhantomData<T>);
 
-impl_shadow!(std::collections::HashSet<T>; impl<T: ZodType> ZodType for std::collections::BTreeSet<T>);
-impl_shadow!(std::collections::HashMap<K, V>; impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V>);
-impl_shadow!(Vec<T>; impl<T: ZodType, const N: usize> ZodType for [T; N]);
+impl_shadow!("HashSet", "HashSet&lt;T,+RandomState&gt;", std::collections::HashSet<T>; impl<T: ZodType> ZodType for std::collections::BTreeSet<T>);
+impl_shadow!("HashMap", "HashMap&lt;K,+V,+RandomState&gt;", std::collections::HashMap<K, V>; impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V>);
+
+impl_shadow!("Vec", "Vec&lt;T&gt;", Vec<T>; impl<T: ZodType, const N: usize> ZodType for [T; N]);
 
 impl<T: ZodType> ZodType for Vec<T> {
-    fn schema() -> String {
-        format!("z.array({})", T::schema())
-    }
-
+    /// ```ts
+    /// // TS-type
+    /// Array<T>
+    /// ```
     fn type_def() -> TsTypeDef {
         TsTypeDef::Type(format!("Array<{}>", T::type_def()))
+    }
+
+    /// ```ts
+    /// // zod schema
+    /// z.array(T)
+    /// ```
+    fn schema() -> String {
+        format!("z.array({})", T::schema())
     }
 }
 
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
-    fn schema() -> String {
-        format!("z.set({})", T::schema())
+    /// ```ts
+    /// // TS-type
+    /// Set<T>
+    /// ```
+    fn type_def() -> TsTypeDef {
+        TsTypeDef::Type(format!("Set<{}>", T::type_def()))
     }
 
-    fn type_def() -> TsTypeDef {
-        TsTypeDef::Type(format!("Array<{}>", T::type_def()))
+    /// ```ts
+    /// // zod schema
+    /// z.set(T)
+    /// ```
+    fn schema() -> String {
+        format!("z.set({})", T::schema())
     }
 }
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
-    fn schema() -> String {
-        format!("z.map({}, {})", K::schema(), V::schema())
-    }
+    /// ```ts
+    /// // TS-type
+    /// Map<K, V>
+    /// ```
     fn type_def() -> TsTypeDef {
         TsTypeDef::Type(format!("Map<{}, {}>", K::type_def(), V::type_def()))
+    }
+
+    /// ```ts
+    /// // zod schema
+    /// z.map(K, V)
+    /// ```
+    fn schema() -> String {
+        format!("z.map({}, {})", K::schema(), V::schema())
     }
 }
 
 impl<T: ZodType> ZodType for Option<T> {
-    fn schema() -> String {
-        format!("{}.optional()", T::schema())
-    }
-
+    /// ```ts
+    /// // TS-type
+    /// T | undefined
+    /// ```
     fn type_def() -> TsTypeDef {
         // Todo
         TsTypeDef::Type(format!("({} | undefined)", T::type_def()))
     }
+
+    /// ```ts
+    /// // zod schema
+    /// T.optional()
+    /// ```
+    fn schema() -> String {
+        format!("{}.optional()", T::schema())
+    }
 }
 
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
-    fn schema() -> String {
-        format!(
-            "z.union([z.object({{ Ok: {} }}), z.object({{ Err: {} }})])",
-            T::schema(),
-            E::schema()
-        )
-    }
-
+    /// ```ts
+    /// // TS-type
+    /// { Ok: T } | { Err: E }
+    /// ```
     fn type_def() -> TsTypeDef {
         TsTypeDef::Type(format!(
             "{{ Ok: {} }} | {{ Err: {} }}",
             T::type_def(),
             E::type_def()
         ))
+    }
+
+    /// ```ts
+    /// // zod schema
+    /// z.union([
+    ///   z.object({ Ok: T }),
+    ///   z.object({ Err: E })
+    /// ])
+    /// ```
+    fn schema() -> String {
+        format!(
+            "z.union([z.object({{ Ok: {} }}), z.object({{ Err: {} }})])",
+            T::schema(),
+            E::schema()
+        )
     }
 }
 

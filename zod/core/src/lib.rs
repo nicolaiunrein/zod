@@ -1,5 +1,8 @@
 mod build_ins;
 
+#[cfg(debug_assertions)]
+pub mod docs;
+
 use std::collections::BTreeMap;
 
 pub use build_ins::*;

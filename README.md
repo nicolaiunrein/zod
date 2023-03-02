@@ -103,3 +103,877 @@ and
 ### Contributing
 Contribution is more than welcome. This crate is extensively tested but there are a lot of edge-cases. If you find anything that is not working but should, please let meknow.
 
+## Type Overview
+
+
+
+[usize](usize)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative()
+
+```
+[u8](u8)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(255)
+
+```
+[u16](u16)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(65535)
+
+```
+[u32](u32)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(4294967295)
+
+```
+[u64](u64)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(18446744073709551615)
+
+```
+[u128](u128)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(340282366920938463463374607431768211455)
+
+```
+[i8](i8)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(127).gte(-128)
+
+```
+[i16](i16)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(32767).gte(-32768)
+
+```
+[i32](i32)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(2147483647).gte(-2147483648)
+
+```
+[i64](i64)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(9223372036854775807).gte(-9223372036854775808)
+
+```
+[i128](i128)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(170141183460469231731687303715884105727).gte(-170141183460469231731687303715884105728)
+
+```
+[usize](usize)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative()
+
+```
+[isize](isize)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int()
+
+```
+[f32](f32)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number()
+
+```
+[f64](f64)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number()
+
+```
+[String]
+```ts
+// TS-type
+string
+
+// inlined:
+string
+
+// schema
+z.string()
+
+```
+[&str](&str)
+```ts
+// TS-type
+string
+
+// inlined:
+string
+
+// schema
+z.string()
+
+```
+[bool](bool)
+```ts
+// TS-type
+boolean
+
+// inlined:
+boolean
+
+// schema
+z.bool()
+
+```
+[char](char)
+```ts
+// TS-type
+string
+
+// inlined:
+string
+
+// schema
+z.string().length(1)
+
+```
+[()](https://doc.rust-lang.org/std/primitive.unit.html)
+```ts
+// TS-type
+null
+
+// inlined:
+null
+
+// schema
+z.null()
+
+```
+[Box&lt;T&gt;](Box)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Arc&lt;T&gt;](std::sync::Arc)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Rc&lt;T&gt;](std::rc::Rc)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Cow&lt;'static, T&gt;](std::borrow::Cow)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Cell&lt;T&gt;](std::cell::Cell)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[RefCell&lt;T&gt;](std::cell::RefCell)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Mutex&lt;T&gt;](std::sync::Mutex)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Weak&lt;T&gt;](std::sync::Weak)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[PhantomData&lt;T&gt;](std::marker::PhantomData)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[HashSet&lt;T&gt;](std::collections::HashSet)
+```ts
+// TS-type
+Set&lt;T&gt;
+
+// inlined:
+Set&lt;T&gt;
+
+// schema
+z.set(T)
+
+```
+[HashMap&lt;T1, U2&gt;](std::collections::HashMap)
+```ts
+// TS-type
+Map&lt;T, U&gt;
+
+// inlined:
+Map&lt;T, U&gt;
+
+// schema
+z.map(T, U)
+
+```
+[BTreeSet&lt;T&gt;](std::collections::BTreeSet)
+```ts
+// TS-type
+Set&lt;T&gt;
+
+// inlined:
+Set&lt;T&gt;
+
+// schema
+z.set(T)
+
+```
+[BTreeMap&lt;T1, U2&gt;](std::collections::BTreeMap)
+```ts
+// TS-type
+Map&lt;T, U&gt;
+
+// inlined:
+Map&lt;T, U&gt;
+
+// schema
+z.map(T, U)
+
+```
+[Vec&lt;T&gt;](Vec)
+```ts
+// TS-type
+Array&lt;T&gt;
+
+// inlined:
+Array&lt;T&gt;
+
+// schema
+z.array(T)
+
+```
+[Option&lt;T&gt;](Option)
+```ts
+// TS-type
+(T &#124; undefined)
+
+// inlined:
+(T &#124; undefined)
+
+// schema
+T.optional()
+
+```
+[Result&lt;T, E&gt;](Result)
+```ts
+// TS-type
+{ Ok: T } &#124; { Err: U }
+
+// inlined:
+{ Ok: T } &#124; { Err: U }
+
+// schema
+z.union([z.object({ Ok: T }), z.object({ Err: U })])
+
+```
+
+## Type Overview
+
+
+
+[usize](usize)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative()
+
+```
+[u8](u8)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(255)
+
+```
+[u16](u16)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(65535)
+
+```
+[u32](u32)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(4294967295)
+
+```
+[u64](u64)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(18446744073709551615)
+
+```
+[u128](u128)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative().lte(340282366920938463463374607431768211455)
+
+```
+[i8](i8)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(127).gte(-128)
+
+```
+[i16](i16)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(32767).gte(-32768)
+
+```
+[i32](i32)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(2147483647).gte(-2147483648)
+
+```
+[i64](i64)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(9223372036854775807).gte(-9223372036854775808)
+
+```
+[i128](i128)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().lte(170141183460469231731687303715884105727).gte(-170141183460469231731687303715884105728)
+
+```
+[usize](usize)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int().nonnegative()
+
+```
+[isize](isize)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number().finite().int()
+
+```
+[f32](f32)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number()
+
+```
+[f64](f64)
+```ts
+// TS-type
+number
+
+// inlined:
+number
+
+// schema
+z.number()
+
+```
+[String]
+```ts
+// TS-type
+string
+
+// inlined:
+string
+
+// schema
+z.string()
+
+```
+[&str](&str)
+```ts
+// TS-type
+string
+
+// inlined:
+string
+
+// schema
+z.string()
+
+```
+[bool](bool)
+```ts
+// TS-type
+boolean
+
+// inlined:
+boolean
+
+// schema
+z.bool()
+
+```
+[char](char)
+```ts
+// TS-type
+string
+
+// inlined:
+string
+
+// schema
+z.string().length(1)
+
+```
+[()](https://doc.rust-lang.org/std/primitive.unit.html)
+```ts
+// TS-type
+null
+
+// inlined:
+null
+
+// schema
+z.null()
+
+```
+[Box&lt;T&gt;](Box)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Arc&lt;T&gt;](std::sync::Arc)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Rc&lt;T&gt;](std::rc::Rc)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Cow&lt;'static, T&gt;](std::borrow::Cow)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Cell&lt;T&gt;](std::cell::Cell)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[RefCell&lt;T&gt;](std::cell::RefCell)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Mutex&lt;T&gt;](std::sync::Mutex)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[Weak&lt;T&gt;](std::sync::Weak)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[PhantomData&lt;T&gt;](std::marker::PhantomData)
+```ts
+// TS-type
+T
+
+// inlined:
+T
+
+// schema
+T
+
+```
+[HashSet&lt;T&gt;](std::collections::HashSet)
+```ts
+// TS-type
+Set&lt;T&gt;
+
+// inlined:
+Set&lt;T&gt;
+
+// schema
+z.set(T)
+
+```
+[HashMap&lt;T1, U2&gt;](std::collections::HashMap)
+```ts
+// TS-type
+Map&lt;T, U&gt;
+
+// inlined:
+Map&lt;T, U&gt;
+
+// schema
+z.map(T, U)
+
+```
+[BTreeSet&lt;T&gt;](std::collections::BTreeSet)
+```ts
+// TS-type
+Set&lt;T&gt;
+
+// inlined:
+Set&lt;T&gt;
+
+// schema
+z.set(T)
+
+```
+[BTreeMap&lt;T1, U2&gt;](std::collections::BTreeMap)
+```ts
+// TS-type
+Map&lt;T, U&gt;
+
+// inlined:
+Map&lt;T, U&gt;
+
+// schema
+z.map(T, U)
+
+```
+[Vec&lt;T&gt;](Vec)
+```ts
+// TS-type
+Array&lt;T&gt;
+
+// inlined:
+Array&lt;T&gt;
+
+// schema
+z.array(T)
+
+```
+[Option&lt;T&gt;](Option)
+```ts
+// TS-type
+(T &#124; undefined)
+
+// inlined:
+(T &#124; undefined)
+
+// schema
+T.optional()
+
+```
+[Result&lt;T, E&gt;](Result)
+```ts
+// TS-type
+{ Ok: T } &#124; { Err: U }
+
+// inlined:
+{ Ok: T } &#124; { Err: U }
+
+// schema
+z.union([z.object({ Ok: T }), z.object({ Err: U })])
+
+```
+
