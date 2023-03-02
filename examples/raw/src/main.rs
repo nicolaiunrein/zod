@@ -26,9 +26,7 @@ pub struct Watchout {
 }
 
 #[derive(zod::Namespace)]
-pub struct Pixera {
-    shared_data: usize,
-}
+pub struct Pixera;
 
 #[rpc]
 impl Watchout {
@@ -77,7 +75,7 @@ async fn main() {
         Some("method") => method().await,
         Some("stream") => {
             let (tx, mut rx) = unbounded();
-            let backend = MyBackend(Watchout { shared_data: 0 }, Pixera { shared_data: 1 });
+            let backend = MyBackend(Watchout { shared_data: 0 }, Pixera);
             let mut server = Server {
                 tx,
                 backend,
@@ -103,7 +101,7 @@ async fn main() {
 
 async fn method() {
     let (tx, mut rx) = unbounded();
-    let backend = MyBackend(Watchout { shared_data: 0 }, Pixera { shared_data: 1 });
+    let backend = MyBackend(Watchout { shared_data: 0 }, Pixera);
     let mut server = Server {
         tx,
         backend,

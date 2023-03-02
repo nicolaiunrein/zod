@@ -25,7 +25,7 @@ pub fn expand(
     };
 
     let name = serde_ast.attrs.name().deserialize_name();
-    let tag = serde_ast.attrs.tag().clone();
+    let tag = serde_ast.attrs.tag();
 
     let variants = variants
         .iter()
