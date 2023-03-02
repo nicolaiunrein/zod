@@ -15,16 +15,21 @@
 //!
 //! ## Example
 //! ```rust
+//! # use zod::Namespace;
+//! # use serde::{Serialize, Deserialize};
+//! # use zod::Zod;
 //! #[derive(Namespace)]
 //! struct Ns;
 //!
 //! #[derive(Serialize, Deserialize, Zod)]
+//! #[zod(namespace = "Ns")]
 //! struct MyStruct {
 //!     port: u16,
 //!     data: MyData
 //! }
 //!
 //! #[derive(Serialize, Deserialize, Zod)]
+//! #[zod(namespace = "Ns")]
 //! enum MyData {
 //!     Hello(String),
 //!     World(Vec<usize>)
@@ -79,9 +84,9 @@
 //! - [x] Restrict non-default fields in tuple structs to only come before the first default field
 //! - [x] create namespace macro
 //! - [x] RPC macros
+//! - [x] codegen options (eg. schema prefix/suffix, type prefix/suffix)
 //! - [ ] Consider to allow the use of generics otherwise force implementors to not have generics
 //! - [ ] RPC ui tests
-//! - [ ] codegen options (eg. schema prefix/suffix, type prefix/suffix)
 //! - [ ] improve diagnostics on rpc (eg. correct spans, better compile time errors)
 //! - [ ] improve macro hygiene
 //!     - [ ] use crate_name in zod-derive

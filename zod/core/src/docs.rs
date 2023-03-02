@@ -115,7 +115,7 @@ impl std::fmt::Display for Line {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(
             f,
-            "{}\n```rust,typescript// schema\n{}\n```",
+            "{}\n```ignore// schema\n{}\n```",
             &self.rust, &self.schema,
         )
     }
