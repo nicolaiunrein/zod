@@ -1,4 +1,4 @@
- name: CI
+name: CI
 
 on:
   push:
@@ -120,4 +120,3 @@ jobs:
         uses: huacnlee/autocorrect-action@v2
         with:
           args: --lint --no-diff-bg-color README.md
-
