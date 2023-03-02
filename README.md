@@ -39,7 +39,7 @@ It also generates bindings using the `zod` typescript library.
 - [ ] write rust-docs
 - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
 - [ ] make rpc a feature or consider splitting the crates entirely
-
+- [ ] consider supporting nested namespaces
 ## Points to consider?
 - flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.
 
