@@ -11,7 +11,7 @@ fn ok() {
         struct Test(usize, usize, String);
     }
 
-    let json = serde_json::to_value(&Test(123, 42, String::from("abc"))).unwrap();
+    let json = serde_json::to_value(Test(123, 42, String::from("abc"))).unwrap();
     assert_eq!(json, serde_json::json!([123, 42, "abc"]));
 
     assert_eq!(

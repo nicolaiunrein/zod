@@ -165,7 +165,7 @@ impl std::fmt::Display for Line {
 fn escape(input: &str) -> String {
     // input.to_string()
     input
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("|", "&#124;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('|', "&#124;")
 }

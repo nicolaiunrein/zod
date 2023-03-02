@@ -278,8 +278,8 @@ mod test {
         type Res = Result<usize, String>;
         let res_ok: Result<usize, String> = Ok(1);
         let res_err: Result<usize, String> = Err(String::from("abc"));
-        let json_ok = serde_json::to_value(&res_ok).unwrap();
-        let json_err = serde_json::to_value(&res_err).unwrap();
+        let json_ok = serde_json::to_value(res_ok).unwrap();
+        let json_err = serde_json::to_value(res_err).unwrap();
         assert_eq!(json_ok, serde_json::json!({"Ok": 1}));
         assert_eq!(json_err, serde_json::json!({"Err": "abc"}));
 

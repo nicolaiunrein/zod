@@ -12,7 +12,7 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
     let ident = input.ident;
 
     let req_variant_defs = input.items.iter().map(expand_req_variant_decl);
-    let req_variant_impls = input.items.iter().map(|item| expand_req_variant_impl(item));
+    let req_variant_impls = input.items.iter().map(expand_req_variant_impl);
     let inventory_submits = input
         .items
         .iter()
@@ -110,8 +110,8 @@ pub fn expand_req_variant_impl(input: &args::RpcItem) -> TokenStream {
         .map(|i| quote!(args.#i));
 
     let inner = match input.kind {
-        RpcItemKind::Method => expand_req_variant_impl_method(&ident, expanded_args),
-        RpcItemKind::Stream => expand_req_variant_impl_stream(&ident, expanded_args),
+        RpcItemKind::Method => expand_req_variant_impl_method(ident, expanded_args),
+        RpcItemKind::Stream => expand_req_variant_impl_stream(ident, expanded_args),
     };
 
     quote! {

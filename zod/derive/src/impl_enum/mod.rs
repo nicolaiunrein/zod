@@ -28,10 +28,10 @@ pub fn expand(
     let tag = serde_ast.attrs.tag().clone();
 
     let variants = variants
-        .into_iter()
+        .iter()
         .zip(variant_ast.iter())
         .filter(|(_, ast)| !ast.attrs.skip_deserializing())
-        .map(|(v, ast)| Variant::new(v, &serde_ast, &ast))
+        .map(|(v, ast)| Variant::new(v, &serde_ast, ast))
         .collect();
 
     Enum {

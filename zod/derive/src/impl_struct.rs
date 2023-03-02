@@ -22,7 +22,7 @@ pub fn expand(
 
     let ident = input.ident;
     let name = serde_ast.attrs.name().deserialize_name();
-    let ns_path = input.namespace.clone();
+    let ns_path = input.namespace;
 
     let fields_ast = match serde_ast.data {
         ast::Data::Enum(_) => unreachable!(),
@@ -36,7 +36,7 @@ pub fn expand(
         .zip(fields_ast.iter().map(|f| &f.attrs))
         .filter(|(_, attrs)| !attrs.skip_deserializing())
         .map(|(args::StructField { ty, ident }, attrs)| StructField {
-            ty: &ty,
+            ty,
             name: ident.as_ref().map(|_| attrs.name().deserialize_name()),
             optional: !attrs.default().is_none(),
             transparent,
@@ -212,7 +212,7 @@ struct StructField<'a> {
 impl<'a> StructField<'a> {
     fn expand_schema(&self) -> TokenStream {
         let maybe_optional = self.expand_optional_schema();
-        let ty = qualified_ty(&self.ty);
+        let ty = qualified_ty(self.ty);
 
         match (self.flatten, &self.name, self.transparent) {
             (false, Some(name), false) => {
@@ -247,7 +247,7 @@ impl<'a> StructField<'a> {
     }
 
     fn expand_type_defs(&self) -> TokenStream {
-        let ty = qualified_ty(&self.ty);
+        let ty = qualified_ty(self.ty);
 
         match (self.flatten, &self.name, self.optional, self.transparent) {
             (false, Some(name), false, false) => {
