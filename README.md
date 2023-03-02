@@ -1,10 +1,66 @@
-# Zod
-**generate [zod](https://github.com/colinhacks/zod) schemas from your Rust types and call your function from typescript clients**
-## Overview
-Zod generates all the code neccessary to call rust functions from typescript.
-It also generates bindings using the `zod` typescript library.
+# zod
 
-## TODO
+**simply derive your `typescript` / `Rust` interop!**
+
+[![ci status](https://github.com/nicolaiunrein/zod/workflows/CI/badge.svg)](https://github.com/nicolaiunrein/zod/workflows/CI)
+[![Unsafe Rust forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square&logo=rust)](https://github.com/rust-secure-code/safety-dance/)
+[![Crates.io version](https://img.shields.io/crates/v/zod.svg?style=flat-square)](https://crates.io/crates/zod)
+[![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/zod)
+[![downloads](https://img.shields.io/crates/d/zod.svg?style=flat-square)](https://crates.io/crates/zod)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&logo=pr)](https://github.com/nicolaiunrein/zod/compare)
+
+### Overview
+This crate generates [zod](https://github.com/colinhacks/zod) bindings for your `rust` types and
+optionally generates an sdk fully automatically.
+
+*please see [docs](https://docs.rs/zod) for more details*
+
+### Example
+```rust
+#[derive(Namespace)]
+struct Ns;
+
+#[derive(Serialize, Deserialize, Zod)]
+struct MyStruct {
+    port: u16,
+    data: MyData
+}
+
+#[derive(Serialize, Deserialize, Zod)]
+enum MyData {
+    Hello(String),
+    World(Vec<usize>)
+}
+
+```
+Deriving Zod implements the [ZodType](https://docs.rs/zod-core/ZodType) trait for you exposing a couple of methods to the
+typescript/schema representation of your rust types.
+
+Calling `MyStruct::schema()` will give you a string with a valid zod schema definition:
+```ts
+z.object({ port: Rs.U16, data: Ns.MyData })
+```
+
+Respectively `MyData::schema()` will give you:
+
+```ts
+z.discriminatedUnion([
+   z.object({ Hello: Rs.String }),
+   z.object({ World: z.array(Rs.Usize) })
+])
+```
+
+There is also the `type_def` method which will give you a typescript type definition:
+```ts
+{ port: Rs.U16, data: Ns.MyData }
+```
+and
+
+```ts
+{ Hello: Rs.String } | { World: [Rs.Usize] }
+```
+
+### TODO
 - [x] Codegen for struct style enums
 - [x] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
 
@@ -28,8 +84,8 @@ It also generates bindings using the `zod` typescript library.
 - [ ] Consider to allow the use of generics otherwise force implementors to not have generics
 - [ ] RPC ui tests
 - [ ] codegen options (eg. schema prefix/suffix, type prefix/suffix)
-- [ ] improved diagnostics on rpc (eg. correct spans, better compile time errors)
-- [ ] macro hygiene
+- [ ] improve diagnostics on rpc (eg. correct spans, better compile time errors)
+- [ ] improve macro hygiene
     - [ ] use crate_name in zod-derive
     - [ ] const scope where possible
 
@@ -40,8 +96,9 @@ It also generates bindings using the `zod` typescript library.
 - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
 - [ ] make rpc a feature or consider splitting the crates entirely
 
-## Points to consider?
+### Consideration?
 - flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.
 
-## Contributing
+### Contributing
 Contribution is more than welcome. This crate is extensively tested but there are a lot of edge-cases. If you find anything that is not working but should, please let meknow.
+
