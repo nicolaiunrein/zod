@@ -1,0 +1,1838 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+mod api {
+    use futures::Stream;
+    use futures::StreamExt;
+    use zod::{rpc, Namespace, Zod};
+    #[zod(namespace = "Watchout")]
+    pub struct MyEntity {
+        value: MyEntity2,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        #[allow(unused_extern_crates, clippy::useless_attribute)]
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl _serde::Serialize for MyEntity {
+            fn serialize<__S>(
+                &self,
+                __serializer: __S,
+            ) -> _serde::__private::Result<__S::Ok, __S::Error>
+            where
+                __S: _serde::Serializer,
+            {
+                let mut __serde_state = match _serde::Serializer::serialize_struct(
+                    __serializer,
+                    "MyEntity",
+                    false as usize + 1,
+                ) {
+                    _serde::__private::Ok(__val) => __val,
+                    _serde::__private::Err(__err) => {
+                        return _serde::__private::Err(__err);
+                    }
+                };
+                match _serde::ser::SerializeStruct::serialize_field(
+                    &mut __serde_state,
+                    "value",
+                    &self.value,
+                ) {
+                    _serde::__private::Ok(__val) => __val,
+                    _serde::__private::Err(__err) => {
+                        return _serde::__private::Err(__err);
+                    }
+                };
+                _serde::ser::SerializeStruct::end(__serde_state)
+            }
+        }
+    };
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        #[allow(unused_extern_crates, clippy::useless_attribute)]
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl<'de> _serde::Deserialize<'de> for MyEntity {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> _serde::__private::Result<Self, __D::Error>
+            where
+                __D: _serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "value" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"value" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<MyEntity>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = MyEntity;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct MyEntity",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            MyEntity2,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct MyEntity with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(MyEntity { value: __field0 })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<MyEntity2> = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("value"),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            MyEntity2,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("value") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(MyEntity { value: __field0 })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["value"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "MyEntity",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<MyEntity>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    impl ::zod::ZodType for MyEntity {
+        fn schema() -> String {
+            let fields: Vec<String> = <[_]>::into_vec(
+                #[rustc_box]
+                ::alloc::boxed::Box::new([
+                    {
+                        let res = ::alloc::fmt::format(
+                            format_args!(
+                                "{0}: {1}{2},", "value", < MyEntity2 as ::zod::ZodType
+                                >::schema(), ""
+                            ),
+                        );
+                        res
+                    },
+                ]),
+            );
+            let extensions: Vec<String> = ::alloc::vec::Vec::new();
+            {
+                let res = ::alloc::fmt::format(
+                    format_args!(
+                        "z.object({{{0}}}){1}", fields.join(",\n"), extensions.join("")
+                    ),
+                );
+                res
+            }
+        }
+        fn type_def() -> ::zod::TsTypeDef {
+            ::zod::TsTypeDef::Type({
+                let fields: Vec<String> = <[_]>::into_vec(
+                    #[rustc_box]
+                    ::alloc::boxed::Box::new([
+                        {
+                            let res = ::alloc::fmt::format(
+                                format_args!(
+                                    "{0}: {1}", "value", < MyEntity2 as ::zod::ZodType
+                                    >::inline()
+                                ),
+                            );
+                            res
+                        },
+                    ]),
+                );
+                let extensions: Vec<String> = ::alloc::vec::Vec::new();
+                {
+                    let res = ::alloc::fmt::format(
+                        format_args!(
+                            "{{{0}}}{1}", fields.join(",\n"), extensions.join("")
+                        ),
+                    );
+                    res
+                }
+            })
+        }
+        fn inline() -> ::zod::InlinedType {
+            ::zod::InlinedType::Ref {
+                ns_name: <Watchout as ::zod::Namespace>::NAME,
+                name: "MyEntity",
+            }
+        }
+        fn docs() -> Option<&'static str> {
+            Some("")
+        }
+    }
+    const _: () = {
+        #[allow(non_upper_case_globals)]
+        extern fn __init() {
+            static __INVENTORY: ::inventory::Node = ::inventory::Node {
+                value: &{
+                    ::zod::NamespaceMemberDefinition::new_for::<
+                        MyEntity,
+                    >(<Watchout as ::zod::Namespace>::NAME, "MyEntity")
+                },
+                next: ::inventory::core::cell::UnsafeCell::new(
+                    ::inventory::core::option::Option::None,
+                ),
+            };
+            unsafe { ::inventory::ErasedNode::submit(__INVENTORY.value, &__INVENTORY) }
+        }
+        #[used]
+        #[allow(non_upper_case_globals)]
+        #[doc(hidden)]
+        #[link_section = ".init_array"]
+        static __init___rust_ctor___ctor: unsafe extern "C" fn() = {
+            #[link_section = ".text.startup"]
+            unsafe extern "C" fn __init___rust_ctor___ctor() {
+                __init()
+            }
+            __init___rust_ctor___ctor
+        };
+    };
+    impl __ZodRegister__Watchout {
+        #[allow(dead_code)]
+        #[allow(non_upper_case_globals)]
+        const MyEntity: () = ();
+    }
+    #[automatically_derived]
+    impl ::core::fmt::Debug for MyEntity {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            ::core::fmt::Formatter::debug_struct_field1_finish(
+                f,
+                "MyEntity",
+                "value",
+                &&self.value,
+            )
+        }
+    }
+    #[zod(namespace = "Watchout")]
+    pub struct T(usize);
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        #[allow(unused_extern_crates, clippy::useless_attribute)]
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl _serde::Serialize for T {
+            fn serialize<__S>(
+                &self,
+                __serializer: __S,
+            ) -> _serde::__private::Result<__S::Ok, __S::Error>
+            where
+                __S: _serde::Serializer,
+            {
+                _serde::Serializer::serialize_newtype_struct(__serializer, "T", &self.0)
+            }
+        }
+    };
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        #[allow(unused_extern_crates, clippy::useless_attribute)]
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl<'de> _serde::Deserialize<'de> for T {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> _serde::__private::Result<Self, __D::Error>
+            where
+                __D: _serde::Deserializer<'de>,
+            {
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<T>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = T;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "tuple struct T",
+                        )
+                    }
+                    #[inline]
+                    fn visit_newtype_struct<__E>(
+                        self,
+                        __e: __E,
+                    ) -> _serde::__private::Result<Self::Value, __E::Error>
+                    where
+                        __E: _serde::Deserializer<'de>,
+                    {
+                        let __field0: usize = match <usize as _serde::Deserialize>::deserialize(
+                            __e,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::__private::Ok(T(__field0))
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            usize,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"tuple struct T with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(T(__field0))
+                    }
+                }
+                _serde::Deserializer::deserialize_newtype_struct(
+                    __deserializer,
+                    "T",
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<T>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    impl ::zod::ZodType for T {
+        fn schema() -> String {
+            {
+                let res = ::alloc::fmt::format(
+                    format_args!("{0}{1}", < usize as ::zod::ZodType >::schema(), ""),
+                );
+                res
+            }
+        }
+        fn type_def() -> ::zod::TsTypeDef {
+            ::zod::TsTypeDef::Type({ <usize as ::zod::ZodType>::inline().to_string() })
+        }
+        fn inline() -> ::zod::InlinedType {
+            ::zod::InlinedType::Ref {
+                ns_name: <Watchout as ::zod::Namespace>::NAME,
+                name: "T",
+            }
+        }
+        fn docs() -> Option<&'static str> {
+            Some("")
+        }
+    }
+    const _: () = {
+        #[allow(non_upper_case_globals)]
+        extern fn __init() {
+            static __INVENTORY: ::inventory::Node = ::inventory::Node {
+                value: &{
+                    ::zod::NamespaceMemberDefinition::new_for::<
+                        T,
+                    >(<Watchout as ::zod::Namespace>::NAME, "T")
+                },
+                next: ::inventory::core::cell::UnsafeCell::new(
+                    ::inventory::core::option::Option::None,
+                ),
+            };
+            unsafe { ::inventory::ErasedNode::submit(__INVENTORY.value, &__INVENTORY) }
+        }
+        #[used]
+        #[allow(non_upper_case_globals)]
+        #[doc(hidden)]
+        #[link_section = ".init_array"]
+        static __init___rust_ctor___ctor: unsafe extern "C" fn() = {
+            #[link_section = ".text.startup"]
+            unsafe extern "C" fn __init___rust_ctor___ctor() {
+                __init()
+            }
+            __init___rust_ctor___ctor
+        };
+    };
+    impl __ZodRegister__Watchout {
+        #[allow(dead_code)]
+        #[allow(non_upper_case_globals)]
+        const T: () = ();
+    }
+    mod nested_mod {
+        use super::*;
+        #[zod(namespace = "Watchout")]
+        pub struct MyEntity3 {
+            value: MyEntity2,
+        }
+        #[doc(hidden)]
+        #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+        const _: () = {
+            #[allow(unused_extern_crates, clippy::useless_attribute)]
+            extern crate serde as _serde;
+            #[automatically_derived]
+            impl _serde::Serialize for MyEntity3 {
+                fn serialize<__S>(
+                    &self,
+                    __serializer: __S,
+                ) -> _serde::__private::Result<__S::Ok, __S::Error>
+                where
+                    __S: _serde::Serializer,
+                {
+                    let mut __serde_state = match _serde::Serializer::serialize_struct(
+                        __serializer,
+                        "MyEntity3",
+                        false as usize + 1,
+                    ) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    };
+                    match _serde::ser::SerializeStruct::serialize_field(
+                        &mut __serde_state,
+                        "value",
+                        &self.value,
+                    ) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    };
+                    _serde::ser::SerializeStruct::end(__serde_state)
+                }
+            }
+        };
+        #[doc(hidden)]
+        #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+        const _: () = {
+            #[allow(unused_extern_crates, clippy::useless_attribute)]
+            extern crate serde as _serde;
+            #[automatically_derived]
+            impl<'de> _serde::Deserialize<'de> for MyEntity3 {
+                fn deserialize<__D>(
+                    __deserializer: __D,
+                ) -> _serde::__private::Result<Self, __D::Error>
+                where
+                    __D: _serde::Deserializer<'de>,
+                {
+                    #[allow(non_camel_case_types)]
+                    enum __Field {
+                        __field0,
+                        __ignore,
+                    }
+                    struct __FieldVisitor;
+                    impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                        type Value = __Field;
+                        fn expecting(
+                            &self,
+                            __formatter: &mut _serde::__private::Formatter,
+                        ) -> _serde::__private::fmt::Result {
+                            _serde::__private::Formatter::write_str(
+                                __formatter,
+                                "field identifier",
+                            )
+                        }
+                        fn visit_u64<__E>(
+                            self,
+                            __value: u64,
+                        ) -> _serde::__private::Result<Self::Value, __E>
+                        where
+                            __E: _serde::de::Error,
+                        {
+                            match __value {
+                                0u64 => _serde::__private::Ok(__Field::__field0),
+                                _ => _serde::__private::Ok(__Field::__ignore),
+                            }
+                        }
+                        fn visit_str<__E>(
+                            self,
+                            __value: &str,
+                        ) -> _serde::__private::Result<Self::Value, __E>
+                        where
+                            __E: _serde::de::Error,
+                        {
+                            match __value {
+                                "value" => _serde::__private::Ok(__Field::__field0),
+                                _ => _serde::__private::Ok(__Field::__ignore),
+                            }
+                        }
+                        fn visit_bytes<__E>(
+                            self,
+                            __value: &[u8],
+                        ) -> _serde::__private::Result<Self::Value, __E>
+                        where
+                            __E: _serde::de::Error,
+                        {
+                            match __value {
+                                b"value" => _serde::__private::Ok(__Field::__field0),
+                                _ => _serde::__private::Ok(__Field::__ignore),
+                            }
+                        }
+                    }
+                    impl<'de> _serde::Deserialize<'de> for __Field {
+                        #[inline]
+                        fn deserialize<__D>(
+                            __deserializer: __D,
+                        ) -> _serde::__private::Result<Self, __D::Error>
+                        where
+                            __D: _serde::Deserializer<'de>,
+                        {
+                            _serde::Deserializer::deserialize_identifier(
+                                __deserializer,
+                                __FieldVisitor,
+                            )
+                        }
+                    }
+                    struct __Visitor<'de> {
+                        marker: _serde::__private::PhantomData<MyEntity3>,
+                        lifetime: _serde::__private::PhantomData<&'de ()>,
+                    }
+                    impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                        type Value = MyEntity3;
+                        fn expecting(
+                            &self,
+                            __formatter: &mut _serde::__private::Formatter,
+                        ) -> _serde::__private::fmt::Result {
+                            _serde::__private::Formatter::write_str(
+                                __formatter,
+                                "struct MyEntity3",
+                            )
+                        }
+                        #[inline]
+                        fn visit_seq<__A>(
+                            self,
+                            mut __seq: __A,
+                        ) -> _serde::__private::Result<Self::Value, __A::Error>
+                        where
+                            __A: _serde::de::SeqAccess<'de>,
+                        {
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
+                                MyEntity2,
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                                _serde::__private::Some(__value) => __value,
+                                _serde::__private::None => {
+                                    return _serde::__private::Err(
+                                        _serde::de::Error::invalid_length(
+                                            0usize,
+                                            &"struct MyEntity3 with 1 element",
+                                        ),
+                                    );
+                                }
+                            };
+                            _serde::__private::Ok(MyEntity3 { value: __field0 })
+                        }
+                        #[inline]
+                        fn visit_map<__A>(
+                            self,
+                            mut __map: __A,
+                        ) -> _serde::__private::Result<Self::Value, __A::Error>
+                        where
+                            __A: _serde::de::MapAccess<'de>,
+                        {
+                            let mut __field0: _serde::__private::Option<MyEntity2> = _serde::__private::None;
+                            while let _serde::__private::Some(__key)
+                                = match _serde::de::MapAccess::next_key::<
+                                    __Field,
+                                >(&mut __map) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                } {
+                                match __key {
+                                    __Field::__field0 => {
+                                        if _serde::__private::Option::is_some(&__field0) {
+                                            return _serde::__private::Err(
+                                                <__A::Error as _serde::de::Error>::duplicate_field("value"),
+                                            );
+                                        }
+                                        __field0 = _serde::__private::Some(
+                                            match _serde::de::MapAccess::next_value::<
+                                                MyEntity2,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
+                                        );
+                                    }
+                                    _ => {
+                                        let _ = match _serde::de::MapAccess::next_value::<
+                                            _serde::de::IgnoredAny,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
+                                    }
+                                }
+                            }
+                            let __field0 = match __field0 {
+                                _serde::__private::Some(__field0) => __field0,
+                                _serde::__private::None => {
+                                    match _serde::__private::de::missing_field("value") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
+                                }
+                            };
+                            _serde::__private::Ok(MyEntity3 { value: __field0 })
+                        }
+                    }
+                    const FIELDS: &'static [&'static str] = &["value"];
+                    _serde::Deserializer::deserialize_struct(
+                        __deserializer,
+                        "MyEntity3",
+                        FIELDS,
+                        __Visitor {
+                            marker: _serde::__private::PhantomData::<MyEntity3>,
+                            lifetime: _serde::__private::PhantomData,
+                        },
+                    )
+                }
+            }
+        };
+        impl ::zod::ZodType for MyEntity3 {
+            fn schema() -> String {
+                let fields: Vec<String> = <[_]>::into_vec(
+                    #[rustc_box]
+                    ::alloc::boxed::Box::new([
+                        {
+                            let res = ::alloc::fmt::format(
+                                format_args!(
+                                    "{0}: {1}{2},", "value", < MyEntity2 as ::zod::ZodType
+                                    >::schema(), ""
+                                ),
+                            );
+                            res
+                        },
+                    ]),
+                );
+                let extensions: Vec<String> = ::alloc::vec::Vec::new();
+                {
+                    let res = ::alloc::fmt::format(
+                        format_args!(
+                            "z.object({{{0}}}){1}", fields.join(",\n"), extensions
+                            .join("")
+                        ),
+                    );
+                    res
+                }
+            }
+            fn type_def() -> ::zod::TsTypeDef {
+                ::zod::TsTypeDef::Type({
+                    let fields: Vec<String> = <[_]>::into_vec(
+                        #[rustc_box]
+                        ::alloc::boxed::Box::new([
+                            {
+                                let res = ::alloc::fmt::format(
+                                    format_args!(
+                                        "{0}: {1}", "value", < MyEntity2 as ::zod::ZodType
+                                        >::inline()
+                                    ),
+                                );
+                                res
+                            },
+                        ]),
+                    );
+                    let extensions: Vec<String> = ::alloc::vec::Vec::new();
+                    {
+                        let res = ::alloc::fmt::format(
+                            format_args!(
+                                "{{{0}}}{1}", fields.join(",\n"), extensions.join("")
+                            ),
+                        );
+                        res
+                    }
+                })
+            }
+            fn inline() -> ::zod::InlinedType {
+                ::zod::InlinedType::Ref {
+                    ns_name: <Watchout as ::zod::Namespace>::NAME,
+                    name: "MyEntity3",
+                }
+            }
+            fn docs() -> Option<&'static str> {
+                Some("")
+            }
+        }
+        const _: () = {
+            #[allow(non_upper_case_globals)]
+            extern fn __init() {
+                static __INVENTORY: ::inventory::Node = ::inventory::Node {
+                    value: &{
+                        ::zod::NamespaceMemberDefinition::new_for::<
+                            MyEntity3,
+                        >(<Watchout as ::zod::Namespace>::NAME, "MyEntity3")
+                    },
+                    next: ::inventory::core::cell::UnsafeCell::new(
+                        ::inventory::core::option::Option::None,
+                    ),
+                };
+                unsafe {
+                    ::inventory::ErasedNode::submit(__INVENTORY.value, &__INVENTORY)
+                }
+            }
+            #[used]
+            #[allow(non_upper_case_globals)]
+            #[doc(hidden)]
+            #[link_section = ".init_array"]
+            static __init___rust_ctor___ctor: unsafe extern "C" fn() = {
+                #[link_section = ".text.startup"]
+                unsafe extern "C" fn __init___rust_ctor___ctor() {
+                    __init()
+                }
+                __init___rust_ctor___ctor
+            };
+        };
+        impl __ZodRegister__Watchout {
+            #[allow(dead_code)]
+            #[allow(non_upper_case_globals)]
+            const MyEntity3: () = ();
+        }
+    }
+    #[zod(namespace = "Pixera")]
+    pub struct MyEntity2 {
+        value: usize,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        #[allow(unused_extern_crates, clippy::useless_attribute)]
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl _serde::Serialize for MyEntity2 {
+            fn serialize<__S>(
+                &self,
+                __serializer: __S,
+            ) -> _serde::__private::Result<__S::Ok, __S::Error>
+            where
+                __S: _serde::Serializer,
+            {
+                let mut __serde_state = match _serde::Serializer::serialize_struct(
+                    __serializer,
+                    "MyEntity2",
+                    false as usize + 1,
+                ) {
+                    _serde::__private::Ok(__val) => __val,
+                    _serde::__private::Err(__err) => {
+                        return _serde::__private::Err(__err);
+                    }
+                };
+                match _serde::ser::SerializeStruct::serialize_field(
+                    &mut __serde_state,
+                    "value",
+                    &self.value,
+                ) {
+                    _serde::__private::Ok(__val) => __val,
+                    _serde::__private::Err(__err) => {
+                        return _serde::__private::Err(__err);
+                    }
+                };
+                _serde::ser::SerializeStruct::end(__serde_state)
+            }
+        }
+    };
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        #[allow(unused_extern_crates, clippy::useless_attribute)]
+        extern crate serde as _serde;
+        #[automatically_derived]
+        impl<'de> _serde::Deserialize<'de> for MyEntity2 {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> _serde::__private::Result<Self, __D::Error>
+            where
+                __D: _serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "value" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"value" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<MyEntity2>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = MyEntity2;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct MyEntity2",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            usize,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct MyEntity2 with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(MyEntity2 { value: __field0 })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<usize> = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("value"),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            usize,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("value") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(MyEntity2 { value: __field0 })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["value"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "MyEntity2",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<MyEntity2>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    impl ::zod::ZodType for MyEntity2 {
+        fn schema() -> String {
+            let fields: Vec<String> = <[_]>::into_vec(
+                #[rustc_box]
+                ::alloc::boxed::Box::new([
+                    {
+                        let res = ::alloc::fmt::format(
+                            format_args!(
+                                "{0}: {1}{2},", "value", < usize as ::zod::ZodType
+                                >::schema(), ""
+                            ),
+                        );
+                        res
+                    },
+                ]),
+            );
+            let extensions: Vec<String> = ::alloc::vec::Vec::new();
+            {
+                let res = ::alloc::fmt::format(
+                    format_args!(
+                        "z.object({{{0}}}){1}", fields.join(",\n"), extensions.join("")
+                    ),
+                );
+                res
+            }
+        }
+        fn type_def() -> ::zod::TsTypeDef {
+            ::zod::TsTypeDef::Type({
+                let fields: Vec<String> = <[_]>::into_vec(
+                    #[rustc_box]
+                    ::alloc::boxed::Box::new([
+                        {
+                            let res = ::alloc::fmt::format(
+                                format_args!(
+                                    "{0}: {1}", "value", < usize as ::zod::ZodType >::inline()
+                                ),
+                            );
+                            res
+                        },
+                    ]),
+                );
+                let extensions: Vec<String> = ::alloc::vec::Vec::new();
+                {
+                    let res = ::alloc::fmt::format(
+                        format_args!(
+                            "{{{0}}}{1}", fields.join(",\n"), extensions.join("")
+                        ),
+                    );
+                    res
+                }
+            })
+        }
+        fn inline() -> ::zod::InlinedType {
+            ::zod::InlinedType::Ref {
+                ns_name: <Pixera as ::zod::Namespace>::NAME,
+                name: "MyEntity2",
+            }
+        }
+        fn docs() -> Option<&'static str> {
+            Some("")
+        }
+    }
+    const _: () = {
+        #[allow(non_upper_case_globals)]
+        extern fn __init() {
+            static __INVENTORY: ::inventory::Node = ::inventory::Node {
+                value: &{
+                    ::zod::NamespaceMemberDefinition::new_for::<
+                        MyEntity2,
+                    >(<Pixera as ::zod::Namespace>::NAME, "MyEntity2")
+                },
+                next: ::inventory::core::cell::UnsafeCell::new(
+                    ::inventory::core::option::Option::None,
+                ),
+            };
+            unsafe { ::inventory::ErasedNode::submit(__INVENTORY.value, &__INVENTORY) }
+        }
+        #[used]
+        #[allow(non_upper_case_globals)]
+        #[doc(hidden)]
+        #[link_section = ".init_array"]
+        static __init___rust_ctor___ctor: unsafe extern "C" fn() = {
+            #[link_section = ".text.startup"]
+            unsafe extern "C" fn __init___rust_ctor___ctor() {
+                __init()
+            }
+            __init___rust_ctor___ctor
+        };
+    };
+    impl __ZodRegister__Pixera {
+        #[allow(dead_code)]
+        #[allow(non_upper_case_globals)]
+        const MyEntity2: () = ();
+    }
+    #[automatically_derived]
+    impl ::core::fmt::Debug for MyEntity2 {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            ::core::fmt::Formatter::debug_struct_field1_finish(
+                f,
+                "MyEntity2",
+                "value",
+                &&self.value,
+            )
+        }
+    }
+    pub struct Watchout {
+        pub shared_data: usize,
+    }
+    impl ::zod::Namespace for Watchout {
+        const NAME: &'static str = "Watchout";
+        fn docs() -> Option<&'static str> {
+            Some("")
+        }
+    }
+    #[allow(dead_code)]
+    #[allow(non_camel_case_types)]
+    struct __ZodRegister__Watchout;
+    pub struct Pixera {
+        pub shared_data: usize,
+    }
+    impl ::zod::Namespace for Pixera {
+        const NAME: &'static str = "Pixera";
+        fn docs() -> Option<&'static str> {
+            Some("")
+        }
+    }
+    #[allow(dead_code)]
+    #[allow(non_camel_case_types)]
+    struct __ZodRegister__Pixera;
+    impl Pixera {
+        fn x(&mut self) -> impl std::iter::Iterator<Item = String> {
+            std::iter::once(String::new())
+        }
+    }
+    const _: () = {
+        impl ::zod::rpc::__private::codegen::RpcNamespace for Pixera {
+            type Req = PixeraReq;
+        }
+        #[serde(tag = "method")]
+        #[allow(non_camel_case_types)]
+        #[allow(non_snake_case)]
+        #[allow(non_upper_case_globals)]
+        pub enum PixeraReq {
+            x { args: () },
+        }
+        #[doc(hidden)]
+        #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+        const _: () = {
+            #[allow(unused_extern_crates, clippy::useless_attribute)]
+            extern crate serde as _serde;
+            #[automatically_derived]
+            impl<'de> _serde::Deserialize<'de> for PixeraReq {
+                fn deserialize<__D>(
+                    __deserializer: __D,
+                ) -> _serde::__private::Result<Self, __D::Error>
+                where
+                    __D: _serde::Deserializer<'de>,
+                {
+                    #[allow(non_camel_case_types)]
+                    enum __Field {
+                        __field0,
+                    }
+                    struct __FieldVisitor;
+                    impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                        type Value = __Field;
+                        fn expecting(
+                            &self,
+                            __formatter: &mut _serde::__private::Formatter,
+                        ) -> _serde::__private::fmt::Result {
+                            _serde::__private::Formatter::write_str(
+                                __formatter,
+                                "variant identifier",
+                            )
+                        }
+                        fn visit_u64<__E>(
+                            self,
+                            __value: u64,
+                        ) -> _serde::__private::Result<Self::Value, __E>
+                        where
+                            __E: _serde::de::Error,
+                        {
+                            match __value {
+                                0u64 => _serde::__private::Ok(__Field::__field0),
+                                _ => {
+                                    _serde::__private::Err(
+                                        _serde::de::Error::invalid_value(
+                                            _serde::de::Unexpected::Unsigned(__value),
+                                            &"variant index 0 <= i < 1",
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                        fn visit_str<__E>(
+                            self,
+                            __value: &str,
+                        ) -> _serde::__private::Result<Self::Value, __E>
+                        where
+                            __E: _serde::de::Error,
+                        {
+                            match __value {
+                                "x" => _serde::__private::Ok(__Field::__field0),
+                                _ => {
+                                    _serde::__private::Err(
+                                        _serde::de::Error::unknown_variant(__value, VARIANTS),
+                                    )
+                                }
+                            }
+                        }
+                        fn visit_bytes<__E>(
+                            self,
+                            __value: &[u8],
+                        ) -> _serde::__private::Result<Self::Value, __E>
+                        where
+                            __E: _serde::de::Error,
+                        {
+                            match __value {
+                                b"x" => _serde::__private::Ok(__Field::__field0),
+                                _ => {
+                                    let __value = &_serde::__private::from_utf8_lossy(__value);
+                                    _serde::__private::Err(
+                                        _serde::de::Error::unknown_variant(__value, VARIANTS),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    impl<'de> _serde::Deserialize<'de> for __Field {
+                        #[inline]
+                        fn deserialize<__D>(
+                            __deserializer: __D,
+                        ) -> _serde::__private::Result<Self, __D::Error>
+                        where
+                            __D: _serde::Deserializer<'de>,
+                        {
+                            _serde::Deserializer::deserialize_identifier(
+                                __deserializer,
+                                __FieldVisitor,
+                            )
+                        }
+                    }
+                    const VARIANTS: &'static [&'static str] = &["x"];
+                    let __tagged = match _serde::Deserializer::deserialize_any(
+                        __deserializer,
+                        _serde::__private::de::TaggedContentVisitor::<
+                            __Field,
+                        >::new("method", "internally tagged enum PixeraReq"),
+                    ) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    };
+                    match __tagged.tag {
+                        __Field::__field0 => {
+                            #[allow(non_camel_case_types)]
+                            enum __Field {
+                                __field0,
+                                __ignore,
+                            }
+                            struct __FieldVisitor;
+                            impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                                type Value = __Field;
+                                fn expecting(
+                                    &self,
+                                    __formatter: &mut _serde::__private::Formatter,
+                                ) -> _serde::__private::fmt::Result {
+                                    _serde::__private::Formatter::write_str(
+                                        __formatter,
+                                        "field identifier",
+                                    )
+                                }
+                                fn visit_u64<__E>(
+                                    self,
+                                    __value: u64,
+                                ) -> _serde::__private::Result<Self::Value, __E>
+                                where
+                                    __E: _serde::de::Error,
+                                {
+                                    match __value {
+                                        0u64 => _serde::__private::Ok(__Field::__field0),
+                                        _ => _serde::__private::Ok(__Field::__ignore),
+                                    }
+                                }
+                                fn visit_str<__E>(
+                                    self,
+                                    __value: &str,
+                                ) -> _serde::__private::Result<Self::Value, __E>
+                                where
+                                    __E: _serde::de::Error,
+                                {
+                                    match __value {
+                                        "args" => _serde::__private::Ok(__Field::__field0),
+                                        _ => _serde::__private::Ok(__Field::__ignore),
+                                    }
+                                }
+                                fn visit_bytes<__E>(
+                                    self,
+                                    __value: &[u8],
+                                ) -> _serde::__private::Result<Self::Value, __E>
+                                where
+                                    __E: _serde::de::Error,
+                                {
+                                    match __value {
+                                        b"args" => _serde::__private::Ok(__Field::__field0),
+                                        _ => _serde::__private::Ok(__Field::__ignore),
+                                    }
+                                }
+                            }
+                            impl<'de> _serde::Deserialize<'de> for __Field {
+                                #[inline]
+                                fn deserialize<__D>(
+                                    __deserializer: __D,
+                                ) -> _serde::__private::Result<Self, __D::Error>
+                                where
+                                    __D: _serde::Deserializer<'de>,
+                                {
+                                    _serde::Deserializer::deserialize_identifier(
+                                        __deserializer,
+                                        __FieldVisitor,
+                                    )
+                                }
+                            }
+                            struct __Visitor<'de> {
+                                marker: _serde::__private::PhantomData<PixeraReq>,
+                                lifetime: _serde::__private::PhantomData<&'de ()>,
+                            }
+                            impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                                type Value = PixeraReq;
+                                fn expecting(
+                                    &self,
+                                    __formatter: &mut _serde::__private::Formatter,
+                                ) -> _serde::__private::fmt::Result {
+                                    _serde::__private::Formatter::write_str(
+                                        __formatter,
+                                        "struct variant PixeraReq::x",
+                                    )
+                                }
+                                #[inline]
+                                fn visit_seq<__A>(
+                                    self,
+                                    mut __seq: __A,
+                                ) -> _serde::__private::Result<Self::Value, __A::Error>
+                                where
+                                    __A: _serde::de::SeqAccess<'de>,
+                                {
+                                    let __field0 = match match _serde::de::SeqAccess::next_element::<
+                                        (),
+                                    >(&mut __seq) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    } {
+                                        _serde::__private::Some(__value) => __value,
+                                        _serde::__private::None => {
+                                            return _serde::__private::Err(
+                                                _serde::de::Error::invalid_length(
+                                                    0usize,
+                                                    &"struct variant PixeraReq::x with 1 element",
+                                                ),
+                                            );
+                                        }
+                                    };
+                                    _serde::__private::Ok(PixeraReq::x { args: __field0 })
+                                }
+                                #[inline]
+                                fn visit_map<__A>(
+                                    self,
+                                    mut __map: __A,
+                                ) -> _serde::__private::Result<Self::Value, __A::Error>
+                                where
+                                    __A: _serde::de::MapAccess<'de>,
+                                {
+                                    let mut __field0: _serde::__private::Option<()> = _serde::__private::None;
+                                    while let _serde::__private::Some(__key)
+                                        = match _serde::de::MapAccess::next_key::<
+                                            __Field,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        } {
+                                        match __key {
+                                            __Field::__field0 => {
+                                                if _serde::__private::Option::is_some(&__field0) {
+                                                    return _serde::__private::Err(
+                                                        <__A::Error as _serde::de::Error>::duplicate_field("args"),
+                                                    );
+                                                }
+                                                __field0 = _serde::__private::Some(
+                                                    match _serde::de::MapAccess::next_value::<()>(&mut __map) {
+                                                        _serde::__private::Ok(__val) => __val,
+                                                        _serde::__private::Err(__err) => {
+                                                            return _serde::__private::Err(__err);
+                                                        }
+                                                    },
+                                                );
+                                            }
+                                            _ => {
+                                                let _ = match _serde::de::MapAccess::next_value::<
+                                                    _serde::de::IgnoredAny,
+                                                >(&mut __map) {
+                                                    _serde::__private::Ok(__val) => __val,
+                                                    _serde::__private::Err(__err) => {
+                                                        return _serde::__private::Err(__err);
+                                                    }
+                                                };
+                                            }
+                                        }
+                                    }
+                                    let __field0 = match __field0 {
+                                        _serde::__private::Some(__field0) => __field0,
+                                        _serde::__private::None => {
+                                            match _serde::__private::de::missing_field("args") {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            }
+                                        }
+                                    };
+                                    _serde::__private::Ok(PixeraReq::x { args: __field0 })
+                                }
+                            }
+                            const FIELDS: &'static [&'static str] = &["args"];
+                            _serde::Deserializer::deserialize_any(
+                                _serde::__private::de::ContentDeserializer::<
+                                    __D::Error,
+                                >::new(__tagged.content),
+                                __Visitor {
+                                    marker: _serde::__private::PhantomData::<PixeraReq>,
+                                    lifetime: _serde::__private::PhantomData,
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        };
+        #[automatically_derived]
+        #[allow(non_camel_case_types)]
+        #[allow(non_snake_case)]
+        #[allow(non_upper_case_globals)]
+        impl ::core::fmt::Debug for PixeraReq {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                match self {
+                    PixeraReq::x { args: __self_0 } => {
+                        ::core::fmt::Formatter::debug_struct_field1_finish(
+                            f,
+                            "x",
+                            "args",
+                            &__self_0,
+                        )
+                    }
+                }
+            }
+        }
+        impl PixeraReq {
+            pub async fn call(
+                self,
+                id: usize,
+                ctx: &mut Pixera,
+                sender: ::zod::rpc::__private::ResponseSender,
+            ) -> ::std::option::Option<
+                ::zod::rpc::__private::tokio::task::JoinHandle<()>,
+            > {
+                match self {
+                    Self::x { args } => {
+                        let s = ctx.x();
+                        Some(
+                            ::zod::rpc::__private::tokio::spawn(async move {
+                                let mut s = s;
+                                #[allow(unused_mut)]
+                                let mut s = unsafe {
+                                    ::pin_utils::core_reexport::pin::Pin::new_unchecked(&mut s)
+                                };
+                                while let ::std::option::Option::Some(evt)
+                                    = ::zod::rpc::__private::futures::StreamExt::next(&mut s)
+                                        .await
+                                {
+                                    if let ::std::result::Result::<_, _>::Err(err)
+                                        = sender
+                                            .unbounded_send(
+                                                ::zod::rpc::__private::Response::stream(id, evt),
+                                            )
+                                    {
+                                        {
+                                            use ::tracing::__macro_support::Callsite as _;
+                                            static CALLSITE: ::tracing::callsite::DefaultCallsite = {
+                                                static META: ::tracing::Metadata<'static> = {
+                                                    ::tracing_core::metadata::Metadata::new(
+                                                        "event examples/axum/src/api.rs:41",
+                                                        "expanded::api",
+                                                        ::tracing::Level::WARN,
+                                                        Some("examples/axum/src/api.rs"),
+                                                        Some(41u32),
+                                                        Some("expanded::api"),
+                                                        ::tracing_core::field::FieldSet::new(
+                                                            &["message", "err"],
+                                                            ::tracing_core::callsite::Identifier(&CALLSITE),
+                                                        ),
+                                                        ::tracing::metadata::Kind::EVENT,
+                                                    )
+                                                };
+                                                ::tracing::callsite::DefaultCallsite::new(&META)
+                                            };
+                                            let enabled = ::tracing::Level::WARN
+                                                <= ::tracing::level_filters::STATIC_MAX_LEVEL
+                                                && ::tracing::Level::WARN
+                                                    <= ::tracing::level_filters::LevelFilter::current()
+                                                && {
+                                                    let interest = CALLSITE.interest();
+                                                    !interest.is_never()
+                                                        && ::tracing::__macro_support::__is_enabled(
+                                                            CALLSITE.metadata(),
+                                                            interest,
+                                                        )
+                                                };
+                                            if enabled {
+                                                (|value_set: ::tracing::field::ValueSet| {
+                                                    let meta = CALLSITE.metadata();
+                                                    ::tracing::Event::dispatch(meta, &value_set);
+                                                    if match ::tracing::Level::WARN {
+                                                        ::tracing::Level::ERROR => ::tracing::log::Level::Error,
+                                                        ::tracing::Level::WARN => ::tracing::log::Level::Warn,
+                                                        ::tracing::Level::INFO => ::tracing::log::Level::Info,
+                                                        ::tracing::Level::DEBUG => ::tracing::log::Level::Debug,
+                                                        _ => ::tracing::log::Level::Trace,
+                                                    } <= ::tracing::log::STATIC_MAX_LEVEL
+                                                    {
+                                                        if !::tracing::dispatcher::has_been_set() {
+                                                            {
+                                                                use ::tracing::log;
+                                                                let level = match ::tracing::Level::WARN {
+                                                                    ::tracing::Level::ERROR => ::tracing::log::Level::Error,
+                                                                    ::tracing::Level::WARN => ::tracing::log::Level::Warn,
+                                                                    ::tracing::Level::INFO => ::tracing::log::Level::Info,
+                                                                    ::tracing::Level::DEBUG => ::tracing::log::Level::Debug,
+                                                                    _ => ::tracing::log::Level::Trace,
+                                                                };
+                                                                if level <= log::max_level() {
+                                                                    let meta = CALLSITE.metadata();
+                                                                    let log_meta = log::Metadata::builder()
+                                                                        .level(level)
+                                                                        .target(meta.target())
+                                                                        .build();
+                                                                    let logger = log::logger();
+                                                                    if logger.enabled(&log_meta) {
+                                                                        ::tracing::__macro_support::__tracing_log(
+                                                                            meta,
+                                                                            logger,
+                                                                            log_meta,
+                                                                            &value_set,
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        } else {
+                                                            {}
+                                                        }
+                                                    } else {
+                                                        {}
+                                                    };
+                                                })({
+                                                    #[allow(unused_imports)]
+                                                    use ::tracing::field::{debug, display, Value};
+                                                    let mut iter = CALLSITE.metadata().fields().iter();
+                                                    CALLSITE
+                                                        .metadata()
+                                                        .fields()
+                                                        .value_set(
+                                                            &[
+                                                                (
+                                                                    &iter.next().expect("FieldSet corrupted (this is a bug)"),
+                                                                    Some(&format_args!("Failed to emit event") as &dyn Value),
+                                                                ),
+                                                                (
+                                                                    &iter.next().expect("FieldSet corrupted (this is a bug)"),
+                                                                    Some(&debug(&err) as &dyn Value),
+                                                                ),
+                                                            ],
+                                                        )
+                                                });
+                                            } else {
+                                                if match ::tracing::Level::WARN {
+                                                    ::tracing::Level::ERROR => ::tracing::log::Level::Error,
+                                                    ::tracing::Level::WARN => ::tracing::log::Level::Warn,
+                                                    ::tracing::Level::INFO => ::tracing::log::Level::Info,
+                                                    ::tracing::Level::DEBUG => ::tracing::log::Level::Debug,
+                                                    _ => ::tracing::log::Level::Trace,
+                                                } <= ::tracing::log::STATIC_MAX_LEVEL
+                                                {
+                                                    if !::tracing::dispatcher::has_been_set() {
+                                                        {
+                                                            use ::tracing::log;
+                                                            let level = match ::tracing::Level::WARN {
+                                                                ::tracing::Level::ERROR => ::tracing::log::Level::Error,
+                                                                ::tracing::Level::WARN => ::tracing::log::Level::Warn,
+                                                                ::tracing::Level::INFO => ::tracing::log::Level::Info,
+                                                                ::tracing::Level::DEBUG => ::tracing::log::Level::Debug,
+                                                                _ => ::tracing::log::Level::Trace,
+                                                            };
+                                                            if level <= log::max_level() {
+                                                                let meta = CALLSITE.metadata();
+                                                                let log_meta = log::Metadata::builder()
+                                                                    .level(level)
+                                                                    .target(meta.target())
+                                                                    .build();
+                                                                let logger = log::logger();
+                                                                if logger.enabled(&log_meta) {
+                                                                    ::tracing::__macro_support::__tracing_log(
+                                                                        meta,
+                                                                        logger,
+                                                                        log_meta,
+                                                                        &{
+                                                                            #[allow(unused_imports)]
+                                                                            use ::tracing::field::{debug, display, Value};
+                                                                            let mut iter = CALLSITE.metadata().fields().iter();
+                                                                            CALLSITE
+                                                                                .metadata()
+                                                                                .fields()
+                                                                                .value_set(
+                                                                                    &[
+                                                                                        (
+                                                                                            &iter.next().expect("FieldSet corrupted (this is a bug)"),
+                                                                                            Some(&format_args!("Failed to emit event") as &dyn Value),
+                                                                                        ),
+                                                                                        (
+                                                                                            &iter.next().expect("FieldSet corrupted (this is a bug)"),
+                                                                                            Some(&debug(&err) as &dyn Value),
+                                                                                        ),
+                                                                                    ],
+                                                                                )
+                                                                        },
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    } else {
+                                                        {}
+                                                    }
+                                                } else {
+                                                    {}
+                                                };
+                                            }
+                                        };
+                                        break;
+                                    }
+                                }
+                            }),
+                        )
+                    }
+                }
+            }
+        }
+        const _: () = {
+            #[allow(non_upper_case_globals)]
+            extern fn __init() {
+                static __INVENTORY: ::inventory::Node = ::inventory::Node {
+                    value: &{
+                        ::zod::rpc::__private::codegen::RpcMember::Stream {
+                            ns_name: <Pixera as ::zod::Namespace>::NAME,
+                            name: "x",
+                            args: &(|| ::alloc::vec::Vec::new()),
+                            res: &(|| <String as ::zod::ZodType>::type_def().to_string()),
+                        }
+                    },
+                    next: ::inventory::core::cell::UnsafeCell::new(
+                        ::inventory::core::option::Option::None,
+                    ),
+                };
+                unsafe {
+                    ::inventory::ErasedNode::submit(__INVENTORY.value, &__INVENTORY)
+                }
+            }
+            #[used]
+            #[allow(non_upper_case_globals)]
+            #[doc(hidden)]
+            #[link_section = ".init_array"]
+            static __init___rust_ctor___ctor: unsafe extern "C" fn() = {
+                #[link_section = ".text.startup"]
+                unsafe extern "C" fn __init___rust_ctor___ctor() {
+                    __init()
+                }
+                __init___rust_ctor___ctor
+            };
+        };
+    };
+}
+use api::MyBackend;
+use axum::{extract::Extension, routing::get, Router, Server};
+use zod::rpc::{
+    clients::WebsocketClient, servers::{axum::websocket_handler, proxy::BackendProxy},
+    Backend,
+};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+fn main() {
+    let body = async {
+        tracing_subscriber::registry()
+            .with(fmt::layer())
+            .with(EnvFilter::from_default_env())
+            .init();
+        match std::env::args().nth(1).as_deref() {
+            Some("generate") => generate(),
+            Some("serve") => serve().await,
+            _ => {
+                ::std::io::_eprint(format_args!("Call with serve or generate\n"));
+            }
+        }
+    };
+    #[allow(clippy::expect_used, clippy::diverging_sub_expression)]
+    {
+        return tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Failed building the Runtime")
+            .block_on(body);
+    }
+}
+fn generate() {
+    let content = MyBackend::generate::<WebsocketClient>();
+    {
+        ::std::io::_print(format_args!("{0}\n", content));
+    };
+}
+async fn serve() {
+    let backend = MyBackend(
+        api::Watchout { shared_data: 0 },
+        api::Pixera { shared_data: 0 },
+    );
+    let proxy = BackendProxy::new(backend);
+    let app = Router::new().route("/ws", get(websocket_handler)).layer(Extension(proxy));
+    Server::bind(&"127.0.0.1:8000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}

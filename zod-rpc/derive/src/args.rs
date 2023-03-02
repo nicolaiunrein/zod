@@ -1,6 +1,6 @@
 use darling::{ast::Data, FromDeriveInput, FromField};
 use proc_macro2::Span;
-use proc_macro_error::abort_call_site;
+use proc_macro_error::{abort, abort_call_site};
 use quote::format_ident;
 use syn::{parse_quote, Ident, ImplItem, ImplItemMethod, ItemImpl, Path, Type};
 
@@ -70,11 +70,17 @@ pub struct RpcItem {
     pub ident: syn::Ident,
     pub arg_types: Vec<RpcArg>,
     pub kind: RpcItemKind,
+    pub output: OutputType,
 }
 
 pub struct RpcArg {
     pub name: String,
     pub ty: Box<Type>,
+}
+
+pub enum OutputType {
+    Concrete(Box<Type>),
+    ImplItem(Type),
 }
 
 impl RpcItem {
@@ -88,6 +94,81 @@ impl RpcItem {
         } else {
             RpcItemKind::Stream
         };
+
+        let output = match (&kind, sig.output) {
+            (RpcItemKind::Method, syn::ReturnType::Default) => {
+                OutputType::Concrete(parse_quote!(()))
+            }
+            (RpcItemKind::Stream, syn::ReturnType::Default) => {
+                abort!(
+                    ident.span(),
+                    "zod: namespace methods must be async or return a stream"
+                )
+            }
+            (RpcItemKind::Method, syn::ReturnType::Type(_, t))
+            | (RpcItemKind::Stream, syn::ReturnType::Type(_, t)) => match t.as_ref() {
+                Type::ImplTrait(x) => OutputType::ImplItem(
+                    x.bounds
+                        .iter()
+                        .find_map(|bound| match bound {
+                            syn::TypeParamBound::Trait(t) => {
+                                t.path.segments.iter().find_map(|seg| match &seg.arguments {
+                                    syn::PathArguments::AngleBracketed(x) => {
+                                        x.args.iter().find_map(|arg| match arg {
+                                            syn::GenericArgument::Binding(binding) => {
+                                                if binding.ident
+                                                    == Ident::new("Item", binding.ident.span())
+                                                {
+                                                    Some(binding.ty.clone())
+                                                } else {
+                                                    None
+                                                }
+                                            }
+                                            _ => None,
+                                        })
+                                    }
+                                    _ => None,
+                                })
+                            }
+                            syn::TypeParamBound::Lifetime(_) => None,
+                        })
+                        .unwrap(),
+                ),
+                _ => OutputType::Concrete(t),
+            },
+        };
+
+        if let Some(receiver) = sig.inputs.iter().find_map(|arg| match arg {
+            syn::FnArg::Receiver(inner) => Some(inner),
+            _ => None,
+        }) {
+            match (receiver.mutability, &receiver.reference) {
+                (Some(_), Some((_, None))) => {}
+                (Some(_), Some((_, Some(lifetime)))) => {
+                    abort! {
+                    lifetime.span(),
+                    "zod: namespace methods are not allowed to have lifetimes"
+
+                    }
+                }
+                (None, None) => abort!(
+                    receiver.self_token.span,
+                    "zod: expected `&mut self` got `self`.",
+                ),
+                (None, Some((and, _))) => {
+                    abort!(and.span, "zod: expected `&mut self` got `&self`.",)
+                }
+                (Some(_), None) => abort!(
+                    receiver.self_token.span,
+                    "zod: expected `&mut self` got `mut self`.",
+                ),
+            }
+        } else {
+            abort!(
+                ident.span(),
+                "zod: namespace methods must have a self argument"
+            );
+        }
 
         let arg_types = sig
             .inputs
@@ -108,6 +189,7 @@ impl RpcItem {
             ident,
             arg_types,
             kind,
+            output,
         }
     }
 }

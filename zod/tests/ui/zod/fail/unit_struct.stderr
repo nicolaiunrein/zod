@@ -1,5 +1,5 @@
 error: Unsupported shape `no fields`. Expected named fields or unnamed fields.
- --> tests/ui/fail/unit_struct.rs:4:10
+ --> tests/ui/zod/fail/unit_struct.rs:4:10
   |
 4 | #[derive(Zod)]
   |          ^^^

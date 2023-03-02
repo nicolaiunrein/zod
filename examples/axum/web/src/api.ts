@@ -206,6 +206,17 @@ export namespace Pixera {
     value: z.number().finite().int().nonnegative(),
   });
   export type MyEntity2 = { value: number };
+
+  // @ts-ignore
+  export function y(): Store<string> {
+    z.tuple([]).parse([...arguments]);
+    return subscribe("Pixera", "y", arguments);
+  }
+  // @ts-ignore
+  export function x(): Store<string> {
+    z.tuple([]).parse([...arguments]);
+    return subscribe("Pixera", "x", arguments);
+  }
 }
 export namespace Watchout {
   export const T = z.number().finite().int().nonnegative();

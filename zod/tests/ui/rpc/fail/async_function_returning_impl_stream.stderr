@@ -1,0 +1,5 @@
+error: zod: namespace methods returning a stream are not allowed to be async
+ --> tests/ui/rpc/fail/async_function_returning_impl_stream.rs:8:14
+  |
+8 |     async fn test(&mut self) -> impl futures::Stream<Item = usize> {
+  |              ^^^^

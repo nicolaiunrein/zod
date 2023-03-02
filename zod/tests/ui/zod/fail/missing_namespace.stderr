@@ -1,5 +1,5 @@
 error: Missing field `namespace`
- --> tests/ui/fail/missing_namespace.rs:3:10
+ --> tests/ui/zod/fail/missing_namespace.rs:3:10
   |
 3 | #[derive(Zod)]
   |          ^^^

@@ -39,7 +39,20 @@ pub struct Pixera {
 }
 
 #[rpc::namespace]
-impl Pixera {}
+impl Pixera {
+    fn x(&mut self) -> impl futures::Stream<Item = String> {
+        futures::stream::once(async move { String::new() })
+    }
+
+    // fn iter(&mut self) -> impl std::iter::Iterator<Item = String> {
+    // // futures::stream::once(async move { String::new() })
+    // std::iter::once(String::new())
+    // }
+
+    fn y(&mut self) -> std::pin::Pin<Box<dyn futures::Stream<Item = String> + Send>> {
+        futures::stream::once(async move { String::new() }).boxed()
+    }
+}
 
 #[rpc::namespace]
 impl Watchout {

@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
 
-use quote::quote;
+use proc_macro_error::abort;
+use quote::{quote, quote_spanned};
 use syn::Ident;
 
 use crate::args::{self, get_private, get_zod, RpcArg, RpcItemKind};
@@ -18,7 +19,8 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
         .iter()
         .map(|item| expand_inventory_submit(&ident, item));
 
-    quote! {
+    quote_spanned! {
+        ident.span() =>
         const _: () = {
             impl #__private::codegen::RpcNamespace for #ident {
                 type Req = #req_ident;
@@ -62,29 +64,49 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
         .iter()
         .map(|RpcArg { ty, name }| quote!(#__private::codegen::RpcArgument::new::<#ty>(#name)));
 
-    // Todo output
+    match (&item.kind, &item.output) {
+        (RpcItemKind::Method, args::OutputType::ImplItem(_)) => {
+            abort!(
+                item.ident.span(),
+                "zod: namespace methods returning a stream are not allowed to be async"
+            )
+        }
 
-    match item.kind {
-        RpcItemKind::Method => quote! {
-            #__private::inventory::submit!(#__private::codegen::RpcMember::Method {
-                ns_name: <#ns_ident as #zod::Namespace>::NAME,
-                name: #name,
-                args: &|| vec![
-                    #(#args),*
-                ],
-                res: &|| <usize as ::zod::ZodType>::type_def().to_string(),
-            });
+        (RpcItemKind::Method, args::OutputType::Concrete(t)) => {
+            quote_spanned! { item.ident.span() =>
+                #__private::inventory::submit!(#__private::codegen::RpcMember::Method {
+                    ns_name: <#ns_ident as #zod::Namespace>::NAME,
+                    name: #name,
+                    args: &|| vec![
+                        #(#args),*
+                    ],
+                    res: &|| <#t as ::zod::ZodType>::type_def().to_string(),
+                });
 
-        },
-        RpcItemKind::Stream => {
-            quote! {
+            }
+        }
+
+        (RpcItemKind::Stream, args::OutputType::ImplItem(t)) => {
+            quote_spanned! { item.ident.span() =>
                 #__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Stream {
                     ns_name: <#ns_ident as ::zod::Namespace>::NAME,
                     name: #name,
                     args: &|| vec![
                         #(#args),*
                     ],
-                    res: &|| <usize as ::zod::ZodType>::type_def().to_string(),
+                    res: &|| <#t as ::zod::ZodType>::type_def().to_string(),
+                });
+            }
+        }
+        (RpcItemKind::Stream, args::OutputType::Concrete(t)) => {
+            quote_spanned! { item.ident.span() =>
+                #__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Stream {
+                    ns_name: <#ns_ident as ::zod::Namespace>::NAME,
+                    name: #name,
+                    args: &|| vec![
+                        #(#args),*
+                    ],
+                    res: &|| <<#t as ::zod::rpc::__private::futures::Stream>::Item as ::zod::ZodType>::type_def().to_string(),
                 });
             }
         }
@@ -94,10 +116,12 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
 pub fn expand_req_variant_decl(item: &args::RpcItem) -> TokenStream {
     let ident = &item.ident;
     let arg_types = item.arg_types.iter().map(|RpcArg { ty, .. }| quote!(#ty,));
+
     quote! {
         #ident { args: (#(#arg_types)*) }
     }
 }
+
 pub fn expand_req_variant_impl(input: &args::RpcItem) -> TokenStream {
     let __private = get_private();
     let ident = &input.ident;
@@ -127,7 +151,8 @@ pub fn expand_req_variant_impl_method(
 ) -> TokenStream {
     let __private = get_private();
 
-    quote! {
+    quote_spanned! {
+        ident.span() =>
         let res = ctx.#ident(#(#expanded_args),*).await;
 
         sender
@@ -142,12 +167,16 @@ pub fn expand_req_variant_impl_stream(
     expanded_args: impl Iterator<Item = TokenStream>,
 ) -> TokenStream {
     let __private = get_private();
-    quote! {
+
+    quote_spanned! { ident.span() =>
             let s = ctx.#ident(#(#expanded_args),*);
             Some(#__private::tokio::spawn(async move {
                 #__private::futures::pin_mut!(s);
                 while let ::std::option::Option::Some(evt) =
-                    #__private::futures::StreamExt::next(&mut s).await
+                    {
+                        let item = #__private::futures::StreamExt::next(&mut s);
+                        item.await
+                    }
                 {
                     if let ::std::result::Result::<_, _>::Err(err) = sender
                         .unbounded_send(#__private::Response::stream(id, evt))
@@ -157,5 +186,6 @@ pub fn expand_req_variant_impl_stream(
                     }
                 }
             }))
+
     }
 }

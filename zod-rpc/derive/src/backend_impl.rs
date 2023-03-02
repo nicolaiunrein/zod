@@ -38,7 +38,8 @@ fn expand_backend_impl(
         quote_spanned!(ty.span() => <#ty as #zod::Namespace>::NAME)
     });
 
-    quote! {
+    quote_spanned! {
+        ident.span() =>
         #[async_trait::async_trait]
         impl #__private::server::Backend for #ident {
             const NS_NAMES: &'static[&'static str] = &[#(#namespaces),*];
@@ -110,7 +111,8 @@ pub fn expand_req_enum_impl(
         quote_spanned!(ty.span() => #req_ident :: #variant_ident(req) => req.call(id, &mut backend.#field_or_index, sender).await)
     });
 
-    quote! {
+    quote_spanned! {
+        req_ident.span() =>
         impl #req_ident {
             pub async fn call(
                 self,

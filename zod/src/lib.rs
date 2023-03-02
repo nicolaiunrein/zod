@@ -126,5 +126,6 @@ pub mod __private {
 #[test]
 fn ui() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/fail/*.rs");
+    t.compile_fail("tests/ui/zod/fail/*.rs");
+    t.compile_fail("tests/ui/rpc/fail/*.rs");
 }
