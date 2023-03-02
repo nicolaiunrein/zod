@@ -31,18 +31,15 @@ pub fn backend(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn rpc(_attr: TokenStream, input: TokenStream) -> TokenStream {
-
     let orig = proc_macro2::TokenStream::from(input.clone());
 
     let ast = syn::parse_macro_input!(input as syn::ItemImpl);
     let extra = rpc_impl::expand(args::RpcInput::from_ast(ast));
 
-
-    let output =quote! {
+    let output = quote! {
         #orig
 
         #extra
@@ -50,4 +47,3 @@ pub fn rpc(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     output.into()
 }
-
