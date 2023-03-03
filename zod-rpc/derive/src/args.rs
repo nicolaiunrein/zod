@@ -70,17 +70,12 @@ pub struct RpcItem {
     pub ident: syn::Ident,
     pub arg_types: Vec<RpcArg>,
     pub kind: RpcItemKind,
-    pub output: OutputType,
+    pub output: Box<Type>,
 }
 
 pub struct RpcArg {
     pub name: String,
     pub ty: Box<Type>,
-}
-
-pub enum OutputType {
-    Concrete(Box<Type>),
-    ImplItem(Type),
 }
 
 impl RpcItem {
@@ -97,7 +92,7 @@ impl RpcItem {
 
         let output = match (&kind, sig.output) {
             (RpcItemKind::Method, syn::ReturnType::Default) => {
-                OutputType::Concrete(parse_quote!(()))
+                parse_quote!(())
             }
             (RpcItemKind::Stream, syn::ReturnType::Default) => {
                 abort!(
@@ -106,36 +101,7 @@ impl RpcItem {
                 )
             }
             (RpcItemKind::Method, syn::ReturnType::Type(_, t))
-            | (RpcItemKind::Stream, syn::ReturnType::Type(_, t)) => match t.as_ref() {
-                Type::ImplTrait(x) => OutputType::ImplItem(
-                    x.bounds
-                        .iter()
-                        .find_map(|bound| match bound {
-                            syn::TypeParamBound::Trait(t) => {
-                                t.path.segments.iter().find_map(|seg| match &seg.arguments {
-                                    syn::PathArguments::AngleBracketed(x) => {
-                                        x.args.iter().find_map(|arg| match arg {
-                                            syn::GenericArgument::Binding(binding) => {
-                                                if binding.ident
-                                                    == Ident::new("Item", binding.ident.span())
-                                                {
-                                                    Some(binding.ty.clone())
-                                                } else {
-                                                    None
-                                                }
-                                            }
-                                            _ => None,
-                                        })
-                                    }
-                                    _ => None,
-                                })
-                            }
-                            syn::TypeParamBound::Lifetime(_) => None,
-                        })
-                        .unwrap(),
-                ),
-                _ => OutputType::Concrete(t),
-            },
+            | (RpcItemKind::Stream, syn::ReturnType::Type(_, t)) => t,
         };
 
         if let Some(receiver) = sig.inputs.iter().find_map(|arg| match arg {

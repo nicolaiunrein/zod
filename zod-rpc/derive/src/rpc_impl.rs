@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 
 use proc_macro_error::abort;
 use quote::{quote, quote_spanned};
-use syn::Ident;
+use syn::{Ident, Type};
 
 use crate::args::{self, get_private, get_zod, RpcArg, RpcItemKind};
 
@@ -64,15 +64,15 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
         .iter()
         .map(|RpcArg { ty, name }| quote!(#__private::codegen::RpcArgument::new::<#ty>(#name)));
 
-    match (&item.kind, &item.output) {
-        (RpcItemKind::Method, args::OutputType::ImplItem(_)) => {
+    match (&item.kind, item.output.as_ref()) {
+        (RpcItemKind::Method, Type::ImplTrait(_)) => {
             abort!(
                 item.ident.span(),
                 "zod: namespace methods returning a stream are not allowed to be async"
             )
         }
 
-        (RpcItemKind::Method, args::OutputType::Concrete(t)) => {
+        (RpcItemKind::Method, t) => {
             quote_spanned! { item.ident.span() =>
                 #__private::inventory::submit!(#__private::codegen::RpcMember::Method {
                     ns_name: <#ns_ident as #zod::Namespace>::NAME,
@@ -86,7 +86,10 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
             }
         }
 
-        (RpcItemKind::Stream, args::OutputType::ImplItem(t)) => {
+        (RpcItemKind::Stream, Type::ImplTrait(_)) => {
+            let ident = &item.ident;
+            let arg_types = item.arg_types.iter().map(|arg| &arg.ty);
+
             quote_spanned! { item.ident.span() =>
                 #__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Stream {
                     ns_name: <#ns_ident as ::zod::Namespace>::NAME,
@@ -94,11 +97,17 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                     args: &|| vec![
                         #(#args),*
                     ],
-                    res: &|| <#t as ::zod::ZodType>::type_def().to_string(),
+                    res: &|| {
+                        fn extract_stream_item<S>(_: impl Fn(&mut #ns_ident, #(#arg_types),*) -> S) -> String where S: ::futures::Stream, S::Item: ::zod::ZodType {
+                            <S::Item as ::zod::ZodType>::type_def().to_string()
+                        }
+
+                        extract_stream_item(#ns_ident :: #ident)
+                    }
                 });
             }
         }
-        (RpcItemKind::Stream, args::OutputType::Concrete(t)) => {
+        (RpcItemKind::Stream, t) => {
             quote_spanned! { item.ident.span() =>
                 #__private::inventory::submit!(::zod::rpc::__private::codegen::RpcMember::Stream {
                     ns_name: <#ns_ident as ::zod::Namespace>::NAME,
