@@ -113,9 +113,7 @@ pub use zod_core::*;
 pub use zod_derive::*;
 
 #[cfg(feature = "rpc")]
-pub mod rpc {
-    pub use zod_rpc::*;
-}
+pub mod rpc;
 
 #[doc(hidden)]
 pub mod __private {

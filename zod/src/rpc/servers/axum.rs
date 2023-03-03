@@ -42,9 +42,9 @@ async fn websocket(stream: WebSocket, con: ProxyConnection) {
     let fut1 = async move {
         while let Some(Ok(message)) = receiver.next().await {
             if let Message::Text(json) = message {
-                let req = serde_json::from_str(&json).map_err(|err| crate::Response::Error {
+                let req = serde_json::from_str(&json).map_err(|err| crate::rpc::Response::Error {
                     id: None,
-                    data: crate::Error::from(err),
+                    data: crate::rpc::Error::from(err),
                 });
                 if let Err(err) = tx.send(req) {
                     tracing::warn!(?err);
