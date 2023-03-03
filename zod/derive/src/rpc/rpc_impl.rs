@@ -4,9 +4,9 @@ use proc_macro_error::abort;
 use quote::{quote, quote_spanned};
 use syn::{Ident, Type};
 
-use crate::args::{self, get_private, get_zod, RpcArg, RpcItemKind};
+use crate::rpc::args::{self, get_private, get_zod, RpcArg, RpcItemKind, RpcInput};
 
-pub fn expand(input: args::RpcInput) -> TokenStream {
+pub fn expand(input: RpcInput) -> TokenStream {
     let __private = get_private();
 
     let req_ident = input.req_ident();

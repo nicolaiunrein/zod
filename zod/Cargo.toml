@@ -21,8 +21,6 @@ serde_json = "1.0.92"
 thiserror = "1.0.38"
 tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread", "time"] }
 tracing = "0.1.37"
-zod-rpc-core = { path = "../zod-rpc/core" }
-zod-rpc-derive = { path = "../zod-rpc/derive" }
 
 
 [dev-dependencies]

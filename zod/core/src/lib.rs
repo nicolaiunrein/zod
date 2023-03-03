@@ -1,5 +1,8 @@
 #![deny(unsafe_code)]
 
+#[cfg(feature = "rpc")]
+pub mod rpc;
+
 mod build_ins;
 
 #[cfg(debug_assertions)]

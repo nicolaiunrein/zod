@@ -4,7 +4,7 @@ pub trait ClientCodegen {
 
 type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
 
-pub trait RpcNamespace: zod_core::Namespace {
+pub trait RpcNamespace: crate::Namespace {
     type Req: serde::de::DeserializeOwned;
 
     fn rpc_members() -> Vec<&'static RpcMember> {
@@ -21,7 +21,7 @@ pub struct RpcArgument {
 }
 
 impl RpcArgument {
-    pub fn new<T: zod_core::ZodType>(name: &'static str) -> Self {
+    pub fn new<T: crate::ZodType>(name: &'static str) -> Self {
         Self {
             name,
             type_def: T::type_def().to_string(),

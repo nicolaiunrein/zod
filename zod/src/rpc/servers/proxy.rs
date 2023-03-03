@@ -3,7 +3,7 @@ use futures::{
     SinkExt, Stream, StreamExt,
 };
 use pin_project_lite::pin_project;
-use zod_rpc_core::{server::Backend, Request, Response};
+use zod_core::rpc::{server::Backend, Request, Response};
 
 #[derive(Clone, Debug)]
 pub struct BackendProxy {

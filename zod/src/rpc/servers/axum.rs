@@ -10,7 +10,7 @@ use futures::{FutureExt, SinkExt, StreamExt};
 
 use super::proxy::{BackendProxy, ProxyConnection};
 
-pub struct RpcResponse(zod_rpc_core::Response);
+pub struct RpcResponse(zod_core::rpc::Response);
 
 impl IntoResponse for RpcResponse {
     fn into_response(self) -> Response<BoxBody> {

@@ -3,13 +3,14 @@
 pub mod clients;
 pub mod servers;
 
-pub use zod_rpc_core::error::Error;
-pub use zod_rpc_core::server::Backend;
-pub use zod_rpc_core::server::SubscriberMap;
-pub use zod_rpc_core::Request;
-pub use zod_rpc_core::Response;
+pub use zod_core::rpc::error::Error;
+pub use zod_core::rpc::server::Backend;
+pub use zod_core::rpc::server::SubscriberMap;
+pub use zod_core::rpc::Request;
+pub use zod_core::rpc::Response;
 
-pub use zod_rpc_derive::*;
+pub use zod_derive::namespace;
+pub use zod_derive::Backend;
 
 #[async_trait::async_trait]
 pub trait Server {
@@ -28,5 +29,5 @@ pub mod __private {
     pub use serde_json;
     pub use tokio;
     pub use tracing;
-    pub use zod_rpc_core::*;
+    pub use zod_core::rpc::*;
 }

@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 
-use zod_core::NamespaceMemberDefinition;
+use crate::NamespaceMemberDefinition;
 
 use crate::{
-    codegen::{self, RpcMember},
-    Request, ResponseSender,
+    rpc::codegen::{self, RpcMember},
+    rpc::Request,
+    rpc::ResponseSender,
 };
 
 pub type StreamHandle = tokio::task::JoinHandle<()>;
@@ -90,7 +91,7 @@ pub trait Backend {
             .map(|m| (m.ns_name(), m.decl()));
 
         let mut records: BTreeMap<&'static str, String> =
-            zod_core::NamespaceMemberDefinition::collect()
+            crate::NamespaceMemberDefinition::collect()
                 .into_iter()
                 .filter(|(ns, _)| Self::NS_NAMES.contains(ns))
                 .map(|(ns, defs)| {
@@ -99,7 +100,7 @@ pub trait Backend {
                         defs.into_iter()
                             .map(|def| {
                                 let td = match def.type_def() {
-                                    zod_core::TsTypeDef::Interface(inner) => {
+                                    crate::TsTypeDef::Interface(inner) => {
                                         format!(
                                             "export interface {}{}{} {}",
                                             options.prefix_interface,
@@ -109,7 +110,7 @@ pub trait Backend {
                                         )
                                     }
 
-                                    zod_core::TsTypeDef::Type(inner) => {
+                                    crate::TsTypeDef::Type(inner) => {
                                         format!(
                                             "export type {}{}{} = {};",
                                             options.prefix_type,

@@ -2,7 +2,7 @@ use darling::ast::Fields;
 use proc_macro2::TokenStream;
 use syn::{parse_quote, spanned::Spanned, Ident, Path};
 
-use crate::args::{get_private, get_zod, BackendField, BackendInput};
+use crate::rpc::args::{get_private, get_zod, BackendField, BackendInput};
 use quote::{format_ident, quote, quote_spanned};
 
 pub fn expand(input: BackendInput, fields: Fields<BackendField>) -> TokenStream {
