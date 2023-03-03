@@ -43,5 +43,5 @@ note: required by a bound in `extract_stream_item`
   | ^^^^^^^^^^^^^^^^^ required by this bound in `extract_stream_item`
 7 | impl A {
 8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = usize> {
-  |        ---- required by a bound in this
+  |        ---- required by a bound in this function
   = note: this error originates in the attribute macro `rpc::namespace` (in Nightly builds, run with -Z macro-backtrace for more info)
