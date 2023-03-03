@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+[workspace]
+members = [
+    "core",
+    "derive",
+]
+
 [dependencies]
 
 zod-derive = { path = "./derive" }
