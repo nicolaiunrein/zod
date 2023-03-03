@@ -14,6 +14,7 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
 
     let req_variant_defs = input.items.iter().map(expand_req_variant_decl);
     let req_variant_impls = input.items.iter().map(expand_req_variant_impl);
+
     let inventory_submits = input
         .items
         .iter()
@@ -36,6 +37,8 @@ pub fn expand(input: args::RpcInput) -> TokenStream {
             }
 
             impl #req_ident {
+                #[allow(dead_code)]
+                #[allow(unused_variables)]
                 pub async fn call(
                     self,
                     id: usize,

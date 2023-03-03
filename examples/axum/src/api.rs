@@ -40,7 +40,7 @@ pub struct Pixera {
 
 #[rpc::namespace]
 impl Pixera {
-    fn x(&mut self) -> impl futures::Stream<Item = String> {
+    fn x(&mut self) -> impl Stream<Item = String> {
         futures::stream::once(async move { String::new() })
     }
 
@@ -49,7 +49,7 @@ impl Pixera {
     // std::iter::once(String::new())
     // }
 
-    fn y(&mut self) -> std::pin::Pin<Box<dyn futures::Stream<Item = String> + Send>> {
+    fn y(&mut self) -> std::pin::Pin<Box<dyn Stream<Item = String> + Send>> {
         futures::stream::once(async move { String::new() }).boxed()
     }
 }
@@ -71,7 +71,7 @@ impl Watchout {
         self.shared_data
     }
 
-    pub fn hello_stream(&mut self, num: usize) -> impl futures::Stream<Item = usize> {
+    pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = usize> {
         futures::stream::iter(0..).take(num).then(|x| async move {
             tokio::time::sleep(std::time::Duration::from_millis(200)).await;
             x

@@ -40,7 +40,7 @@ fn expand_backend_impl(
 
     quote_spanned! {
         ident.span() =>
-        #[async_trait::async_trait]
+        #[#__private::async_trait::async_trait]
         impl #__private::server::Backend for #ident {
             const NS_NAMES: &'static[&'static str] = &[#(#namespaces),*];
 

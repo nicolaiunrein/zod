@@ -3,22 +3,10 @@ name = "expanded"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-zod-rpc = { path = "../../zod-rpc" }
 zod = { path = "../../zod" }
-
-async-trait = "0.1.64"
 axum = { version = "0.6.7", features = ["ws"] }
-futures = "0.3.26"
-inventory = "0.3.3"
-pin-project-lite = "0.2.9"
 serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.92"
-thiserror = "1.0.38"
 tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-ts-rs = "6.2.1"
-typetag = "0.2.5"
+futures = "0.3.26"

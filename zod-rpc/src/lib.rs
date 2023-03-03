@@ -21,6 +21,7 @@ pub trait Server {
 
 #[doc(hidden)]
 pub mod __private {
+    pub use async_trait;
     pub use futures;
     pub use inventory;
     pub use serde;
