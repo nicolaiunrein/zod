@@ -71,12 +71,20 @@ impl Watchout {
         self.shared_data
     }
 
-    pub fn hello_stream(&mut self, num: usize) -> impl Stream<Item = usize> {
+    pub fn hello_stream(&mut self, num: usize) -> impl futures::Stream<Item = usize> {
         futures::stream::iter(0..).take(num).then(|x| async move {
             tokio::time::sleep(std::time::Duration::from_millis(200)).await;
             x
         })
     }
+
+    // pub fn hello_stream(&mut self, num: usize) -> impl std::iter::Iterator<Item = usize> {
+    //     // futures::stream::iter(0..).take(num).then(|x| async move {
+    //     //     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    //     //     x
+    //     // })
+    //     std::iter::once(0)
+    // }
 }
 
 #[derive(rpc::Backend)]

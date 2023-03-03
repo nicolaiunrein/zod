@@ -98,7 +98,7 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                         #(#args),*
                     ],
                     res: &|| {
-                        fn extract_stream_item<S>(_: impl Fn(&mut #ns_ident, #(#arg_types),*) -> S) -> String where S: ::futures::Stream, S::Item: ::zod::ZodType {
+                        fn extract_stream_item<S>(_: impl Fn(&mut #ns_ident, #(#arg_types),*) -> S) -> String where S: #__private::futures::Stream, S::Item: ::zod::ZodType {
                             <S::Item as ::zod::ZodType>::type_def().to_string()
                         }
 
@@ -179,22 +179,21 @@ pub fn expand_req_variant_impl_stream(
 
     quote_spanned! { ident.span() =>
             let s = ctx.#ident(#(#expanded_args),*);
-            Some(#__private::tokio::spawn(async move {
-                #__private::futures::pin_mut!(s);
-                while let ::std::option::Option::Some(evt) =
-                    {
-                        let item = #__private::futures::StreamExt::next(&mut s);
-                        item.await
-                    }
-                {
-                    if let ::std::result::Result::<_, _>::Err(err) = sender
-                        .unbounded_send(#__private::Response::stream(id, evt))
-                    {
-                        #__private::tracing::warn!(?err, "Failed to emit event");
-                        break;
-                    }
-                }
-            }))
 
+            Some(#__private::tokio::spawn(async move {
+                async fn process_stream<T: #__private::serde::ser::Serialize>(st: impl ::zod::rpc::__private::futures::Stream<Item = T>, sender: #__private::ResponseSender, id: usize) {
+                        #__private::futures::pin_mut!(st);
+                        while let ::std::option::Option::Some(evt) = #__private::futures::StreamExt::next(&mut st).await {
+                            if let ::std::result::Result::<_, _>::Err(err) = sender
+                                .unbounded_send(#__private::Response::stream(id, evt))
+                            {
+                                #__private::tracing::warn!(?err, "Failed to emit event");
+                                break;
+                            }
+                        }
+                }
+
+                process_stream(s, sender, id).await
+            }))
     }
 }
