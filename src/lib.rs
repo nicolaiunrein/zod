@@ -1,6 +1,6 @@
 //! **Derive your `typescript` / `Rust` interop**
 
-//! [![ci status](https://github.com/nicolaiunrein/zod/workflows/CI/badge.svg)](https://github.com/nicolaiunrein/zod/workflows/CI)
+//! [![CI](https://github.com/nicolaiunrein/zod/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolaiunrein/zod/actions/workflows/ci.yml)
 //! [![Unsafe Rust forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg?style=flat-square&logo=rust)](https://github.com/rust-secure-code/safety-dance/)
 //! [![Crates.io version](https://img.shields.io/crates/v/zod.svg?style=flat-square)](https://crates.io/crates/zod)
 //! [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/zod)
