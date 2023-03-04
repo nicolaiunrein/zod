@@ -118,7 +118,7 @@ pub fn namespace(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let orig = proc_macro2::TokenStream::from(input.clone());
 
     let ast = syn::parse_macro_input!(input as syn::ItemImpl);
-    let extra = rpc::rpc_impl::expand(rpc::args::RpcInput::from_ast(ast));
+    let extra = rpc::impl_rpc::expand(rpc::args::RpcInput::from_ast(ast));
 
     let output = quote! {
         #orig
