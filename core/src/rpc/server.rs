@@ -135,7 +135,7 @@ pub trait Backend {
                 })
                 .collect();
 
-        for (name, code) in rpc_records.into_iter() {
+        for (name, code) in rpc_records {
             let s = records.entry(name).or_default();
             write!(s, "{}", code).unwrap();
         }

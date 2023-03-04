@@ -8,7 +8,7 @@
 //! [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&logo=pr)](https://github.com/nicolaiunrein/zod/compare)
 //!
 //! This crate provides integrations with the [zod](https://github.com/colinhacks/zod) typescript library.
-//! 
+//!
 //! **_NOTE:_**  This crate is not ready for production yet!
 //!
 //! ## Overview
