@@ -116,9 +116,16 @@ pub use zod_derive::*;
 pub mod rpc;
 
 #[doc(hidden)]
+#[cfg(feature = "rpc")]
 pub mod __private {
-    #[cfg(feature = "rpc")]
+    pub use async_trait;
+    pub use futures;
     pub use inventory;
+    pub use serde;
+    pub use serde_json;
+    pub use tokio;
+    pub use tracing;
+    pub use zod_core::rpc::*;
 }
 
 #[test]

@@ -12,7 +12,7 @@ pub fn get_zod() -> Path {
 
 pub fn get_private() -> Path {
     let zod = get_zod();
-    parse_quote!(#zod::rpc::__private)
+    parse_quote!(#zod::__private)
 }
 
 #[derive(FromDeriveInput)]
