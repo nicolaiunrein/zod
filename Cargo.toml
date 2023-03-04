@@ -3,8 +3,19 @@ name = "zod"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+description = "Rust integraions with the `zod` typescript library."
+authors = ["Nicolai Unrein<info@auxcontrol.io>"]
+documentation = "https://docs.rs/zod"
+repository = "https://github.com/nicolaiunrein/zod"
+license = "MIT OR Apache-2.0"
 
 [workspace]
+package.edition = "2021"
+package.description = "Rust integraions with the `zod` typescript library."
+package.authors = ["Nicolai Unrein<info@auxcontrol.io>"]
+package.documentation = "https://docs.rs/zod"
+package.repository = "https://github.com/nicolaiunrein/zod"
+package.license = "MIT OR Apache-2.0"
 members = [
     "core",
     "derive",
@@ -12,8 +23,9 @@ members = [
 
 [dependencies]
 
-zod-derive = { path = "./derive" }
-zod-core = { path = "./core" }
+# remember to update build-dependencies as well
+zod-derive = { path = "./derive", version = "0.1.0" } 
+zod-core = { path = "./core", version = "0.1.0" }
 
 # =========================== inventory dependencies ===========================
 
@@ -41,8 +53,8 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 trybuild = { version = "1.0.77", features = ["diff"] }
 
 [build-dependencies]
-zod-core = { path = "./core" }
-zod-derive = { path = "./derive" }
+zod-core = { path = "./core", version = "0.1.0" }
+zod-derive = { path = "./derive", version = "0.1.0" }
 
 [features]
 default = ["rpc"]

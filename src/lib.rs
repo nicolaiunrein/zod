@@ -7,6 +7,10 @@
 //! [![downloads](https://img.shields.io/crates/d/zod.svg?style=flat-square)](https://crates.io/crates/zod)
 //! [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&logo=pr)](https://github.com/nicolaiunrein/zod/compare)
 //!
+//! This crate provides integrations with the [zod](https://github.com/colinhacks/zod) typescript library.
+//! 
+//! **_NOTE:_**  This crate is not ready for production yet!
+//!
 //! ## Overview
 //! This crate generates [zod](https://github.com/colinhacks/zod) bindings for your `rust` types and
 //! optionally generates an sdk fully automatically.

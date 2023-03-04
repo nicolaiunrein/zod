@@ -1,7 +1,12 @@
 [package]
 name = "zod-derive"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+description.workspace = true
+authors.workspace = true
+documentation.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [lib]
 proc_macro = true

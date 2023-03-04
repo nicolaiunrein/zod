@@ -1,3 +1,5 @@
+//! **_NOTE:_**  This crate is not ready for production yet!
+
 #![deny(unsafe_code)]
 
 #[cfg(feature = "rpc")]

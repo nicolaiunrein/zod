@@ -9,4 +9,8 @@
 
 **simply derive your `typescript` / `Rust` interop!**
 
+This crate provides integrations with the [zod](https://github.com/colinhacks/zod) typescript library.
+
 *please see [docs.rs](https://docs.rs/zod) for more details*
+
+**_NOTE:_**  This crate is not ready for production yet!
