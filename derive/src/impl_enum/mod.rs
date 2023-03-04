@@ -63,20 +63,21 @@ impl<'a> Enum<'a> {
 
         let type_register = expand_type_registration(ident, ns_path);
         let inventory = impl_inventory::expand(ident, ns_path, name);
+        let zod = crate::get_zod();
 
         quote! {
-            impl ::zod::ZodType for #ident {
+            impl #zod::ZodType for #ident {
                 fn schema() -> String {
                     #schema
                 }
 
-                fn type_def() -> ::zod::TsTypeDef {
-                    ::zod::TsTypeDef::Type({ #type_def })
+                fn type_def() -> #zod::TsTypeDef {
+                    #zod::TsTypeDef::Type({ #type_def })
                 }
 
-                fn inline() -> ::zod::InlinedType {
-                    ::zod::InlinedType::Ref {
-                        ns_name: <#ns_path as ::zod::Namespace>::NAME,
+                fn inline() -> #zod::InlinedType {
+                    #zod::InlinedType::Ref {
+                        ns_name: <#ns_path as #zod::Namespace>::NAME,
                         name: #name
                     }
                 }
@@ -110,19 +111,19 @@ impl<'a> Enum<'a> {
                 match self.tag {
                     TagType::External => {
                         quote! {
-                            let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                            let variants: ::std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
                             format!("z.union([{}])", variants.join(", "))
                         }
                     }
                     TagType::Internal { tag } | TagType::Adjacent { tag, .. } => {
                         quote! {
-                            let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                            let variants: ::std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
                             format!("z.discriminatedUnion(\"{}\", [{}])", #tag, variants.join(", "))
                         }
                     }
                     TagType::None => {
                         quote! {
-                            let variants: std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
+                            let variants: ::std::vec::Vec<String> = vec![#(#expanded_variant_schemas),*];
                             format!("z.union([{}])", variants.join(", "))
                         }
                     }

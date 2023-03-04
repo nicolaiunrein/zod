@@ -1,4 +1,4 @@
-use crate::{docs::RustDocs, expand_type_registration, impl_inventory};
+use crate::{docs::RustDocs, expand_type_registration, get_zod, impl_inventory};
 
 use super::args;
 use darling::ast::{Fields, Style};
@@ -9,7 +9,8 @@ use serde_derive_internals::ast;
 use syn::{spanned::Spanned, Ident, Path};
 
 fn qualified_ty(ty: &syn::Type) -> proc_macro2::TokenStream {
-    quote!(<#ty as ::zod::ZodType>)
+    let zod = get_zod();
+    quote!(<#ty as #zod::ZodType>)
 }
 
 pub fn expand(
@@ -79,19 +80,21 @@ impl<'a> Struct<'a> {
         let type_register = expand_type_registration(ident, ns_path);
         let inventory = impl_inventory::expand(ident, ns_path, name);
 
+        let zod = get_zod();
+
         quote! {
-            impl ::zod::ZodType for #ident {
+            impl #zod::ZodType for #ident {
                 fn schema() -> String {
                     #schema
                 }
 
-                fn type_def() -> ::zod::TsTypeDef {
-                    ::zod::TsTypeDef::Type({ #type_def })
+                fn type_def() -> #zod::TsTypeDef {
+                    #zod::TsTypeDef::Type({ #type_def })
                 }
 
-                fn inline() -> ::zod::InlinedType {
-                    ::zod::InlinedType::Ref {
-                        ns_name: <#ns_path as ::zod::Namespace>::NAME,
+                fn inline() -> #zod::InlinedType {
+                    #zod::InlinedType::Ref {
+                        ns_name: <#ns_path as #zod::Namespace>::NAME,
                         name: #name
                     }
                 }

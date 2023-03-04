@@ -1,4 +1,4 @@
-use crate::args::EnumField;
+use crate::{args::EnumField, get_zod};
 
 use darling::ast::Style;
 use proc_macro2::TokenStream;
@@ -89,18 +89,20 @@ struct TupleField<'a> {
 
 impl<'a> NamedField<'a> {
     fn expand_type_def(&'a self) -> TokenStream {
+        let zod = get_zod();
         let ty = &self.enum_field.ty;
         let span = self.enum_field.ty.span();
         let name = &self.name;
 
         if self.optional {
-            quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as ::zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as #zod::ZodType>::type_def()))
         } else {
-            quote_spanned!(span => format!("{}: {}", #name, <#ty as ::zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{}: {}", #name, <#ty as #zod::ZodType>::type_def()))
         }
     }
 
     fn expand_schema(&self) -> TokenStream {
+        let zod = get_zod();
         let name = &self.name;
         let ty = &self.enum_field.ty;
         let maybe_optional = if self.optional {
@@ -109,23 +111,25 @@ impl<'a> NamedField<'a> {
             quote!("")
         };
 
-        quote_spanned!(ty.span() => format!("{}: {}{}", #name, <#ty as ::zod::ZodType>::schema(), #maybe_optional))
+        quote_spanned!(ty.span() => format!("{}: {}{}", #name, <#ty as #zod::ZodType>::schema(), #maybe_optional))
     }
 }
 
 impl<'a> TupleField<'a> {
     fn expand_type_def(&'a self) -> TokenStream {
+        let zod = get_zod();
         let ty = &self.enum_field.ty;
         let span = self.enum_field.ty.span();
 
         if self.optional {
-            quote_spanned!(span => format!("{} | undefined", <#ty as ::zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{} | undefined", <#ty as #zod::ZodType>::type_def()))
         } else {
-            quote_spanned!(span => format!("{}", <#ty as ::zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{}", <#ty as #zod::ZodType>::type_def()))
         }
     }
 
     fn expand_schema(&self) -> TokenStream {
+        let zod = get_zod();
         let ty = &self.enum_field.ty;
         let maybe_optional = if self.optional {
             quote!(".optional()")
@@ -133,6 +137,6 @@ impl<'a> TupleField<'a> {
             quote!("")
         };
 
-        quote_spanned!(ty.span() => format!("{}{}", <#ty as ::zod::ZodType>::schema(), #maybe_optional))
+        quote_spanned!(ty.span() => format!("{}{}", <#ty as #zod::ZodType>::schema(), #maybe_optional))
     }
 }

@@ -21,6 +21,41 @@ use quote::{format_ident, quote_spanned};
 use serde_derive_internals::Derive;
 use syn::{Ident, Path};
 
+use proc_macro2::Span;
+
+fn get_crate_name() -> String {
+    let found_crate = proc_macro_crate::crate_name("zod").unwrap_or_else(|err| {
+        proc_macro_error::abort_call_site!("Error: {}", err);
+    });
+
+    match found_crate {
+        proc_macro_crate::FoundCrate::Itself => String::from("zod"),
+        proc_macro_crate::FoundCrate::Name(name) => name,
+    }
+}
+
+pub(crate) fn get_zod() -> Path {
+    let name = get_crate_name();
+    let ident = Ident::new(&name, Span::call_site());
+    syn::parse_quote!(::#ident)
+}
+
+pub(crate) fn get_zod_spanned(span: Span) -> Path {
+    let name = get_crate_name();
+    let ident = Ident::new(&name, Span::call_site());
+    syn::parse_quote_spanned!(span => ::#ident)
+}
+
+pub(crate) fn get_private() -> Path {
+    let zod = get_zod();
+    syn::parse_quote!(#zod::__private)
+}
+
+pub(crate) fn get_private_spanned(span: Span) -> Path {
+    let zod = get_zod_spanned(span);
+    syn::parse_quote_spanned!(span => #zod::__private)
+}
+
 #[proc_macro_error]
 #[proc_macro_derive(Zod, attributes(zod))]
 pub fn zod(input: TokenStream) -> TokenStream {

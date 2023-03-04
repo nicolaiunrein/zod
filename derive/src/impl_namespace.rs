@@ -1,4 +1,4 @@
-use crate::{args, format_ident_for_registration};
+use crate::{args, format_ident_for_registration, get_zod};
 use quote::quote;
 use syn::parse_quote;
 
@@ -13,8 +13,10 @@ pub fn expand(
     let p = parse_quote!(#ident);
     let register_path = format_ident_for_registration(&p);
 
+    let zod = get_zod();
+
     quote! {
-        impl #impl_generics ::zod::Namespace for #ident #ty_generics #where_clause {
+        impl #impl_generics #zod::Namespace for #ident #ty_generics #where_clause {
             const NAME: &'static str = #name;
 
             fn docs() -> Option<&'static str> {
