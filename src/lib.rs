@@ -15,6 +15,15 @@
 //! This crate generates [zod](https://github.com/colinhacks/zod) bindings for your `rust` types and
 //! optionally generates an sdk fully automatically.
 //!
+//! ## Goals:
+//! ### Developer Experience:
+//! Generate a fully featured typescript SDK by annotating your rust methods with some macros.
+//!
+//! ### Framework agnostic:
+//! We provide adapters for axum servers and native websockets on the client.
+//! It allows custom client/server implementations, making it compatible with all JavaScript frameworks and runtimes.
+//!
+//!
 //! ## Example
 //! ```rust
 //! # use zod::Namespace;
