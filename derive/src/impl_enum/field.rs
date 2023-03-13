@@ -95,9 +95,9 @@ impl<'a> NamedField<'a> {
         let name = &self.name;
 
         if self.optional {
-            quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as #zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{}?: {} | undefined", #name, <#ty as #zod::ZodType>::inline()))
         } else {
-            quote_spanned!(span => format!("{}: {}", #name, <#ty as #zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{}: {}", #name, <#ty as #zod::ZodType>::inline()))
         }
     }
 
@@ -122,9 +122,9 @@ impl<'a> TupleField<'a> {
         let span = self.enum_field.ty.span();
 
         if self.optional {
-            quote_spanned!(span => format!("{} | undefined", <#ty as #zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{} | undefined", <#ty as #zod::ZodType>::inline()))
         } else {
-            quote_spanned!(span => format!("{}", <#ty as #zod::ZodType>::type_def()))
+            quote_spanned!(span => format!("{}", <#ty as #zod::ZodType>::inline()))
         }
     }
 
