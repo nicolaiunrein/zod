@@ -97,7 +97,7 @@ impl<'a> Struct<'a> {
                     }
 
                     fn type_def() -> #zod::TsTypeDef {
-                        <#t as #zod::ZodType>::type_def()
+                        <#t as #zod::ZodType>::inline()
                     }
 
                     fn inline() -> #zod::InlinedType {
@@ -115,6 +115,11 @@ impl<'a> Struct<'a> {
 
             }
         } else {
+            let interface_or_type = match (self.fields.len() == 1, self.style, self.transparent) {
+                (_, Style::Unit, _) | (true, Style::Tuple, _) | (_, _, true) => quote!(Type),
+                _ => quote!(Interface),
+            };
+
             quote! {
                 impl #zod::ZodType for #ident {
                     fn schema() -> String {
@@ -122,7 +127,7 @@ impl<'a> Struct<'a> {
                     }
 
                     fn type_def() -> #zod::TsTypeDef {
-                        #zod::TsTypeDef::Type({ #type_def })
+                        #zod::TsTypeDef:: #interface_or_type ({ #type_def })
                     }
 
                     fn inline() -> #zod::InlinedType {
