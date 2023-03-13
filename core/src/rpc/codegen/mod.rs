@@ -47,6 +47,16 @@ pub enum RpcMember {
 
 inventory::collect!(RpcMember);
 
+fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
+    let phantom_arg_names = args.iter().map(|arg| arg.name).collect::<Vec<_>>();
+
+    if phantom_arg_names.is_empty() {
+        String::new()
+    } else {
+        format!("// phantom usage\n{}", phantom_arg_names.join(";\n"))
+    }
+}
+
 impl RpcMember {
     pub fn decl(&self) -> String {
         match self {
@@ -66,6 +76,8 @@ impl RpcMember {
                     .collect::<Vec<_>>()
                     .join(",");
 
+                let phantom_arg_names = create_phantom_arg_names(&args);
+
                 let arg_zod = args
                     .iter()
                     .map(|arg| arg.schema.to_owned())
@@ -76,6 +88,8 @@ impl RpcMember {
                     "
                     // @ts-ignore
                     export async function {name}({arg_fields}): Promise<{res}> {{
+                    {phantom_arg_names}
+
                     z.tuple([{arg_zod}]).parse([...arguments]);
                     return request(\"{ns_name}\", \"{name}\", arguments);
                 }};"
@@ -97,6 +111,8 @@ impl RpcMember {
                     .collect::<Vec<_>>()
                     .join(",");
 
+                let phantom_arg_names = create_phantom_arg_names(&args);
+
                 let arg_zod = args
                     .iter()
                     .map(|arg| arg.schema.to_owned())
@@ -107,6 +123,8 @@ impl RpcMember {
                     "
                     // @ts-ignore
                     export function {name}({arg_fields}): Store<{res}> {{
+                    {phantom_arg_names}
+
                     z.tuple([{arg_zod}]).parse([...arguments]);
                     return subscribe(\"{ns_name}\", \"{name}\", arguments);
                 }};"
