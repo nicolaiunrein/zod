@@ -45,6 +45,12 @@ pub fn expand(
         })
         .collect();
 
+    let from_ty = serde_ast
+        .attrs
+        .type_from()
+        .or_else(|| serde_ast.attrs.type_try_from())
+        .cloned();
+
     let struct_def = Struct {
         transparent,
         ns_path,
@@ -53,6 +59,7 @@ pub fn expand(
         ident,
         fields,
         style,
+        from_ty,
     };
 
     struct_def.expand()
@@ -66,6 +73,7 @@ struct Struct<'a> {
     name: String,
     fields: Vec<StructField<'a>>,
     style: Style,
+    from_ty: Option<syn::Type>,
 }
 
 impl<'a> Struct<'a> {
@@ -81,33 +89,59 @@ impl<'a> Struct<'a> {
         let inventory = impl_inventory::expand(ident, ns_path, name);
 
         let zod = get_zod();
+        if let Some(t) = &self.from_ty {
+            quote! {
+                impl #zod::ZodType for #ident {
+                    fn schema() -> String {
+                        <#t as #zod::ZodType>::schema()
+                    }
 
-        quote! {
-            impl #zod::ZodType for #ident {
-                fn schema() -> String {
-                    #schema
-                }
+                    fn type_def() -> #zod::TsTypeDef {
+                        <#t as #zod::ZodType>::type_def()
+                    }
 
-                fn type_def() -> #zod::TsTypeDef {
-                    #zod::TsTypeDef::Type({ #type_def })
-                }
+                    fn inline() -> #zod::InlinedType {
+                        <#t as #zod::ZodType>::inline()
+                    }
 
-                fn inline() -> #zod::InlinedType {
-                    #zod::InlinedType::Ref {
-                        ns_name: <#ns_path as #zod::Namespace>::NAME,
-                        name: #name
+                    fn docs() -> Option<&'static str> {
+                        Some(#docs)
                     }
                 }
 
-                fn docs() -> Option<&'static str> {
-                    Some(#docs)
-                }
+                #inventory
+
+                #type_register
+
             }
+        } else {
+            quote! {
+                impl #zod::ZodType for #ident {
+                    fn schema() -> String {
+                        #schema
+                    }
 
-            #inventory
+                    fn type_def() -> #zod::TsTypeDef {
+                        #zod::TsTypeDef::Type({ #type_def })
+                    }
 
-            #type_register
+                    fn inline() -> #zod::InlinedType {
+                        #zod::InlinedType::Ref {
+                            ns_name: <#ns_path as #zod::Namespace>::NAME,
+                            name: #name
+                        }
+                    }
 
+                    fn docs() -> Option<&'static str> {
+                        Some(#docs)
+                    }
+                }
+
+                #inventory
+
+                #type_register
+
+            }
         }
     }
 
