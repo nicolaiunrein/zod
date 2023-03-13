@@ -102,7 +102,8 @@ pub trait Backend {
                                 let td = match def.type_def() {
                                     crate::TsTypeDef::Interface(inner) => {
                                         format!(
-                                            "export interface {}{}{} {}",
+                                            "{}export interface {}{}{} {}",
+                                            (def.docs)().unwrap_or_default(),
                                             options.prefix_interface,
                                             def.name(),
                                             options.suffix_interface,
@@ -112,7 +113,8 @@ pub trait Backend {
 
                                     crate::TsTypeDef::Type(inner) => {
                                         format!(
-                                            "export type {}{}{} = {};",
+                                            "{}export type {}{}{} = {};",
+                                            (def.docs)().unwrap_or_default(),
                                             options.prefix_type,
                                             def.name(),
                                             options.suffix_type,
@@ -122,7 +124,8 @@ pub trait Backend {
                                 };
 
                                 format!(
-                                    "export const {}{}{}= {}\n{}\n\n",
+                                    "{}export const {}{}{}= {}\n{}\n\n",
+                                    (def.docs)().unwrap_or_default(),
                                     options.prefix_schema,
                                     def.name(),
                                     options.suffix_schema,

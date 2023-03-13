@@ -69,6 +69,7 @@ pub struct NamespaceMemberDefinition {
     name: &'static str,
     schema: RuntimeValue<String>,
     type_def: RuntimeValue<TsTypeDef>,
+    docs: RuntimeValue<Option<&'static str>>,
 }
 
 impl NamespaceMemberDefinition {
@@ -79,6 +80,7 @@ impl NamespaceMemberDefinition {
             name,
             schema: &<T as ZodType>::schema,
             type_def: &<T as ZodType>::type_def,
+            docs: &<T as ZodType>::docs,
         }
     }
 
