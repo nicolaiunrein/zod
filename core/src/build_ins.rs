@@ -269,6 +269,9 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
     }
 }
 
+#[cfg(feature = "smol_str")]
+impl_primitive!("string", smol_str::SmolStr, "z.string()");
+
 #[cfg(test)]
 mod test {
     use super::ZodType;

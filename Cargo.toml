@@ -58,4 +58,5 @@ zod-derive = { path = "./derive", version = "0.1.0" }
 
 [features]
 default = ["rpc"]
-rpc = ["async-trait", "axum", "futures", "inventory", "pin-project-lite", "serde", "serde_json", "thiserror", "tokio", "tracing"]
+rpc = ["dep:async-trait", "dep:axum", "dep:futures", "dep:inventory", "dep:pin-project-lite", "dep:serde", "dep:serde_json", "dep:thiserror", "dep:tokio", "dep:tracing"]
+smol_str = ["zod-core/smol_str"]
