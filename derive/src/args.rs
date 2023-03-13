@@ -38,6 +38,7 @@ pub struct EnumField {
 #[derive(FromDeriveInput)]
 #[darling(attributes(namespace), forward_attrs(allow, doc, cfg))]
 pub struct NamespaceInput {
+    pub vis: syn::Visibility,
     pub ident: syn::Ident,
     pub data: Data<EnumVariant, StructField>,
     pub name: Option<String>,

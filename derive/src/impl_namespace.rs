@@ -14,6 +14,7 @@ pub fn expand(
     let register_path = format_ident_for_registration(&p);
 
     let zod = get_zod();
+    let vis = input.vis;
 
     quote! {
         impl #impl_generics #zod::Namespace for #ident #ty_generics #where_clause {
@@ -26,6 +27,6 @@ pub fn expand(
 
         #[allow(dead_code)]
         #[allow(non_camel_case_types)]
-        struct #register_path;
+        #vis struct #register_path;
     }
 }
