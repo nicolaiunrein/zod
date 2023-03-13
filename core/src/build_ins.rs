@@ -269,8 +269,28 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
     }
 }
 
+impl_primitive!(
+    "string",
+    std::net::Ipv4Addr,
+    "z.string().ip({ version: \"v4\" })"
+);
+
+impl_primitive!(
+    "string",
+    std::net::Ipv6Addr,
+    "z.string().ip({ version: \"v6\" })"
+);
+
+impl_primitive!("string", std::net::IpAddr, "z.string().ip()");
+
 #[cfg(feature = "smol_str")]
 impl_primitive!("string", smol_str::SmolStr, "z.string()");
+
+#[cfg(feature = "ordered-float")]
+impl_primitive!("number", ordered_float::NotNan<f32>, "z.number()");
+
+#[cfg(feature = "ordered-float")]
+impl_primitive!("number", ordered_float::NotNan<f64>, "z.number()");
 
 #[cfg(test)]
 mod test {
