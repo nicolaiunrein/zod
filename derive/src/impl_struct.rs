@@ -93,11 +93,19 @@ impl<'a> Struct<'a> {
             quote! {
                 impl #zod::ZodType for #ident {
                     fn schema() -> String {
-                        <#t as #zod::ZodType>::schema()
+                        <#t as #zod::ZodType>::inline_schema()
                     }
 
+                    fn inline_schema() -> String {
+                        format!("z.lazy(() => {}.{})",
+                            <#ns_path as #zod::Namespace>::NAME,
+                            #name
+                        )
+                    }
+
+
                     fn type_def() -> #zod::TsTypeDef {
-                        <#t as #zod::ZodType>::inline()
+                        #zod::TsTypeDef::Type(<#t as #zod::ZodType>::inline().to_string())
                     }
 
                     fn inline() -> #zod::InlinedType {
@@ -124,6 +132,13 @@ impl<'a> Struct<'a> {
                 impl #zod::ZodType for #ident {
                     fn schema() -> String {
                         #schema
+                    }
+
+                    fn inline_schema() -> String {
+                        format!("z.lazy(() => {}.{})",
+                            <#ns_path as #zod::Namespace>::NAME,
+                            #name
+                        )
                     }
 
                     fn type_def() -> #zod::TsTypeDef {
@@ -261,24 +276,24 @@ impl<'a> StructField<'a> {
 
         match (self.flatten, &self.name, self.transparent) {
             (false, Some(name), false) => {
-                quote_spanned! {ty.span() =>  format!("{}: {}{}", #name, #ty::schema(), #maybe_optional) }
+                quote_spanned! {ty.span() =>  format!("{}: {}{}", #name, #ty::inline_schema(), #maybe_optional) }
             }
             (false, Some(_), true) => {
-                quote_spanned! {ty.span() =>  format!("{}{}", #ty::schema(), #maybe_optional) }
+                quote_spanned! {ty.span() =>  format!("{}{}", #ty::inline_schema(), #maybe_optional) }
             }
             (false, None, _) => {
-                quote_spanned! { ty.span() => format!("{}{}", #ty::schema(), #maybe_optional) }
+                quote_spanned! { ty.span() => format!("{}{}", #ty::inline_schema(), #maybe_optional) }
             }
 
             (true, Some(_), false) => {
-                quote_spanned! {ty.span() =>  format!(".extend({}{})", #ty::schema(), #maybe_optional) }
+                quote_spanned! {ty.span() =>  format!(".extend({}{})", #ty::inline_schema(), #maybe_optional) }
             }
             (true, Some(_), true) => {
-                quote_spanned! {ty.span() =>  format!(".extend({}{})", #ty::schema(), #maybe_optional) }
+                quote_spanned! {ty.span() =>  format!(".extend({}{})", #ty::inline_schema(), #maybe_optional) }
             }
             (true, None, _) => {
                 // Newtype
-                quote_spanned! { ty.span() => format!(".extend({}{})", #ty::schema(), #maybe_optional) }
+                quote_spanned! { ty.span() => format!(".extend({}{})", #ty::inline_schema(), #maybe_optional) }
             }
         }
     }

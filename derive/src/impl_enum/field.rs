@@ -111,7 +111,7 @@ impl<'a> NamedField<'a> {
             quote!("")
         };
 
-        quote_spanned!(ty.span() => format!("{}: {}{}", #name, <#ty as #zod::ZodType>::schema(), #maybe_optional))
+        quote_spanned!(ty.span() => format!("{}: {}{}", #name, <#ty as #zod::ZodType>::inline_schema(), #maybe_optional))
     }
 }
 
@@ -137,6 +137,6 @@ impl<'a> TupleField<'a> {
             quote!("")
         };
 
-        quote_spanned!(ty.span() => format!("{}{}", <#ty as #zod::ZodType>::schema(), #maybe_optional))
+        quote_spanned!(ty.span() => format!("{}{}", <#ty as #zod::ZodType>::inline_schema(), #maybe_optional))
     }
 }

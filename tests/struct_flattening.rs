@@ -38,7 +38,7 @@ fn serde_flatten_struct() {
     );
     assert_eq!(
         Test::schema(),
-        format!("{}.extend({})", Base::schema(), Nested::schema())
+        format!("{}.extend(z.lazy(() => Ns.Nested))", Base::schema())
     );
     assert_eq!(
         Test::type_def(),

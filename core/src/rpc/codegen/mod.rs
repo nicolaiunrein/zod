@@ -24,8 +24,8 @@ impl RpcArgument {
     pub fn new<T: crate::ZodType>(name: &'static str) -> Self {
         Self {
             name,
-            type_def: T::type_def().to_string(),
-            schema: T::schema(),
+            type_def: T::inline().to_string(),
+            schema: T::inline_schema(),
         }
     }
 }

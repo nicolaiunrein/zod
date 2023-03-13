@@ -79,6 +79,10 @@ impl<'a> Enum<'a> {
                         <#t as #zod::ZodType>::schema()
                     }
 
+                    fn inline_schema() -> String {
+                        <#t as #zod::ZodType>::inline_schema()
+                    }
+
                     fn type_def() -> #zod::TsTypeDef {
                         <#t as #zod::ZodType>::type_def()
                     }
@@ -102,6 +106,13 @@ impl<'a> Enum<'a> {
                 impl #zod::ZodType for #ident {
                     fn schema() -> String {
                         #schema
+                    }
+
+                    fn inline_schema() -> String {
+                        format!("z.lazy(() => {}.{})",
+                            <#ns_path as #zod::Namespace>::NAME,
+                            #name
+                        )
                     }
 
                     fn type_def() -> #zod::TsTypeDef {

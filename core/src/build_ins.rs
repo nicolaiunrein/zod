@@ -178,10 +178,10 @@ impl<T: ZodType> ZodType for Vec<T> {
 
     /// ```ts
     /// // zod schema
-    /// z.array(T)
+    /// z.array(z.lazy(() => T))
     /// ```
     fn schema() -> String {
-        format!("z.array({})", T::schema())
+        format!("z.array({})", T::inline_schema())
     }
 }
 
@@ -196,10 +196,10 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
 
     /// ```ts
     /// // zod schema
-    /// z.set(T)
+    /// z.set(z.lazy(() => T))
     /// ```
     fn schema() -> String {
-        format!("z.set({})", T::schema())
+        format!("z.set({})", T::inline_schema())
     }
 }
 
@@ -214,10 +214,10 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
 
     /// ```ts
     /// // zod schema
-    /// z.map(K, V)
+    /// z.map(z.lazy(() => K), z.lazy(() => V))
     /// ```
     fn schema() -> String {
-        format!("z.map({}, {})", K::schema(), V::schema())
+        format!("z.map({}, {})", K::inline_schema(), V::inline_schema())
     }
 }
 
@@ -233,10 +233,10 @@ impl<T: ZodType> ZodType for Option<T> {
 
     /// ```ts
     /// // zod schema
-    /// T.optional()
+    /// z.lazy(() => T).optional()
     /// ```
     fn schema() -> String {
-        format!("{}.optional()", T::schema())
+        format!("{}.optional()", T::inline_schema())
     }
 }
 
@@ -263,8 +263,8 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
     fn schema() -> String {
         format!(
             "z.union([z.object({{ Ok: {} }}), z.object({{ Err: {} }})])",
-            T::schema(),
-            E::schema()
+            T::inline_schema(),
+            E::inline_schema()
         )
     }
 }

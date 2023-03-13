@@ -16,6 +16,11 @@ pub use build_ins::*;
 
 pub trait ZodType {
     fn schema() -> String;
+
+    fn inline_schema() -> String {
+        Self::schema()
+    }
+
     fn type_def() -> TsTypeDef;
 
     fn docs() -> Option<&'static str> {
