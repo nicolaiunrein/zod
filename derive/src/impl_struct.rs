@@ -256,7 +256,7 @@ impl<'a> StructField<'a> {
 
         match (self.flatten, &self.name, self.transparent) {
             (false, Some(name), false) => {
-                quote_spanned! {ty.span() =>  format!("{}: {}{},", #name, #ty::schema(), #maybe_optional) }
+                quote_spanned! {ty.span() =>  format!("{}: {}{}", #name, #ty::schema(), #maybe_optional) }
             }
             (false, Some(_), true) => {
                 quote_spanned! {ty.span() =>  format!("{}{}", #ty::schema(), #maybe_optional) }
