@@ -1,8 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fmt::Write;
 
-use crate::NamespaceMemberDefinition;
-
+use crate::Code;
 use crate::{
     rpc::codegen::{self, RpcMember},
     rpc::Request,
@@ -38,115 +37,40 @@ impl Drop for SubscriberMap {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct CodegenOptions {
-    prefix_schema: String,
-    suffix_schema: String,
-
-    prefix_type: String,
-    suffix_type: String,
-
-    prefix_interface: String,
-    suffix_interface: String,
-}
-
 #[async_trait::async_trait]
 pub trait Backend {
     const NS_NAMES: &'static [&'static str];
+    const DEPS: &'static [Code];
+    const MEMBERS: &'static [RpcMember];
 
-    fn rpc_members() -> HashMap<&'static str, Vec<String>> {
+    fn member_map() -> HashMap<&'static str, Vec<String>> {
         let mut out = HashMap::<&'static str, Vec<String>>::new();
-        let members = inventory::iter::<RpcMember>()
-            .filter(|member| Self::NS_NAMES.contains(&member.ns_name()));
 
-        for member in members {
+        for member in Self::MEMBERS {
             out.entry(member.ns_name()).or_default().push(member.decl());
         }
-        out
-    }
 
-    fn zod_namespaces() -> HashMap<&'static str, Vec<&'static NamespaceMemberDefinition>> {
-        let mut out = HashMap::<&'static str, Vec<&'static NamespaceMemberDefinition>>::new();
-        let members = inventory::iter::<NamespaceMemberDefinition>()
-            .filter(|member| Self::NS_NAMES.contains(&member.namespace()));
-
-        for member in members {
-            out.entry(member.namespace()).or_default().push(member);
+        for dep in Self::DEPS {
+            let list = out.entry(dep.ns_name().unwrap_or_default()).or_default();
+            list.push(dep.type_def.to_owned());
+            list.push(dep.schema.to_owned());
         }
         out
     }
+
     fn generate<T>() -> String
     where
         T: codegen::ClientCodegen,
     {
-        Self::generate_with_options::<T>(Default::default())
-    }
-
-    fn generate_with_options<T>(options: CodegenOptions) -> String
-    where
-        T: codegen::ClientCodegen,
-    {
-        let rpc_records = inventory::iter::<RpcMember>()
-            .filter(|member| Self::NS_NAMES.contains(&member.ns_name()))
-            .map(|m| (m.ns_name(), m.decl()));
-
-        let mut records: BTreeMap<&'static str, String> =
-            crate::NamespaceMemberDefinition::collect()
-                .into_iter()
-                .filter(|(ns, _)| Self::NS_NAMES.contains(ns))
-                .map(|(ns, defs)| {
-                    (
-                        ns,
-                        defs.into_iter()
-                            .map(|def| {
-                                let td = match def.type_def() {
-                                    crate::TsTypeDef::Interface(inner) => {
-                                        format!(
-                                            "{}export interface {}{}{} {}",
-                                            (def.docs)().unwrap_or_default(),
-                                            options.prefix_interface,
-                                            def.name(),
-                                            options.suffix_interface,
-                                            inner
-                                        )
-                                    }
-
-                                    crate::TsTypeDef::Type(inner) => {
-                                        format!(
-                                            "{}export type {}{}{} = {};",
-                                            (def.docs)().unwrap_or_default(),
-                                            options.prefix_type,
-                                            def.name(),
-                                            options.suffix_type,
-                                            inner
-                                        )
-                                    }
-                                };
-
-                                format!(
-                                    "{}export const {}{}{}= {}\n{}\n\n",
-                                    (def.docs)().unwrap_or_default(),
-                                    options.prefix_schema,
-                                    def.name(),
-                                    options.suffix_schema,
-                                    def.schema(),
-                                    td
-                                )
-                            })
-                            .collect(),
-                    )
-                })
-                .collect();
-
-        for (name, code) in rpc_records {
-            let s = records.entry(name).or_default();
-            write!(s, "{}", code).unwrap();
-        }
-
         let mut code = T::get();
 
-        for (ns, ns_code) in records.into_iter() {
-            write!(code, "export namespace {} {{ {} }}", ns, ns_code).expect("write failed");
+        for (ns, ns_code) in Self::member_map().into_iter() {
+            if ns.is_empty() {
+                write!(code, "{}", ns_code.join("\n")).expect("write failed");
+            } else {
+                write!(code, "export namespace {} {{ {} }}", ns, ns_code.join("\n"))
+                    .expect("write failed");
+            }
         }
         code
     }

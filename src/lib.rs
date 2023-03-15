@@ -119,7 +119,6 @@
 //!
 //!
 //!
-#![doc = include_str!(concat!(env!("OUT_DIR"), "/type-table.md"))]
 #![deny(unsafe_code)]
 
 pub use zod_core::*;

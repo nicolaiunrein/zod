@@ -2,7 +2,6 @@
 name = "zod"
 version = "0.1.0"
 edition = "2021"
-build = "build.rs"
 description = "Rust integraions with the `zod` typescript library."
 authors = ["Nicolai Unrein<info@auxcontrol.io>"]
 documentation = "https://docs.rs/zod"
@@ -23,7 +22,6 @@ members = [
 
 [dependencies]
 
-# remember to update build-dependencies as well
 zod-derive = { path = "./derive", version = "0.1.0" } 
 zod-core = { path = "./core", version = "0.1.0" }
 
@@ -50,10 +48,6 @@ serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 trybuild = { version = "1.0.77", features = ["diff"] }
-
-[build-dependencies]
-zod-core = { path = "./core", version = "0.1.0" }
-zod-derive = { path = "./derive", version = "0.1.0" }
 
 [features]
 default = ["rpc"]
