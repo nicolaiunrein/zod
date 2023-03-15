@@ -1,4 +1,23 @@
 #![allow(dead_code)]
+use pretty_assertions::assert_eq;
+pub use unindent::Unindent;
+
+pub fn compare(a: &str, b: &str) {
+    assert_eq!(normalize(a), normalize(b))
+}
+
+pub fn normalize(s: &str) -> String {
+    normalize_inner(s.unindent().replace("\n", ""))
+}
+
+fn normalize_inner(s: String) -> String {
+    let out = s.replace("  ", " ");
+    if out.contains("  ") {
+        normalize_inner(out)
+    } else {
+        out
+    }
+}
 
 pub const A: &str = "z.literal(\"A\")";
 pub const B: &str = "z.literal(\"B\")";

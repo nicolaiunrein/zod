@@ -143,11 +143,15 @@ impl<'a> Struct<'a> {
         };
 
         match (self.transparent, self.style) {
-            (true, _) => fields
-                .into_iter()
-                .next()
-                .expect("At least one field")
-                .expand_type_defs(),
+            (true, _) => {
+                let def = fields
+                    .into_iter()
+                    .next()
+                    .expect("At least one field")
+                    .expand_type_defs();
+
+                quote!(#formatcp!("export type {} = {};", #name, #def))
+            }
 
             (false, Style::Tuple) => match fields.len() {
                 0 => unreachable!("handled by darling"),
@@ -175,7 +179,7 @@ impl<'a> Struct<'a> {
                     });
 
                     quote! {
-                        #formatcp!("export type {}{} = [{}]", #name, #generic_params, #concatcp!(#(#fields), *))
+                        #formatcp!("export type {}{} = [{}];", #name, #generic_params, #concatcp!(#(#fields), *))
                     }
                 }
             },
@@ -229,12 +233,15 @@ impl<'a> Struct<'a> {
         let name = &self.name;
 
         match (self.transparent, self.style) {
-            (true, _) => fields
-                .into_iter()
-                .next()
-                .expect("At least one field")
-                .expand_schema(),
+            (true, _) => {
+                let def = fields
+                    .into_iter()
+                    .next()
+                    .expect("At least one field")
+                    .expand_schema();
 
+                quote!(#formatcp!("export const {} = z.lazy(() => {});", #name, #def))
+            }
             (false, Style::Tuple) => match fields.len() {
                 0 => unreachable!("handled by darling"),
                 1 => {
@@ -394,21 +401,21 @@ impl<'a> StructField<'a> {
                 quote_spanned! {span =>  #formatcp!("{}: {}{}", #name, #ty_name, #maybe_optional) }
             }
             (false, Some(_), true) => {
-                quote_spanned! {span =>  #formatcp!("{}{}", #ty_name(), #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!("{}{}", #ty_name, #maybe_optional) }
             }
             (false, None, _) => {
                 quote_spanned! { span => #formatcp!("{}{}", #ty_name, #maybe_optional) }
             }
 
             (true, Some(_), false) => {
-                quote_spanned! {span =>  #formatcp!(".extend({}{})", #ty_name, #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!(".extend(z.lazy(() => {}{}))", #ty_name, #maybe_optional) }
             }
             (true, Some(_), true) => {
-                quote_spanned! {span =>  #formatcp!(".extend({}{})", #ty_name, #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!(".extend(z.lazy(() => {}{}))", #ty_name, #maybe_optional) }
             }
             (true, None, _) => {
                 // Newtype
-                quote_spanned! { span => #formatcp!(".extend({}{})", #ty_name, #maybe_optional) }
+                quote_spanned! { span => #formatcp!(".extend(z.lazy(() => {}{}))", #ty_name, #maybe_optional) }
             }
         }
     }

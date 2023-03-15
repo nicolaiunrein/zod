@@ -1,6 +1,7 @@
 use zod::ZodType;
 
 mod test_utils;
+use test_utils::*;
 
 fn main() {}
 
@@ -13,7 +14,9 @@ fn ok() {
     let json = serde_json::to_string(&Test(123)).unwrap();
     assert_eq!(json, "123");
 
-    assert_eq!(Test::schema(), usize::schema());
-    assert_eq!(Test::type_def(), usize::type_def());
-    assert_eq!(Test::inline().to_string(), "Ns.Test")
+    compare(
+        Test::CODE.schema,
+        "export const Test = z.lazy(() => Rs.Usize);",
+    );
+    compare(Test::CODE.type_def, "export type Test = Rs.Usize;")
 }

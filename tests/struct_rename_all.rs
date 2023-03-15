@@ -25,11 +25,9 @@ fn rename_all_struct() {
         serde_json::json!({"STRING_VALUE": "abc", "USIZE_VALUE": 123})
     );
 
-    assert!(Test::schema().contains("USIZE_VALUE"),);
-    assert!(Test::schema().contains("STRING_VALUE"),);
+    assert!(Test::CODE.schema.contains("USIZE_VALUE"),);
+    assert!(Test::CODE.schema.contains("STRING_VALUE"),);
 
-    assert!(Test::type_def().contains("USIZE_VALUE"),);
-    assert!(Test::type_def().contains("STRING_VALUE"),);
-
-    assert_eq!(Test::inline().to_string(), "Ns.Test");
+    assert!(Test::CODE.type_def.contains("USIZE_VALUE"),);
+    assert!(Test::CODE.type_def.contains("STRING_VALUE"),);
 }
