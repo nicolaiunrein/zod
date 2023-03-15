@@ -34,16 +34,29 @@ fn expand_backend_impl(
     let zod = get_zod();
     let __private = get_private();
 
-    let namespaces = fields.iter().map(|f| {
+    let namespace_names = fields.iter().map(|f| {
         let ty = &f.ty;
         quote_spanned!(ty.span() => <#ty as #zod::Namespace>::NAME)
+    });
+
+    let namespace_code = fields.iter().map(|f| {
+        let ty = &f.ty;
+        quote_spanned!(ty.span() => <#ty as #zod::Namespace>::generate())
     });
 
     quote_spanned! {
         ident.span() =>
         #[#__private::async_trait::async_trait]
         impl #__private::server::Backend for #ident {
-            const NS_NAMES: &'static[&'static str] = &[#(#namespaces),*];
+            const NS_NAMES: &'static[&'static str] = &[#(#namespace_names),*];
+
+        fn generate<T>() -> String
+        where
+            T: #__private::codegen::ClientCodegen {
+                let client = T::get();
+                let code = vec![<#zod::Rs as #zod::Namespace>::generate(), #(#namespace_code),*].join("\n");
+                format!("{}\n\n{}", client, code)
+        }
 
             async fn handle_request(
                 &mut self,

@@ -25,10 +25,10 @@
 //!
 //!
 //! ## Example
-//! ```rust
-//! # use zod::Namespace;
+//! ```rust,ignore
+//! # use zod::{Zod, Namespace};
 //! # use serde::{Serialize, Deserialize};
-//! # use zod::Zod;
+//!
 //! #[derive(Namespace)]
 //! struct Ns;
 //!
@@ -131,6 +131,7 @@ pub mod rpc;
 #[cfg(feature = "rpc")]
 pub mod __private {
     pub use async_trait;
+    pub use const_format;
     pub use futures;
     pub use inventory;
     pub use serde;

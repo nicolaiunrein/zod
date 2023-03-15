@@ -1,16 +1,23 @@
 mod api;
-use api::MyBackend;
+// use api::MyBackend;
 use axum::{extract::Extension, routing::get, Router, Server};
 use zod::rpc::{
     clients::WebsocketClient,
     servers::{axum::websocket_handler, proxy::BackendProxy},
     Backend,
 };
+use zod::Namespace;
 
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[tokio::main]
 async fn main() {
+    println!("{}", api::Ns::generate());
+
+    // let x: crate::api::MyType2 =
+    // serde_json::from_value(serde_json::json!({"value": 123, "value2": 111 })).unwrap();
+
+    // dbg!(x);
     // tracing_subscriber::registry()
     // .with(fmt::layer())
     // .with(EnvFilter::from_default_env())

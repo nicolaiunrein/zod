@@ -1,7 +1,6 @@
 use crate::Code;
 use crate::Namespace;
 use crate::ZodType;
-use std::any::TypeId;
 
 pub struct Rs;
 
@@ -14,8 +13,8 @@ macro_rules! impl_primitive {
     ($T:ty, $name: literal, $type: literal, $schema: literal) => {
         impl ZodType for $T {
             const CODE: Code = Code {
-                ns: &|| TypeId::of::<Rs>(),
-                name: concat!("Rs.", $name),
+                ns_name: Rs::NAME,
+                name: $name,
                 type_def: concat!("export type ", $name, " = ", $type, ";"),
                 schema: concat!("export const ", $name, " = ", $schema, ";"),
             };
@@ -40,8 +39,8 @@ macro_rules! tuple {
         {
 
             const CODE: Code = Code {
-                ns: &|| TypeId::of::<Rs>(),
-                name: concat!("Rs.Tuple", $N),
+                ns_name: Rs::NAME,
+                name: concat!("Tuple", $N),
                 type_def: concat!("export type Tuple", $N, "<",std::stringify!($($i),*) ,">",  " = [", std::stringify!($($i),*), "];"),
                 schema: concat!("export const Tuple", $N, " = (", $(std::stringify!($i: z.ZodTypeAny,)),*  ,") => z.tuple([", $(std::stringify!(z.lazy(() => $i),)),*, "])"),
             };
@@ -130,7 +129,7 @@ impl_primitive!(isize, "Isize", "number", "z.number().finite().int()");
 impl_primitive!(f32, "F32", "number", "z.number()");
 impl_primitive!(f64, "F64", "number", "z.number()");
 
-impl_primitive!(bool, "Bool", "boolean", "z.bool()");
+impl_primitive!(bool, "Bool", "boolean", "z.boolean()");
 impl_primitive!(char, "Char", "string", "z.string().length(1)");
 impl_primitive!((), "Unit", "null", "z.null()");
 
@@ -159,8 +158,8 @@ impl_wrapper!(impl<T: ZodType> ZodType for std::marker::PhantomData<T>);
 
 impl<T: ZodType> ZodType for Vec<T> {
     const CODE: Code = Code {
-        ns: &|| TypeId::of::<Rs>(),
-        name: "Rs.Vec",
+        ns_name: Rs::NAME,
+        name: "Vec",
         type_def: "export type Vec<T> = T[];",
         schema: "export const Vec = (T: z.ZodTypeAny) => z.array(z.lazy(() => T))",
     };
@@ -169,8 +168,8 @@ impl<T: ZodType> ZodType for Vec<T> {
 impl<const N: usize, T: ZodType> ZodType for [T; N] {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.Vec",
+            ns_name: Rs::NAME,
+            name: "Array",
             type_def: "
         export type Array<N extends number, T, TObj = [T, ...T[]]> = Pick<TObj, Exclude<keyof TObj, 'splice' | 'push' | 'pop' | 'shift' |  'unshift'>>
           & {
@@ -187,8 +186,8 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.HashSet",
+            ns_name: Rs::NAME,
+            name: "HashSet",
             type_def: "export type HashSet<T> = Set<T>;",
             schema: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
     };
@@ -197,8 +196,8 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
 impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.HashSet",
+            ns_name: Rs::NAME,
+            name: "HashSet",
             type_def: "export type HashSet<T> = Set<T>;",
             schema: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
     };
@@ -207,8 +206,8 @@ impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
 impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.HashMap",
+            ns_name: Rs::NAME,
+            name: "HashMap",
             type_def: "export type HashMap<K, V> = Map<K, V>;",
             schema: "export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     };
@@ -217,8 +216,8 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
 impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.HashMap",
+            ns_name: Rs::NAME,
+            name: "HashMap",
             type_def: "export type BTreeMap<K, V> = Map<K, V>;",
             schema: "export const BTreeMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     };
@@ -227,8 +226,8 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
 impl<T: ZodType> ZodType for Option<T> {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.Option",
+            ns_name: Rs::NAME,
+            name: "Option",
             type_def: "export type Option<T> = T | undefined;",
             schema: "export const Option = (T: z.ZodTypeAny) => z.lazy(() => T).optional();",
     };
@@ -237,8 +236,8 @@ impl<T: ZodType> ZodType for Option<T> {
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
     const CODE: Code = 
         Code {
-            ns: &|| TypeId::of::<Rs>(),
-            name: "Rs.Result",
+            ns_name: Rs::NAME,
+            name: "Result",
             type_def: "export type Result<T, E> = { Ok: T } | { Err: E };",
             schema: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeError) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
     };

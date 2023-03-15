@@ -15,6 +15,7 @@ pub struct Input {
     pub data: Data<EnumVariant, StructField>,
     pub namespace: syn::Path,
     pub attrs: Vec<Attribute>,
+    pub generics: syn::Generics,
 }
 
 #[derive(FromVariant, Clone)]

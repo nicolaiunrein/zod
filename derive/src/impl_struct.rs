@@ -1,4 +1,4 @@
-use crate::{docs::RustDocs, expand_type_registration, get_zod, impl_inventory};
+use crate::{docs::RustDocs, get_zod};
 
 use super::args;
 use darling::ast::{Fields, Style};
@@ -32,6 +32,17 @@ pub fn expand(
 
     let style = fields.style;
 
+    let generic_params = input
+        .generics
+        .params
+        .iter()
+        .filter_map(|p| match p {
+            syn::GenericParam::Type(t) => Some(t.ident.clone()),
+            syn::GenericParam::Lifetime(_) => None,
+            syn::GenericParam::Const(_) => None,
+        })
+        .collect::<Vec<_>>();
+
     let fields = fields
         .iter()
         .zip(fields_ast.iter().map(|f| &f.attrs))
@@ -42,6 +53,7 @@ pub fn expand(
             optional: !attrs.default().is_none(),
             transparent,
             flatten: attrs.flatten(),
+            generic_params: &generic_params,
         })
         .collect();
 
@@ -60,6 +72,8 @@ pub fn expand(
         fields,
         style,
         from_ty,
+        generics: input.generics.clone(),
+        generic_params: generic_params.clone(),
     };
 
     struct_def.expand()
@@ -74,6 +88,8 @@ struct Struct<'a> {
     fields: Vec<StructField<'a>>,
     style: Style,
     from_ty: Option<syn::Type>,
+    generics: syn::Generics,
+    generic_params: Vec<Ident>,
 }
 
 impl<'a> Struct<'a> {
@@ -83,90 +99,48 @@ impl<'a> Struct<'a> {
         let ident = &self.ident;
         let ns_path = &self.ns_path;
         let name = &self.name;
-        let docs = &self.docs;
-
-        let type_register = expand_type_registration(ident, ns_path);
-        let inventory = impl_inventory::expand(ident, ns_path, name);
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         let zod = get_zod();
-        if let Some(t) = &self.from_ty {
-            quote! {
-                impl #zod::ZodType for #ident {
-                    fn schema() -> String {
-                        <#t as #zod::ZodType>::inline_schema()
-                    }
 
-                    fn inline_schema() -> String {
-                        format!("z.lazy(() => {}.{})",
-                            <#ns_path as #zod::Namespace>::NAME,
-                            #name
-                        )
-                    }
+        let docs = &self.docs;
+        let concatcp = quote!(#zod::__private::const_format::concatcp);
 
+        quote! {
+            const _: () = {
+                const CODE: #zod::Code = #zod::Code {
+                    ns_name: <#ns_path as #zod::Namespace>::NAME,
+                    name: #name,
+                    type_def: #concatcp!(#docs, #type_def),
+                    schema: #concatcp!(#docs, #schema),
+                };
 
-                    fn type_def() -> #zod::TsTypeDef {
-                        #zod::TsTypeDef::Type(<#t as #zod::ZodType>::inline().to_string())
-                    }
-
-                    fn inline() -> #zod::InlinedType {
-                        <#t as #zod::ZodType>::inline()
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
+                impl #impl_generics #zod::ZodType for #ident #ty_generics #where_clause {
+                    const CODE: #zod::Code = CODE;
                 }
 
-                #inventory
-
-                #type_register
-
-            }
-        } else {
-            let interface_or_type = match (self.fields.len() == 1, self.style, self.transparent) {
-                (_, Style::Unit, _) | (true, Style::Tuple, _) | (_, _, true) => quote!(Type),
-                _ => quote!(Interface),
+                #zod::__private::inventory::submit!(CODE);
             };
-
-            quote! {
-                impl #zod::ZodType for #ident {
-                    fn schema() -> String {
-                        #schema
-                    }
-
-                    fn inline_schema() -> String {
-                        format!("z.lazy(() => {}.{})",
-                            <#ns_path as #zod::Namespace>::NAME,
-                            #name
-                        )
-                    }
-
-                    fn type_def() -> #zod::TsTypeDef {
-                        #zod::TsTypeDef:: #interface_or_type ({ #type_def })
-                    }
-
-                    fn inline() -> #zod::InlinedType {
-                        #zod::InlinedType::Ref {
-                            ns_name: <#ns_path as #zod::Namespace>::NAME,
-                            name: #name
-                        }
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
-                }
-
-                #inventory
-
-                #type_register
-
-            }
         }
+        // }
     }
 
     fn expand_type_def(&self) -> TokenStream {
         let (flat_fields, fields) = self.fields.iter().partition::<Vec<_>, _>(|f| f.flatten);
+        let zod = get_zod();
+        let formatcp = quote!(#zod::__private::const_format::formatcp);
+        let concatcp = quote!(#zod::__private::const_format::concatcp);
+        let name = &self.name;
+
+        let generic_params = if self.generic_params.is_empty() {
+            quote!("")
+        } else {
+            let names = self
+                .generic_params
+                .iter()
+                .map(|ident| format!("{},", ident.to_string()));
+            quote!(#formatcp!("<{}>", #concatcp!(#(#names),*)))
+        };
 
         match (self.transparent, self.style) {
             (true, _) => fields
@@ -177,30 +151,56 @@ impl<'a> Struct<'a> {
 
             (false, Style::Tuple) => match fields.len() {
                 0 => unreachable!("handled by darling"),
-                1 => fields
-                    .into_iter()
-                    .next()
-                    .or_else(|| flat_fields.into_iter().next())
-                    .expect("Newtype")
-                    .expand_type_defs(),
+                1 => {
+                    let type_def = fields
+                        .into_iter()
+                        .next()
+                        .or_else(|| flat_fields.into_iter().next())
+                        .expect("Newtype")
+                        .expand_type_defs();
+
+                    quote!(
+                        #formatcp!("export type {} = {};", #name, #type_def)
+                    )
+                }
                 _ => {
-                    let fields = fields.into_iter().map(|f| f.expand_type_defs());
+                    let len = fields.len();
+                    let fields = fields.into_iter().enumerate().map(|(i, f)| {
+                        let def = f.expand_type_defs();
+                        if i + 1 == len {
+                            def
+                        } else {
+                            quote!(#concatcp!(#def, ", "))
+                        }
+                    });
 
                     quote! {
-                        let fields: Vec<String> = vec![#(#fields),*];
-                        format!("[{}]", fields.join(", "))
+                        #formatcp!("export type {}{} = [{}]", #name, #generic_params, #concatcp!(#(#fields), *))
                     }
                 }
             },
 
             (false, Style::Struct) => {
                 let fields = fields.into_iter().map(|f| f.expand_type_defs());
-                let flat_fields = flat_fields.into_iter().map(|f| f.expand_type_defs());
+
+                let maybe_extends = if flat_fields.is_empty() {
+                    quote!("")
+                } else {
+                    let len = flat_fields.len();
+                    let flat_fields = flat_fields.into_iter().enumerate().map(|(i, f)| {
+                        let tt = f.expand_type_defs();
+                        if i + 1 == len {
+                            quote!(#tt)
+                        } else {
+                            quote!(#concatcp!(#tt, ", "))
+                        }
+                    });
+
+                    quote!(#formatcp!("extends {}", #concatcp!(#(#flat_fields)*,)))
+                };
 
                 quote! {
-                    let fields: Vec<String> = vec![#(#fields),*];
-                    let extensions: Vec<String> = vec![#(#flat_fields),*];
-                    format!("{{{}}}{}", fields.join(",\n"), extensions.join(""))
+                    #formatcp!("export interface {}{} {} {{ \n{}}}", #name, #generic_params, #maybe_extends, #concatcp!(#(#concatcp!("  ", #fields, ",\n")),*))
                 }
             }
 
@@ -210,6 +210,23 @@ impl<'a> Struct<'a> {
 
     fn expand_schema(&self) -> TokenStream {
         let (flat_fields, fields) = self.fields.iter().partition::<Vec<_>, _>(|f| f.flatten);
+        let zod = get_zod();
+        let formatcp = quote!(#zod::__private::const_format::formatcp);
+        let concatcp = quote!(#zod::__private::const_format::concatcp);
+        let has_generics = !self.generic_params.is_empty();
+
+        let generic_params = if self.generic_params.is_empty() {
+            quote!("")
+        } else {
+            let names = self
+                .generic_params
+                .iter()
+                .map(|ident| format!("{}: z.ZodTypeAny,", ident.to_string()));
+
+            quote!(#concatcp!(#(#names),*))
+        };
+
+        let name = &self.name;
 
         match (self.transparent, self.style) {
             (true, _) => fields
@@ -220,12 +237,24 @@ impl<'a> Struct<'a> {
 
             (false, Style::Tuple) => match fields.len() {
                 0 => unreachable!("handled by darling"),
-                1 => fields
-                    .into_iter()
-                    .next()
-                    .or_else(|| flat_fields.into_iter().next())
-                    .expect("Newtype")
-                    .expand_schema(),
+                1 => {
+                    let schema = fields
+                        .into_iter()
+                        .next()
+                        .or_else(|| flat_fields.into_iter().next())
+                        .expect("Newtype")
+                        .expand_schema();
+
+                    if has_generics {
+                        quote! {
+                            #formatcp!("export const {} = ({}) => z.lazy(() => {});", #name, #generic_params, #schema)
+                        }
+                    } else {
+                        quote! {
+                            #formatcp!("export const {} = z.lazy(() => {});", #name, #schema)
+                        }
+                    }
+                }
                 _ => {
                     // make sure all fields followed an optional field are also optional
                     if let Some(f) = fields
@@ -236,23 +265,50 @@ impl<'a> Struct<'a> {
                         abort!(f.ty.span(), "zod: non-default field follows default field")
                     }
 
-                    let fields = fields.into_iter().map(|f| f.expand_schema());
+                    let len = fields.len();
+                    let fields = fields.into_iter().enumerate().map(|(i, f)| {
+                        if i + 1 == len {
+                            f.expand_schema()
+                        } else {
+                            let schema = f.expand_schema();
+                            quote!(#concatcp!(#schema, ", "))
+                        }
+                    });
 
-                    quote! {
-                        let fields: Vec<String> = vec![#(#fields),*];
-                        format!("z.tuple([{}])", fields.join(", "))
+                    if has_generics {
+                        quote! {
+                            #formatcp!("export const {} = ({}) => z.lazy(() => z.tuple([{}]));", #name, #generic_params, #concatcp!(#(#fields),*))
+                        }
+                    } else {
+                        quote! {
+                            #formatcp!("export const {} = z.lazy(() => z.tuple([{}]));", #name, #concatcp!(#(#fields),*))
+                        }
                     }
                 }
             },
 
             (false, Style::Struct) => {
-                let fields = fields.into_iter().map(|f| f.expand_schema());
-                let flat_fields = flat_fields.into_iter().map(|f| f.expand_schema());
+                let len = fields.len();
+                let fields = fields.into_iter().enumerate().map(|(i, f)| {
+                    if i + 1 == len {
+                        f.expand_schema()
+                    } else {
+                        let f = f.expand_schema();
+                        quote!(#concatcp!(#f, ", "))
+                    }
+                });
 
-                quote! {
-                    let fields: Vec<String> = vec![#(#fields),*];
-                    let extensions: Vec<String> = vec![#(#flat_fields),*];
-                    format!("z.object({{{}}}){}", fields.join(",\n"), extensions.join(""))
+                let flat_fields = flat_fields.into_iter().map(|f| f.expand_schema());
+                let name = &self.name;
+
+                if has_generics {
+                    quote! {
+                        #formatcp!("export const {} = ({}) => z.lazy(() => z.object({{{}}})){};", #name, #generic_params, #concatcp!("", #(#fields),*), #concatcp!(#(#flat_fields),*))
+                    }
+                } else {
+                    quote! {
+                        #formatcp!("export const {} = z.lazy(() => z.object({{{}}})){};", #name, #concatcp!("", #(#fields),*), #concatcp!(#(#flat_fields),*))
+                    }
                 }
             }
 
@@ -267,33 +323,92 @@ struct StructField<'a> {
     optional: bool,
     transparent: bool,
     flatten: bool,
+    generic_params: &'a [syn::Ident],
 }
 
 impl<'a> StructField<'a> {
+    fn get_generic(&self) -> Option<String> {
+        self.generic_params.iter().find_map(|i| match self.ty {
+            syn::Type::Path(p) => {
+                if p.path.segments.len() != 1 {
+                    None
+                } else {
+                    let first = p.path.segments.first().unwrap();
+                    if &first.ident == i {
+                        Some(i.to_string())
+                    } else {
+                        None
+                    }
+                }
+            }
+            _ => None,
+        })
+    }
+
     fn expand_schema(&self) -> TokenStream {
         let maybe_optional = self.expand_optional_schema();
-        let ty = qualified_ty(self.ty);
+        let zod = get_zod();
+        let formatcp = quote!(#zod::__private::const_format::formatcp);
+        let concatcp = quote!(#zod::__private::const_format::concatcp);
+        let span = self.ty.span();
+
+        let ty_name = self
+            .get_generic()
+            .map(|name| quote!(#name))
+            .unwrap_or_else(|| {
+                let field_generic_params = match self.ty {
+                    syn::Type::Path(p) => {
+                        if let Some(x) = p.path.segments.last() {
+                            match &x.arguments {
+                                syn::PathArguments::AngleBracketed(args) => args
+                                    .args
+                                    .iter()
+                                    .filter_map(|arg| match arg {
+                                        syn::GenericArgument::Type(t) => {
+                                            let ty = qualified_ty(t);
+                                            Some(quote!(#formatcp!("{}.{},", #ty::CODE.ns_name, #ty::CODE.name)))
+                                        }
+                                        _ => None,
+                                    })
+                                    .collect::<Vec<_>>(),
+                                _ => vec![],
+                            }
+                        } else {
+                            vec![]
+                        }
+                    }
+                    _ => vec![],
+                };
+
+                if field_generic_params.is_empty() {
+                    let ty = qualified_ty(self.ty);
+                    quote!(#formatcp!("{}.{}", #ty::CODE.ns_name, #ty::CODE.name))
+                } else {
+                    let ty = qualified_ty(self.ty);
+                    quote!(#formatcp!("{}.{}({})", #ty::CODE.ns_name, #ty::CODE.name, #concatcp!(#(#field_generic_params),*)))
+                }
+            });
 
         match (self.flatten, &self.name, self.transparent) {
             (false, Some(name), false) => {
-                quote_spanned! {ty.span() =>  format!("{}: {}{}", #name, #ty::inline_schema(), #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!("{}: {}{}", #name, #ty_name, #maybe_optional) }
             }
             (false, Some(_), true) => {
-                quote_spanned! {ty.span() =>  format!("{}{}", #ty::inline_schema(), #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!("{}{}", #ty_name(), #maybe_optional) }
             }
             (false, None, _) => {
-                quote_spanned! { ty.span() => format!("{}{}", #ty::inline_schema(), #maybe_optional) }
+                quote_spanned! { span => #formatcp!("{}{}", #ty_name, #maybe_optional) }
             }
 
             (true, Some(_), false) => {
-                quote_spanned! {ty.span() =>  format!(".extend({}{})", #ty::inline_schema(), #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!(".extend({}{})", #ty_name, #maybe_optional) }
             }
             (true, Some(_), true) => {
-                quote_spanned! {ty.span() =>  format!(".extend({}{})", #ty::inline_schema(), #maybe_optional) }
+                quote_spanned! {span =>  #formatcp!(".extend({}{})", #ty_name, #maybe_optional) }
             }
             (true, None, _) => {
                 // Newtype
-                quote_spanned! { ty.span() => format!(".extend({}{})", #ty::inline_schema(), #maybe_optional) }
+                quote_spanned! { span => #formatcp!(".extend({}{})", #ty_name, #maybe_optional) }
             }
         }
     }
@@ -308,52 +423,89 @@ impl<'a> StructField<'a> {
 
     fn expand_type_defs(&self) -> TokenStream {
         let ty = qualified_ty(self.ty);
+        let zod = get_zod();
+        let formatcp = quote!(#zod::__private::const_format::formatcp);
+        let concatcp = quote!(#zod::__private::const_format::concatcp);
+
+        let ty_name = self
+            .get_generic()
+            .map(|name| quote!(#name))
+            .unwrap_or_else(|| {
+                let field_generic_params = match self.ty {
+                    syn::Type::Path(p) => {
+                        if let Some(x) = p.path.segments.last() {
+                            match &x.arguments {
+                                syn::PathArguments::AngleBracketed(args) => args
+                                    .args
+                                    .iter()
+                                    .filter_map(|arg| match arg {
+                                        syn::GenericArgument::Type(t) => {
+                                            let ty = qualified_ty(t);
+                                            Some(quote!(#formatcp!("{}.{},", #ty::CODE.ns_name, #ty::CODE.name)))
+                                        }
+                                        _ => None,
+                                    })
+                                    .collect::<Vec<_>>(),
+                                _ => vec![],
+                            }
+                        } else {
+                            vec![]
+                        }
+                    }
+                    _ => vec![],
+                };
+
+                if field_generic_params.is_empty() {
+                    let ty = qualified_ty(self.ty);
+                    quote!(#formatcp!("{}.{}", #ty::CODE.ns_name, #ty::CODE.name))
+                } else {
+                    let ty = qualified_ty(self.ty);
+                    quote!(#formatcp!("{}.{}<{}>", #ty::CODE.ns_name, #ty::CODE.name, #concatcp!(#(#field_generic_params),*)))
+                }
+            });
 
         match (self.flatten, &self.name, self.optional, self.transparent) {
             (false, Some(name), false, false) => {
-                quote_spanned! {ty.span() =>  format!("{}: {}", #name, #ty::inline()) }
+                quote_spanned! {ty.span() =>  #formatcp!("{}: {}", #name, #ty_name) }
             }
             (false, None, false, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::inline().to_string()}
+                quote_spanned! {ty.span() => #ty_name}
             }
             (false, Some(name), true, false) => {
-                quote_spanned! {ty.span() =>  format!("{}?: {} | undefined", #name, #ty::inline()) }
+                quote_spanned! {ty.span() =>  #formatcp!("{}?: {} | undefined", #name, #ty_name) }
             }
             (false, None, true, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => format!("{} | undefined", #ty::inline())}
+                quote_spanned! {ty.span() => #formatcp!("{} | undefined", #ty_name)}
             }
 
             (false, _, false, true) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::inline().to_string()}
+                quote_spanned! {ty.span() => #ty_name }
             }
             (false, _, true, true) => {
-                quote_spanned! {ty.span() =>  format!("{} | undefined", #ty::inline()) }
+                quote_spanned! {ty.span() =>  #formatcp!("{} | undefined", #ty_name) }
             }
 
             (true, Some(_), false, false) => {
-                quote_spanned! {ty.span() =>  format!(" & {}", #ty::inline()) }
+                quote_spanned! {ty.span() =>  #formatcp!("{}", #ty_name) }
             }
             (true, None, false, false) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::inline().to_string()}
-            }
-            (true, Some(_), true, false) => {
-                quote_spanned! {ty.span() =>  format!("& ({} | undefined)", #ty::inline()) }
-            }
-            (true, None, true, false) => {
-                // Newtype
-                quote_spanned! {ty.span() => format!("& ({} | undefined)", #ty::inline())}
+                quote_spanned! {ty.span() => #ty_name }
             }
 
             (true, _, false, true) => {
                 // Newtype
-                quote_spanned! {ty.span() => #ty::inline().to_string()}
+                quote_spanned! {ty.span() => #ty_name}
             }
-            (true, _, true, true) => {
-                quote_spanned! {ty.span() =>  format!("& ({} | undefined)", #ty::inline()) }
+
+            (true, _, true, _) => {
+                abort!(
+                    self.ty.span(),
+                    "flatten and default may not be called on the same field"
+                )
             }
         }
     }

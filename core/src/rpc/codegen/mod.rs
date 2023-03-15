@@ -8,8 +8,6 @@ type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
 
 pub trait RpcNamespace: crate::Namespace {
     type Req: serde::de::DeserializeOwned;
-    const DEPENDENCIES: &'static [Code];
-    const MEMBERS: &'static [RpcMember];
 }
 
 pub struct RpcArgument {
@@ -26,18 +24,19 @@ impl RpcArgument {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum RpcMember {
     Method {
         ns_name: &'static str,
         name: &'static str,
         args: RuntimeValue<Vec<RpcArgument>>,
-        res: RuntimeValue<String>,
+        res: RuntimeValue<&'static str>,
     },
     Stream {
         ns_name: &'static str,
         name: &'static str,
         args: RuntimeValue<Vec<RpcArgument>>,
-        res: RuntimeValue<String>,
+        res: RuntimeValue<&'static str>,
     },
 }
 
@@ -47,6 +46,9 @@ fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
     } else {
         let mut out = String::from("// phantom usage\n");
         for arg in args {
+            out.push_str("    ");
+            out.push_str(arg.code.ns_name);
+            out.push_str(".");
             out.push_str(arg.code.name);
             out.push(';');
             out.push('\n');
@@ -55,7 +57,7 @@ fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
     }
 }
 
-// inventory::collect!(RpcMember);
+inventory::collect!(RpcMember);
 
 impl RpcMember {
     pub fn decl(&self) -> String {
@@ -72,7 +74,7 @@ impl RpcMember {
 
                 let arg_fields = args
                     .iter()
-                    .map(|arg| format!("{}: {}", arg.name, arg.code.name))
+                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns_name, arg.code.name))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -80,7 +82,7 @@ impl RpcMember {
 
                 let arg_zod = args
                     .iter()
-                    .map(|arg| arg.code.name)
+                    .map(|arg| format!("{}.{}", arg.code.ns_name, arg.code.name))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -88,10 +90,9 @@ impl RpcMember {
                     "
 // @ts-ignore
 export async function {name}({arg_fields}): Promise<{res}> {{
-{phantom_arg_names}
-
-z.tuple([{arg_zod}]).parse([...arguments]);
-return request(\"{ns_name}\", \"{name}\", arguments);
+    {phantom_arg_names}
+    z.lazy(() => z.tuple([{arg_zod}])).parse([...arguments]);
+    return request(\"{ns_name}\", \"{name}\", arguments);
 }};"
                 )
             }
@@ -107,7 +108,7 @@ return request(\"{ns_name}\", \"{name}\", arguments);
 
                 let arg_fields = args
                     .iter()
-                    .map(|arg| format!("{}: {}", arg.name, arg.code.name))
+                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns_name, arg.code.name))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -115,7 +116,7 @@ return request(\"{ns_name}\", \"{name}\", arguments);
 
                 let arg_zod = args
                     .iter()
-                    .map(|arg| arg.code.name)
+                    .map(|arg| format!("{}.{}", arg.code.ns_name, arg.code.name))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -123,20 +124,25 @@ return request(\"{ns_name}\", \"{name}\", arguments);
                     "
 // @ts-ignore
 export function {name}({arg_fields}): Store<{res}> {{
-{phantom_arg_names}
-
-z.tuple([{arg_zod}]).parse([...arguments]);
-return subscribe(\"{ns_name}\", \"{name}\", arguments);
+    {phantom_arg_names}
+    z.lazy(() => z.tuple([{arg_zod}])).parse([...arguments]);
+    return subscribe(\"{ns_name}\", \"{name}\", arguments);
 }};"
                 )
             }
         }
     }
 
-    pub fn ns_name(&self) -> &str {
+    pub fn ns_name(&self) -> &'static str {
         match self {
             RpcMember::Method { ns_name, .. } => ns_name,
             RpcMember::Stream { ns_name, .. } => ns_name,
+        }
+    }
+    pub fn name(&self) -> &'static str {
+        match self {
+            RpcMember::Method { name, .. } => name,
+            RpcMember::Stream { name, .. } => name,
         }
     }
 }

@@ -19,12 +19,10 @@ pub fn expand(
     quote! {
         impl #impl_generics #zod::Namespace for #ident #ty_generics #where_clause {
             const NAME: &'static str = #name;
-
-            fn docs() -> Option<&'static str> {
-                Some(#docs)
-            }
+            const DOCS: Option<&'static str> = Some(#docs);
         }
 
+        // TODO???
         #[allow(dead_code)]
         #[allow(non_camel_case_types)]
         #vis struct #register_path;

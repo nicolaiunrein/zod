@@ -66,75 +66,15 @@ impl<'a> Enum<'a> {
         let zod = crate::get_zod();
         let name = &self.name;
         let ns_path = &self.input.namespace;
-        let docs = &self.docs;
-        let schema = self.expand_schema();
-        let type_def = self.expand_typ_defs();
-        let type_register = expand_type_registration(ident, ns_path);
-        let inventory = impl_inventory::expand(ident, ns_path, name);
+        // let docs = &self.docs;
+        // let schema = self.expand_schema();
+        // let type_def = self.expand_typ_defs();
+        // let type_register = expand_type_registration(ident, ns_path);
+        // let inventory = impl_inventory::expand(ident, ns_path, name);
 
-        if let Some(t) = &self.from_ty {
-            quote! {
-                impl #zod::ZodType for #ident {
-                    fn schema() -> String {
-                        <#t as #zod::ZodType>::schema()
-                    }
-
-                    fn inline_schema() -> String {
-                        <#t as #zod::ZodType>::inline_schema()
-                    }
-
-                    fn type_def() -> #zod::TsTypeDef {
-                        <#t as #zod::ZodType>::type_def()
-                    }
-
-                    fn inline() -> #zod::InlinedType {
-                        <#t as #zod::ZodType>::inline()
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
-                }
-
-                #inventory
-
-                #type_register
-
-            }
-        } else {
-            quote! {
-                impl #zod::ZodType for #ident {
-                    fn schema() -> String {
-                        #schema
-                    }
-
-                    fn inline_schema() -> String {
-                        format!("z.lazy(() => {}.{})",
-                            <#ns_path as #zod::Namespace>::NAME,
-                            #name
-                        )
-                    }
-
-                    fn type_def() -> #zod::TsTypeDef {
-                        #zod::TsTypeDef::Type({ #type_def })
-                    }
-
-                    fn inline() -> #zod::InlinedType {
-                        #zod::InlinedType::Ref {
-                            ns_name: <#ns_path as #zod::Namespace>::NAME,
-                            name: #name
-                        }
-                    }
-
-                    fn docs() -> Option<&'static str> {
-                        Some(#docs)
-                    }
-                }
-
-                #inventory
-
-                #type_register
-
+        quote! {
+            impl #zod::ZodType for #ident {
+                const CODE: Code = todo!();
             }
         }
     }

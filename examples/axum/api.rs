@@ -8,6 +8,20 @@ pub struct MyEntity {
     value: MyEntity2,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
+#[zod(namespace = "Watchout")]
+pub struct Generic<T, V> {
+    value: String,
+    t: T,
+    v: V,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
+#[zod(namespace = "Watchout")]
+pub struct User {
+    value: Generic<String, usize>,
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Zod)]
 #[zod(namespace = "Watchout")]
 pub struct T(usize);
