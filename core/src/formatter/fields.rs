@@ -4,6 +4,7 @@ use super::{FormatTypescript, FormatZod, Type};
 pub enum StructFields {
     Named(&'static [AnyNamedField]),
     Tuple(&'static [AnyTupleField]),
+    Transparent { value: Type },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -52,6 +53,8 @@ impl AnyNamedField {
 
 #[derive(Clone, Copy, Debug)]
 pub struct FlatField {
+    // TODO: find a way to express flat optional fields in typescript with interfaces
+    // see: https://github.com/nicolaiunrein/zod/issues/3
     pub value: Type,
 }
 

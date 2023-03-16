@@ -58,6 +58,11 @@ impl FormatZod for Struct {
                 Delimited(inner_fields.as_slice(), ", ").fmt_zod(f)?;
                 f.write_str("]));")?;
             }
+            StructFields::Transparent { value } => {
+                f.write_str("z.lazy(() => ")?;
+                value.fmt_zod(f)?;
+                f.write_str(")")?;
+            }
         }
         Ok(())
     }
@@ -104,6 +109,12 @@ impl FormatTypescript for Struct {
                     }
                     f.write_str(";")?;
                 }
+            }
+            StructFields::Transparent { value } => {
+                f.write_str("type ")?;
+                self.ty.fmt_ts(f)?;
+                f.write_str(" = ")?;
+                value.fmt_ts(f)?;
             }
         }
         Ok(())
@@ -305,5 +316,53 @@ mod test {
             def.to_ts_string(),
             "interface test<A, B> {hallo_a: a<A>, hallo_b: b<B>, hallo_c: c, hallo_d?: d | undefined} & e"
         );
+    }
+
+    #[test]
+    fn transparent_field() {
+        let def = Struct {
+            ty: Type {
+                ident: "test",
+                generics: &[],
+            },
+            fields: StructFields::Transparent {
+                value: Type {
+                    ident: "inner",
+                    generics: &[],
+                },
+            },
+        };
+
+        assert_eq!(def.to_zod_string(), "const test = z.lazy(() => inner)");
+        assert_eq!(def.to_ts_string(), "type test = inner");
+    }
+
+    #[test]
+    fn transparent_field_generics() {
+        let def = Struct {
+            ty: Type {
+                ident: "test",
+                generics: &[
+                    Generic::Regular { ident: "A" },
+                    Generic::Regular { ident: "B" },
+                ],
+            },
+            fields: StructFields::Transparent {
+                value: Type {
+                    ident: "inner",
+                    generics: &[
+                        Generic::Regular { ident: "A" },
+                        Generic::Regular { ident: "B" },
+                    ],
+                },
+            },
+        };
+
+        assert_eq!(
+            def.to_zod_string(),
+            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => inner(A, B))"
+        );
+
+        assert_eq!(def.to_ts_string(), "type test<A, B> = inner<A, B>")
     }
 }
