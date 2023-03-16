@@ -1,10 +1,10 @@
-use super::{FormatTypescript, FormatZod, Type};
+use super::{FormatTypescript, FormatZod, QualifiedType};
 
 #[derive(Clone, Copy, Debug)]
 pub enum StructFields {
     Named(&'static [AnyNamedField]),
     Tuple(&'static [AnyTupleField]),
-    Transparent { value: Type },
+    Transparent { value: QualifiedType },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -55,30 +55,30 @@ impl AnyNamedField {
 pub struct FlatField {
     // TODO: find a way to express flat optional fields in typescript with interfaces
     // see: https://github.com/nicolaiunrein/zod/issues/3
-    pub value: Type,
+    pub value: QualifiedType,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct TupleField {
     pub optional: bool,
-    pub value: Type,
+    pub value: QualifiedType,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct NamedField {
     pub optional: bool,
     pub name: &'static str,
-    pub value: Type,
+    pub value: QualifiedType,
 }
 
 impl AnyNamedField {
-    pub const fn new_flat(value: Type) -> Self {
+    pub const fn new_flat(value: QualifiedType) -> Self {
         Self::Flat(FlatField { value })
     }
 }
 
 impl AnyTupleField {
-    pub const fn new_flat(value: Type) -> Self {
+    pub const fn new_flat(value: QualifiedType) -> Self {
         Self::Flat(FlatField { value })
     }
 }
@@ -157,13 +157,14 @@ mod test {
         assert_eq!(
             TupleField {
                 optional: false,
-                value: Type {
+                value: QualifiedType {
+                    ns: "Ns",
                     ident: "myValue",
                     generics: Default::default()
                 }
             }
             .to_zod_string(),
-            "myValue"
+            "Ns.myValue"
         );
     }
 
@@ -171,13 +172,14 @@ mod test {
     fn zod_inner_tuple_struct_field_optional() {
         let field = TupleField {
             optional: true,
-            value: Type {
+            value: QualifiedType {
+                ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
             },
         };
-        assert_eq!(field.to_zod_string(), "myValue.optional()");
-        assert_eq!(field.to_ts_string(), "myValue | undefined");
+        assert_eq!(field.to_zod_string(), "Ns.myValue.optional()");
+        assert_eq!(field.to_ts_string(), "Ns.myValue | undefined");
     }
 
     #[test]
@@ -185,13 +187,14 @@ mod test {
         let field = NamedField {
             optional: false,
             name: "my_value",
-            value: Type {
+            value: QualifiedType {
+                ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
             },
         };
-        assert_eq!(field.to_zod_string(), "my_value: myValue");
-        assert_eq!(field.to_ts_string(), "my_value: myValue");
+        assert_eq!(field.to_zod_string(), "my_value: Ns.myValue");
+        assert_eq!(field.to_ts_string(), "my_value: Ns.myValue");
     }
 
     #[test]
@@ -199,24 +202,26 @@ mod test {
         let field = NamedField {
             optional: true,
             name: "my_value",
-            value: Type {
+            value: QualifiedType {
+                ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
             },
         };
-        assert_eq!(field.to_zod_string(), "my_value: myValue.optional()");
-        assert_eq!(field.to_ts_string(), "my_value?: myValue | undefined");
+        assert_eq!(field.to_zod_string(), "my_value: Ns.myValue.optional()");
+        assert_eq!(field.to_ts_string(), "my_value?: Ns.myValue | undefined");
     }
 
     #[test]
     fn flattened_field() {
         let field = FlatField {
-            value: Type {
+            value: QualifiedType {
+                ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
             },
         };
-        assert_eq!(field.to_zod_string(), ".extend(myValue)");
-        assert_eq!(field.to_ts_string(), "myValue");
+        assert_eq!(field.to_zod_string(), ".extend(Ns.myValue)");
+        assert_eq!(field.to_ts_string(), "Ns.myValue");
     }
 }
