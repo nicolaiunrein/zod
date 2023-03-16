@@ -15,11 +15,11 @@ fn serde_default_named_struct_field() {
     }
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => z.object({s: Rs.String.optional(), num: Rs.Usize}));",
     );
     compare(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "export interface Test { s?: Rs.String | undefined, num: Rs.Usize,}",
     )
 }
@@ -32,11 +32,11 @@ fn serde_default_tuple_struct_field() {
     }
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => Rs.String.optional());",
     );
     compare(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "export type Test = Rs.String | undefined;",
     )
 }

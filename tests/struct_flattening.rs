@@ -39,11 +39,11 @@ fn serde_flatten_struct() {
         serde_json::json!({"true_value": true, "false_value": false}),
     );
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => z.object({false_value: Rs.Bool})).extend(z.lazy(() => Ns.Nested));",
     );
     compare(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "export interface Test extends Ns.Nested { false_value: Rs.Bool,}",
     );
 }

@@ -14,10 +14,10 @@ fn serde_name_named_struct() {
         }
     }
 
-    assert!(Test::CODE.schema.starts_with("export const Hello"));
-    assert!(Test::CODE.type_def.starts_with("export interface Hello"));
+    assert!(Test::AST.schema.starts_with("export const Hello"));
+    assert!(Test::AST.type_def.starts_with("export interface Hello"));
     compare(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "export interface Hello { s: Rs.String, num: Rs.Usize,}",
     )
 }
@@ -28,8 +28,8 @@ fn serde_name_tuple_str() {
     #[serde(rename= "HelloTuple")]
     struct Test(String);
     }
-    assert!(Test::CODE.schema.starts_with("export const HelloTuple"));
-    compare(Test::CODE.type_def, "export type HelloTuple = Rs.String;");
+    assert!(Test::AST.schema.starts_with("export const HelloTuple"));
+    compare(Test::AST.type_def, "export type HelloTuple = Rs.String;");
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn serde_rename_struct_field() {
     }
     }
 
-    assert!(Test::CODE.schema.contains("after"));
-    assert!(Test::CODE.schema.contains("other"));
-    assert!(!Test::CODE.schema.contains("before"));
+    assert!(Test::AST.schema.contains("after"));
+    assert!(Test::AST.schema.contains("other"));
+    assert!(!Test::AST.schema.contains("before"));
 }

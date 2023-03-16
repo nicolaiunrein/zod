@@ -22,20 +22,20 @@ fn enum_adj_struct() {
     );
 
     assert_eq!(
-        Test::CODE.schema,
+        Test::AST.schema,
         discriminated_union(
             "type",
             &[
-                adj_tagged("A", object! { s : String::CODE.schema }),
-                adj_tagged("B", object! { num : usize::CODE.schema }),
+                adj_tagged("A", object! { s : String::AST.schema }),
+                adj_tagged("B", object! { num : usize::AST.schema }),
             ],
         )
     );
     assert_eq!(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "{ type: \"A\", content: { s: string } } | { type: \"B\", content: { num: number } }"
     );
-    assert_eq!(Test::CODE.schema, "Ns.Test");
+    assert_eq!(Test::AST.schema, "Ns.Test");
 }
 
 #[test]
@@ -74,10 +74,10 @@ fn enum_adj_struct_multiple_fields() {
         )
     );
     assert_eq!(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "{ type: \"A\", content: { s: string, num: number } } | { type: \"B\", content: { num: number } }"
     );
-    assert_eq!(Test::CODE.schema, "Ns.Test");
+    assert_eq!(Test::AST.schema, "Ns.Test");
 }
 
 #[test]
@@ -103,10 +103,10 @@ fn enum_adj_struct_multiple_fields_single() {
         adj_tagged("A", object! { s: String::schema(), num: usize::schema() })
     );
     assert_eq!(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "{ type: \"A\", content: { s: string, num: number } }"
     );
-    assert_eq!(Test::CODE.schema, "Ns.Test");
+    assert_eq!(Test::AST.schema, "Ns.Test");
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn enum_adj_tuple() {
         Test::type_def(),
         "{ type: \"A\", content: string } | { type: \"B\", content: number }"
     );
-    assert_eq!(Test::CODE.schema, "Ns.Test");
+    assert_eq!(Test::AST.schema, "Ns.Test");
 }
 
 #[test]

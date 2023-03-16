@@ -41,7 +41,7 @@ impl Code {
 inventory::collect!(Code);
 
 pub trait ZodType {
-    const CODE: Code;
+    const AST: Code;
 }
 
 pub trait Namespace {

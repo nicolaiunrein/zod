@@ -15,11 +15,11 @@ fn ok() {
     assert_eq!(json, serde_json::json!([123, 42, "abc"]));
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => z.tuple([Rs.Usize, Rs.Usize, Rs.String]));",
     );
     compare(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "export type Test = [Rs.Usize, Rs.Usize, Rs.String];",
     );
 }
@@ -38,12 +38,12 @@ fn with_default_fields() {
     assert_eq!(test, res);
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => z.tuple([Rs.Usize, Rs.Usize.optional()]));",
     );
 
     assert_eq!(
-        Test::CODE.type_def,
+        Test::AST.type_def,
         "export type Test = [Rs.Usize, Rs.Usize | undefined];"
     );
 }

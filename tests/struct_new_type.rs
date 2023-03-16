@@ -15,8 +15,8 @@ fn ok() {
     assert_eq!(json, "123");
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => Rs.Usize);",
     );
-    compare(Test::CODE.type_def, "export type Test = Rs.Usize;")
+    compare(Test::AST.type_def, "export type Test = Rs.Usize;")
 }

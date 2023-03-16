@@ -13,10 +13,10 @@ fn serde_transparent_struct() {
     }
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => Rs.String);",
     );
-    compare(Test::CODE.type_def, "export type Test = Rs.String;");
+    compare(Test::AST.type_def, "export type Test = Rs.String;");
 }
 
 #[test]
@@ -28,8 +28,8 @@ fn serde_transparent_newtype_struct() {
     }
 
     compare(
-        Test::CODE.schema,
+        Test::AST.schema,
         "export const Test = z.lazy(() => Rs.String);",
     );
-    compare(Test::CODE.type_def, "export type Test = Rs.String;");
+    compare(Test::AST.type_def, "export type Test = Rs.String;");
 }

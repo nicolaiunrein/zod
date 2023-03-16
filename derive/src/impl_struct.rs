@@ -108,7 +108,7 @@ impl<'a> Struct<'a> {
 
         quote! {
             const _: () = {
-                const CODE: #zod::Code = #zod::Code {
+                const AST: #zod::Code = #zod::Code {
                     ns_name: <#ns_path as #zod::Namespace>::NAME,
                     name: #name,
                     type_def: #concatcp!(#docs, #type_def),
@@ -116,10 +116,10 @@ impl<'a> Struct<'a> {
                 };
 
                 impl #impl_generics #zod::ZodType for #ident #ty_generics #where_clause {
-                    const CODE: #zod::Code = CODE;
+                    const AST: #zod::Code = AST;
                 }
 
-                #zod::__private::inventory::submit!(CODE);
+                #zod::__private::inventory::submit!(AST);
             };
         }
     }
@@ -372,7 +372,7 @@ impl<'a> StructField<'a> {
                                     .filter_map(|arg| match arg {
                                         syn::GenericArgument::Type(t) => {
                                             let ty = qualified_ty(t);
-                                            Some(quote!(#formatcp!("{}.{},", #ty::CODE.ns_name, #ty::CODE.name)))
+                                            Some(quote!(#formatcp!("{}.{},", #ty::AST.ns_name, #ty::AST.name)))
                                         }
                                         _ => None,
                                     })
@@ -388,10 +388,10 @@ impl<'a> StructField<'a> {
 
                 if field_generic_params.is_empty() {
                     let ty = qualified_ty(self.ty);
-                    quote!(#formatcp!("{}.{}", #ty::CODE.ns_name, #ty::CODE.name))
+                    quote!(#formatcp!("{}.{}", #ty::AST.ns_name, #ty::AST.name))
                 } else {
                     let ty = qualified_ty(self.ty);
-                    quote!(#formatcp!("{}.{}({})", #ty::CODE.ns_name, #ty::CODE.name, #concatcp!(#(#field_generic_params),*)))
+                    quote!(#formatcp!("{}.{}({})", #ty::AST.ns_name, #ty::AST.name, #concatcp!(#(#field_generic_params),*)))
                 }
             });
 
@@ -447,7 +447,7 @@ impl<'a> StructField<'a> {
                                     .filter_map(|arg| match arg {
                                         syn::GenericArgument::Type(t) => {
                                             let ty = qualified_ty(t);
-                                            Some(quote!(#formatcp!("{}.{},", #ty::CODE.ns_name, #ty::CODE.name)))
+                                            Some(quote!(#formatcp!("{}.{},", #ty::AST.ns_name, #ty::AST.name)))
                                         }
                                         _ => None,
                                     })
@@ -463,10 +463,10 @@ impl<'a> StructField<'a> {
 
                 if field_generic_params.is_empty() {
                     let ty = qualified_ty(self.ty);
-                    quote!(#formatcp!("{}.{}", #ty::CODE.ns_name, #ty::CODE.name))
+                    quote!(#formatcp!("{}.{}", #ty::AST.ns_name, #ty::AST.name))
                 } else {
                     let ty = qualified_ty(self.ty);
-                    quote!(#formatcp!("{}.{}<{}>", #ty::CODE.ns_name, #ty::CODE.name, #concatcp!(#(#field_generic_params),*)))
+                    quote!(#formatcp!("{}.{}<{}>", #ty::AST.ns_name, #ty::AST.name, #concatcp!(#(#field_generic_params),*)))
                 }
             });
 

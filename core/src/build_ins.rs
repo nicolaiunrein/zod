@@ -12,7 +12,7 @@ impl Namespace for Rs {
 macro_rules! impl_primitive {
     ($T:ty, $name: literal, $type: literal, $schema: literal) => {
         impl ZodType for $T {
-            const CODE: Code = Code {
+            const AST: Code = Code {
                 ns_name: Rs::NAME,
                 name: $name,
                 type_def: concat!("export type ", $name, " = ", $type, ";"),
@@ -20,14 +20,14 @@ macro_rules! impl_primitive {
             };
         }
 
-        inventory::submit!(<$T>::CODE);
+        inventory::submit!(<$T>::AST);
     };
 }
 
 macro_rules! impl_tuple {
     ( $N: literal, $($i:ident),* ) => {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
-            const CODE: Code = tuple!($N, $($i),*);
+            const AST: Code = tuple!($N, $($i),*);
         }
 
     };
@@ -38,15 +38,15 @@ macro_rules! tuple {
 
         {
 
-            const CODE: Code = Code {
+            const AST: Code = Code {
                 ns_name: Rs::NAME,
                 name: concat!("Tuple", $N),
                 type_def: concat!("export type Tuple", $N, "<",std::stringify!($($i),*) ,">",  " = [", std::stringify!($($i),*), "];"),
                 schema: concat!("export const Tuple", $N, " = (", $(std::stringify!($i: z.ZodTypeAny,)),*  ,") => z.tuple([", $(std::stringify!(z.lazy(() => $i),)),*, "])"),
             };
 
-            inventory::submit!(CODE);
-            CODE
+            inventory::submit!(AST);
+            AST
         }
     };
 }
@@ -54,7 +54,7 @@ macro_rules! tuple {
 macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
-            const CODE: Code = T::CODE;
+            const AST: Code = T::AST;
         }
     };
 }
@@ -157,7 +157,7 @@ impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Weak<T>);
 impl_wrapper!(impl<T: ZodType> ZodType for std::marker::PhantomData<T>);
 
 impl<T: ZodType> ZodType for Vec<T> {
-    const CODE: Code = Code {
+    const AST: Code = Code {
         ns_name: Rs::NAME,
         name: "Vec",
         type_def: "export type Vec<T> = T[];",
@@ -166,7 +166,7 @@ impl<T: ZodType> ZodType for Vec<T> {
 }
 
 impl<const N: usize, T: ZodType> ZodType for [T; N] {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "Array",
@@ -184,7 +184,7 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
 }
 
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "HashSet",
@@ -194,7 +194,7 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
 }
 
 impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "HashSet",
@@ -204,7 +204,7 @@ impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
 }
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "HashMap",
@@ -214,7 +214,7 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
 }
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "HashMap",
@@ -224,7 +224,7 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
 }
 
 impl<T: ZodType> ZodType for Option<T> {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "Option",
@@ -234,7 +234,7 @@ impl<T: ZodType> ZodType for Option<T> {
 }
 
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
-    const CODE: Code = 
+    const AST: Code = 
         Code {
             ns_name: Rs::NAME,
             name: "Result",

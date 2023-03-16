@@ -84,7 +84,7 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                     args: &|| vec![
                         #(#args),*
                     ],
-                    res: &|| <#t as #zod::ZodType>::CODE.name,
+                    res: &|| <#t as #zod::ZodType>::AST.name,
                 });
 
             }
@@ -103,7 +103,7 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                     ],
                     res: &|| {
                         fn extract_stream_item<S>(_: impl Fn(&mut #ns_ident, #(#arg_types),*) -> S) -> &'static str where S: #__private::futures::Stream, S::Item: #zod::ZodType {
-                            <S::Item as #zod::ZodType>::CODE.name
+                            <S::Item as #zod::ZodType>::AST.name
                         }
 
                         extract_stream_item(#ns_ident :: #ident)
@@ -119,7 +119,7 @@ pub fn expand_inventory_submit(ns_ident: &Ident, item: &args::RpcItem) -> TokenS
                     args: &|| vec![
                         #(#args),*
                     ],
-                    res: &|| <<#t as #zod::__private::futures::Stream>::Item as #zod::ZodType>::CODE.name,
+                    res: &|| <<#t as #zod::__private::futures::Stream>::Item as #zod::ZodType>::AST.name,
                 });
             }
         }
