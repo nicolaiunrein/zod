@@ -1,5 +1,6 @@
 mod fields;
 mod generics;
+mod literal;
 mod r#struct;
 mod r#type;
 
@@ -7,36 +8,71 @@ use std::fmt::Display;
 
 pub use fields::*;
 pub use generics::*;
+pub use literal::*;
 pub use r#struct::*;
 pub use r#type::*;
 
 use crate::Namespace;
 
+/// ```
+/// inventory::submit!(Item::Struct(Struct {
+///     ns: "abc",
+///     ty: Type {
+///         ident: "test",
+///         generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
+///     },
+///     fields: StructFields::Named(&[AnyNamedField::Flat(FlatField {
+///         value: QualifiedType {
+///             ns: "Other",
+///             ident: "xx",
+///             generics: &[]
+///         }
+///     })])
+/// }));
+/// ```
+#[derive(Clone, Copy, Debug)]
 pub enum Item {
     Struct(Struct),
+    Literal(Literal),
 }
 
 inventory::collect!(Item);
 
-inventory::submit!(Item::Struct(Struct {
-    ns: "abc",
-    ty: Type {
-        ident: "test",
-        generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
-    },
-    fields: StructFields::Named(&[AnyNamedField::Flat(FlatField {
-        value: QualifiedType {
-            ns: "Other",
-            ident: "xx",
-            generics: &[]
-        }
-    })])
-}));
+impl Display for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_zod(f)?;
+        f.write_str("\n")?;
+        self.fmt_ts(f)?;
+        Ok(())
+    }
+}
 
 impl Item {
     pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
         match self {
-            Item::Struct(s) => T::NAME == s.ns,
+            Item::Struct(inner) => T::NAME == inner.ns,
+            Item::Literal(inner) => T::NAME == inner.ns,
+        }
+    }
+
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Item::Struct(inner) => inner.ty.ident,
+            Item::Literal(inner) => inner.ty.ident,
+        }
+    }
+
+    pub const fn ty(&self) -> Type {
+        match self {
+            Item::Struct(inner) => inner.ty,
+            Item::Literal(inner) => inner.ty,
+        }
+    }
+
+    pub const fn ns(&self) -> &'static str {
+        match self {
+            Item::Struct(inner) => inner.ns,
+            Item::Literal(inner) => inner.ns,
         }
     }
 }
@@ -45,6 +81,26 @@ impl FormatZod for Item {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Item::Struct(inner) => {
+                f.write_str("export ")?;
+                inner.fmt_zod(f)?;
+            }
+            Item::Literal(inner) => {
+                f.write_str("export ")?;
+                inner.fmt_zod(f)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl FormatTypescript for Item {
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Item::Struct(inner) => {
+                f.write_str("export ")?;
+                inner.fmt_zod(f)?;
+            }
+            Item::Literal(inner) => {
                 f.write_str("export ")?;
                 inner.fmt_zod(f)?;
             }
@@ -71,7 +127,7 @@ where
     }
 }
 
-trait FormatZod {
+pub(crate) trait FormatZod {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
     fn to_zod_string(&self) -> String
     where
@@ -81,7 +137,7 @@ trait FormatZod {
     }
 }
 
-trait FormatTypescript {
+pub(crate) trait FormatTypescript {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
     fn to_ts_string(&self) -> String
     where

@@ -1,7 +1,8 @@
 //! **_NOTE:_**  This crate is not ready for production yet!
 #![deny(unsafe_code)]
 
-pub mod formatter;
+pub mod ast;
+
 #[cfg(feature = "rpc")]
 pub mod rpc;
 
@@ -11,53 +12,53 @@ use std::collections::HashSet;
 pub use build_ins::*;
 use rpc::codegen::RpcMember;
 
-#[derive(Clone, Copy)]
-pub struct Code {
-    pub ns_name: &'static str,
-    pub name: &'static str,
-    pub type_def: &'static str,
-    pub schema: &'static str,
-}
+// #[derive(Clone, Copy)]
+// pub struct Code {
+// pub ns_name: &'static str,
+// pub name: &'static str,
+// pub type_def: &'static str,
+// pub schema: &'static str,
+// }
 
-impl Code {
-    pub const fn new<T: Namespace>(
-        name: &'static str,
-        type_def: &'static str,
-        schema: &'static str,
-    ) -> Self {
-        Self {
-            ns_name: T::NAME,
-            name,
-            type_def,
-            schema,
-        }
-    }
+// impl Code {
+// pub const fn new<T: Namespace>(
+// name: &'static str,
+// type_def: &'static str,
+// schema: &'static str,
+// ) -> Self {
+// Self {
+// ns_name: T::NAME,
+// name,
+// type_def,
+// schema,
+// }
+// }
 
-    pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
-        T::NAME == self.ns_name
-    }
-}
+// pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
+// T::NAME == self.ns_name
+// }
+// }
 
-inventory::collect!(Code);
+// inventory::collect!(Code);
 
 pub trait ZodType {
-    const AST: Code;
+    const AST: ast::Item;
 }
 
 pub trait Namespace {
     const NAME: &'static str;
     const DOCS: Option<&'static str>;
-    fn code_members() -> Vec<Code>
+    fn code_members() -> Vec<ast::Item>
     where
         Self: 'static,
     {
-        let all = inventory::iter::<Code>();
+        let all = inventory::iter::<ast::Item>();
         let mut own: Vec<_> = all
             .filter(|code| code.is_member_of::<Self>())
             .map(|code| *code)
             .collect();
 
-        own.sort_by_key(|code| code.name);
+        own.sort_by_key(|code| code.name());
         own
     }
 
@@ -85,29 +86,11 @@ pub trait Namespace {
         out.push_str(Self::NAME);
         out.push_str(" { \n");
         for member in Self::code_members() {
-            if seen.get(member.type_def).is_none() {
-                out.push_str(&format!(
-                    "{}\n",
-                    member
-                        .type_def
-                        .lines()
-                        .map(|line| format!("  {line}\n"))
-                        .collect::<String>()
-                ));
-                seen.insert(member.type_def);
+            if seen.get(member.name()).is_none() {
+                out.push_str(&format!("{}\n", member));
+                seen.insert(member.name());
             }
 
-            if seen.get(member.schema).is_none() {
-                out.push_str(&format!(
-                    "{}\n",
-                    member
-                        .schema
-                        .lines()
-                        .map(|line| format!("  {line}\n"))
-                        .collect::<String>()
-                ));
-                seen.insert(member.schema);
-            }
             out.push_str("\n");
         }
 

@@ -1,4 +1,5 @@
-use crate::Code;
+use crate::ast::FormatTypescript;
+use crate::ast::*;
 
 pub trait ClientCodegen {
     fn get() -> String;
@@ -12,7 +13,7 @@ pub trait RpcNamespace: crate::Namespace {
 
 pub struct RpcArgument {
     name: &'static str,
-    code: Code,
+    code: Item,
 }
 
 impl RpcArgument {
@@ -44,9 +45,8 @@ fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
         let mut out = String::from("// phantom usage\n");
         for arg in args {
             out.push_str("    ");
-            out.push_str(arg.code.ns_name);
-            out.push_str(".");
-            out.push_str(arg.code.name);
+            let ty = arg.code.ty().qualify(arg.code.ns());
+            out.push_str(&ty.to_ts_string());
             out.push(';');
             out.push('\n');
         }
@@ -71,7 +71,7 @@ impl RpcMember {
 
                 let arg_fields = args
                     .iter()
-                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns_name, arg.code.name))
+                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns(), arg.code.name()))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -79,7 +79,7 @@ impl RpcMember {
 
                 let arg_zod = args
                     .iter()
-                    .map(|arg| format!("{}.{}", arg.code.ns_name, arg.code.name))
+                    .map(|arg| format!("{}.{}", arg.code.ns(), arg.code.name()))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -105,7 +105,7 @@ export async function {name}({arg_fields}): Promise<{res}> {{
 
                 let arg_fields = args
                     .iter()
-                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns_name, arg.code.name))
+                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns(), arg.code.name()))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -113,7 +113,7 @@ export async function {name}({arg_fields}): Promise<{res}> {{
 
                 let arg_zod = args
                     .iter()
-                    .map(|arg| format!("{}.{}", arg.code.ns_name, arg.code.name))
+                    .map(|arg| format!("{}.{}", arg.code.ns(), arg.code.name()))
                     .collect::<Vec<_>>()
                     .join(",");
 

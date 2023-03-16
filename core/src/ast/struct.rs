@@ -4,6 +4,7 @@ use super::{
     AnyNamedField, AnyTupleField, Delimited, FormatTypescript, FormatZod, StructFields, Type,
 };
 
+#[derive(Clone, Copy, Debug)]
 pub struct Struct {
     pub ns: &'static str,
     pub ty: Type,
