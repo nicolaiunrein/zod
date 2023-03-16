@@ -4,7 +4,6 @@ use super::{FormatTypescript, FormatZod, Type};
 pub enum StructFields {
     Named(&'static [AnyNamedField]),
     Tuple(&'static [AnyTupleField]),
-    Unit,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -96,6 +95,15 @@ impl FormatZod for NamedField {
     }
 }
 
+impl FormatTypescript for NamedField {
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name)?;
+        f.write_str(": ")?;
+        self.value.fmt_ts(f)?;
+        Ok(())
+    }
+}
+
 impl FormatZod for TupleField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value.fmt_zod(f)?;
@@ -128,7 +136,6 @@ impl FormatTypescript for FlatField {
 
 #[cfg(test)]
 mod test {
-    use crate::formatter::GenericTypeParams;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -154,7 +161,7 @@ mod test {
                 name: "my_value",
                 value: Type {
                     ident: "myValue",
-                    generics: GenericTypeParams::default()
+                    generics: Default::default()
                 }
             }
             .to_zod_string(),

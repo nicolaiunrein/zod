@@ -122,7 +122,6 @@ impl<'a> Struct<'a> {
                 #zod::__private::inventory::submit!(CODE);
             };
         }
-        // }
     }
 
     fn expand_type_def(&self) -> TokenStream {

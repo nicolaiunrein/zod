@@ -1,22 +1,34 @@
-use super::{FormatTypescript, FormatZod, GenericTypeParams};
+use super::{Delimited, FormatTypescript, FormatZod, Generic};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Type {
     pub ident: &'static str,
-    pub generics: GenericTypeParams,
+    pub generics: &'static [Generic],
 }
 
 impl FormatZod for Type {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.ident)?;
-        self.generics.fmt_zod(f)?;
+        if !self.generics.is_empty() {
+            f.write_str("(")?;
+            Delimited(self.generics, ", ").fmt_zod(f)?;
+            f.write_str(")")?;
+        }
+
         Ok(())
     }
 }
 
 impl FormatTypescript for Type {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.fmt_zod(f)
+        f.write_str(self.ident)?;
+        if !self.generics.is_empty() {
+            f.write_str("<")?;
+            Delimited(self.generics, ", ").fmt_zod(f)?;
+            f.write_str(">")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -31,7 +43,7 @@ mod test {
     fn zod_type() {
         let ty = Type {
             ident: "abc",
-            generics: GenericTypeParams::default(),
+            generics: Default::default(),
         };
 
         assert_eq!(ty.to_zod_string(), "abc");
@@ -41,12 +53,12 @@ mod test {
     fn zod_type_with_generics() {
         let ty = Type {
             ident: "abc",
-            generics: GenericTypeParams(&[
+            generics: &[
                 Generic::Regular { ident: "A" },
                 Generic::Regular { ident: "B" },
-            ]),
+            ],
         };
 
-        assert_eq!(ty.to_zod_string(), "abc<A, B>");
+        assert_eq!(ty.to_zod_string(), "abc(A, B)");
     }
 }

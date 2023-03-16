@@ -79,7 +79,7 @@ pub trait Namespace {
     where
         Self: 'static,
     {
-        //todo refactor
+        //TODO refactor this code
         let mut seen = HashSet::new();
         let mut out = String::from("export namespace ");
         out.push_str(Self::NAME);

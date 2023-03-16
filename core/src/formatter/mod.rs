@@ -12,6 +12,59 @@ pub use r#type::*;
 
 struct ZodTypeAny;
 
+struct Delimited<I>(pub I, pub &'static str);
+
+impl<T> Display for Delimited<&[T]>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.0.clone().into_iter().peekable();
+
+        while let Some(item) = iter.next() {
+            item.fmt(f)?;
+            if iter.peek().is_some() {
+                f.write_str(self.1)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<T> FormatZod for Delimited<&[T]>
+where
+    T: FormatZod,
+{
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.0.clone().into_iter().peekable();
+
+        while let Some(item) = iter.next() {
+            item.fmt_zod(f)?;
+            if iter.peek().is_some() {
+                f.write_str(self.1)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<T> FormatTypescript for Delimited<&[T]>
+where
+    T: FormatTypescript,
+{
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.0.clone().into_iter().peekable();
+
+        while let Some(item) = iter.next() {
+            item.fmt_ts(f)?;
+            if iter.peek().is_some() {
+                f.write_str(self.1)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Display for ZodTypeAny {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("z.ZodTypeAny")
