@@ -1,6 +1,7 @@
 //! **_NOTE:_**  This crate is not ready for production yet!
 #![deny(unsafe_code)]
 
+pub mod formatter;
 #[cfg(feature = "rpc")]
 pub mod rpc;
 
