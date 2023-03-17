@@ -5,7 +5,7 @@ use darling::ast::{Fields, Style};
 use proc_macro2::TokenStream;
 use quote::quote;
 use serde_derive_internals::ast;
-use syn::{Ident, Path};
+use syn::{parse_quote, Ident, Path};
 
 fn qualified_ty(ty: &syn::Type) -> proc_macro2::TokenStream {
     let zod = get_zod();
@@ -227,7 +227,26 @@ impl<'a> StructField<'a> {
                 #zod::ast::FieldValue::Generic(#zod::ast::Generic::Type { ident: #ident })
             }
         } else {
-            let ty = qualified_ty(self.ty);
+            let mut ty_with_erased_generics = self.ty.clone();
+            match &mut ty_with_erased_generics {
+                syn::Type::Path(ref mut p) => {
+                    for seg in p.path.segments.iter_mut() {
+                        match &mut seg.arguments {
+                            syn::PathArguments::None => {}
+                            syn::PathArguments::AngleBracketed(args) => {
+                                for inner in args.args.iter_mut() {
+                                    *inner = parse_quote!(());
+                                }
+                            }
+                            syn::PathArguments::Parenthesized(_) => todo!(),
+                        }
+                    }
+                }
+                _ => todo!(),
+            };
+
+            let ty = qualified_ty(&ty_with_erased_generics);
+
             let ns_name = quote!(#ty::AST.ns());
             let name = quote!(#ty::AST.name());
 
