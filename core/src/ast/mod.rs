@@ -17,28 +17,86 @@ use crate::Namespace;
 /// Example:
 /// ```
 /// # use zod_core::ast::*;
-/// inventory::submit!(ZodDefinition::Struct(Struct {
-///     ns: "abc",
-///     ty: Type {
-///         ident: "test",
-///         generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
-///     },
-///     fields: StructFields::Named(&[MaybeFlatField::Flat(FlatField {
-///         value: FieldValue::Qualified(QualifiedType {
-///             ns: "Other",
-///             ident: "xx",
-///             generics: &[]
-///         })
-///     })])
-/// }));
+/// inventory::submit!(ZodExport {
+///     docs: Some("my cool struct..."),
+///     def: ZodDefinition::Struct(Struct {
+///         ns: "abc",
+///         ty: Type {
+///             ident: "test",
+///             generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
+///         },
+///         fields: StructFields::Named(&[MaybeFlatField::Flat(FlatField {
+///             value: FieldValue::Qualified(QualifiedType {
+///                 ns: "Other",
+///                 ident: "xx",
+///                 generics: &[]
+///             })
+///         })])
+///     })
+/// });
 /// ```
+#[derive(Clone, Copy, Debug)]
+pub struct ZodExport {
+    pub docs: Option<&'static str>,
+    pub def: ZodDefinition,
+}
+
+inventory::collect!(ZodExport);
+
+impl Display for ZodExport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_zod(f)?;
+        f.write_str("\n")?;
+        self.fmt_ts(f)?;
+        Ok(())
+    }
+}
+
+impl FormatZod for ZodExport {
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(docs) = self.docs {
+            f.write_str(docs)?;
+        }
+        self.def.fmt_zod(f)
+    }
+}
+
+impl FormatTypescript for ZodExport {
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(docs) = self.docs {
+            f.write_str(docs)?;
+        }
+        self.def.fmt_ts(f)
+    }
+}
+
+impl ZodExport {
+    pub fn docs(&self) -> Option<&'static str> {
+        self.docs
+    }
+
+    pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
+        self.def.is_member_of::<T>()
+    }
+
+    pub const fn name(&self) -> &'static str {
+        self.def.name()
+    }
+
+    pub const fn ty(&self) -> Type {
+        self.def.ty()
+    }
+
+    pub const fn ns(&self) -> &'static str {
+        self.def.ns()
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum ZodDefinition {
     Struct(Struct),
     Literal(Literal),
 }
-
-inventory::collect!(ZodDefinition);
 
 impl Display for ZodDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

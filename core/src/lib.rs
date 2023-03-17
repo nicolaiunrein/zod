@@ -42,17 +42,17 @@ use rpc::codegen::RpcMember;
 // inventory::collect!(Code);
 
 pub trait ZodType {
-    const AST: ast::ZodDefinition;
+    const AST: ast::ZodExport;
 }
 
 pub trait Namespace {
     const NAME: &'static str;
     const DOCS: Option<&'static str>;
-    fn code_members() -> Vec<ast::ZodDefinition>
+    fn code_members() -> Vec<ast::ZodExport>
     where
         Self: 'static,
     {
-        let all = inventory::iter::<ast::ZodDefinition>();
+        let all = inventory::iter::<ast::ZodExport>();
         let mut own: Vec<_> = all
             .filter(|code| code.is_member_of::<Self>())
             .map(|code| *code)

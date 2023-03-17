@@ -13,7 +13,7 @@ pub trait RpcNamespace: crate::Namespace {
 
 pub struct RpcArgument {
     name: &'static str,
-    code: ZodDefinition,
+    code: ZodExport,
 }
 
 impl RpcArgument {
