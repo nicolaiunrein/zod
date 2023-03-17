@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{AnyNamedField, Delimited, FormatTypescript, FormatZod, StructFields, Type};
+use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, StructFields, Type};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Struct {
@@ -36,7 +36,7 @@ impl FormatZod for Struct {
                 prefix()?;
                 f.write_str("z.lazy(() => z.object({")?;
 
-                let (inner_fields, flat_fields) = AnyNamedField::partition(fields);
+                let (inner_fields, flat_fields) = MaybeFlatField::partition(fields);
 
                 Delimited(inner_fields.as_slice(), ", ").fmt_zod(f)?;
 
@@ -88,7 +88,7 @@ impl FormatTypescript for Struct {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.fields {
             StructFields::Named(fields) => {
-                let (inner_fields, flat_fields) = AnyNamedField::partition(fields);
+                let (inner_fields, flat_fields) = MaybeFlatField::partition(fields);
                 f.write_str("interface ")?;
                 self.ty.fmt_ts(f)?;
 
@@ -281,7 +281,7 @@ mod test {
     #[test]
     fn zod_named_struct_with_generics_and_fields() {
         let fields = &[
-            AnyNamedField::Inner(NamedField {
+            MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_a",
                 value: FieldValue::Qualified(QualifiedType {
@@ -290,7 +290,7 @@ mod test {
                     generics: &[Generic::Type { ident: "A" }],
                 }),
             }),
-            AnyNamedField::Inner(NamedField {
+            MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_b",
                 value: FieldValue::Qualified(QualifiedType {
@@ -299,7 +299,7 @@ mod test {
                     generics: &[Generic::Type { ident: "B" }],
                 }),
             }),
-            AnyNamedField::Inner(NamedField {
+            MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_c",
                 value: FieldValue::Qualified(QualifiedType {
@@ -308,7 +308,7 @@ mod test {
                     generics: &[],
                 }),
             }),
-            AnyNamedField::Inner(NamedField {
+            MaybeFlatField::Named(NamedField {
                 optional: true,
                 name: "hallo_d",
                 value: FieldValue::Qualified(QualifiedType {
@@ -317,7 +317,7 @@ mod test {
                     generics: &[],
                 }),
             }),
-            AnyNamedField::Flat(FlatField {
+            MaybeFlatField::Flat(FlatField {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "e",

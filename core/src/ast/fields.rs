@@ -2,7 +2,7 @@ use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
 
 #[derive(Clone, Copy, Debug)]
 pub enum StructFields {
-    Named(&'static [AnyNamedField]),
+    Named(&'static [MaybeFlatField]),
     Tuple(&'static [TupleField]),
     Transparent { value: FieldValue, optional: bool },
 }
@@ -32,12 +32,12 @@ impl FormatTypescript for FieldValue {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum AnyNamedField {
+pub enum MaybeFlatField {
     Flat(FlatField),
-    Inner(NamedField),
+    Named(NamedField),
 }
 
-impl AnyNamedField {
+impl MaybeFlatField {
     pub fn partition(fields: &'static [Self]) -> (Vec<NamedField>, Vec<FlatField>) {
         let mut inner = Vec::new();
         let mut flat = Vec::new();
@@ -45,7 +45,7 @@ impl AnyNamedField {
         for field in fields.into_iter() {
             match field {
                 Self::Flat(f) => flat.push(*f),
-                Self::Inner(f) => inner.push(*f),
+                Self::Named(f) => inner.push(*f),
             }
         }
 
@@ -73,7 +73,7 @@ pub struct NamedField {
     pub value: FieldValue,
 }
 
-impl AnyNamedField {
+impl MaybeFlatField {
     pub const fn new_flat(value: FieldValue) -> Self {
         Self::Flat(FlatField { value })
     }

@@ -184,19 +184,41 @@ struct StructField<'a> {
 }
 
 impl<'a> StructField<'a> {
+    fn expand(&self) -> TokenStream {
+        let zod = get_zod();
+        let optional = self.optional;
+        let value = self.expand_value();
+
+        if self.flatten {
+            quote! {
+                #zod::ast::MaybeFlatField::Flat(#zod::ast::FlatField {
+                    value: #value,
+                })
+            }
+        } else {
+            if let Some(name) = &self.name {
+                quote! {
+                    #zod::ast::MaybeFlatField::Named(#zod::ast::NamedField {
+                        optional: #optional,
+                        name: #name,
+                        value: #value,
+                    })
+
+                }
+            } else {
+                quote! {
+                    #zod::ast::TupleField {
+                        optional: #optional,
+                        value: #value,
+                    }
+                }
+            }
+        }
+    }
+
     fn expand_value(&self) -> TokenStream {
         let zod = get_zod();
-        if let Some(ident) = self.generic_params.iter().find(|x| match self.ty {
-            syn::Type::Path(p) => {
-                p.path
-                    .segments
-                    .iter()
-                    .map(|s| s.ident.to_string())
-                    .collect::<Vec<_>>()
-                    == vec![x.to_string()]
-            }
-            _ => false,
-        }) {
+        if let Some(ident) = self.get_matching_generic() {
             let ident = ident.to_string();
             quote! {
                 #zod::ast::FieldValue::Generic(#zod::ast::Generic::Type {ident: #ident })
@@ -215,35 +237,20 @@ impl<'a> StructField<'a> {
         }
     }
 
-    fn expand(&self) -> TokenStream {
-        let zod = get_zod();
-        let optional = self.optional;
-        let value = self.expand_value();
-
-        if self.flatten {
-            quote! {
-                #zod::ast::AnyNamedField::Flat(#zod::ast::FlatField {
-                    value: #value,
-                })
-            }
-        } else {
-            if let Some(name) = &self.name {
-                quote! {
-                    #zod::ast::AnyNamedField::Inner(#zod::ast::NamedField {
-                        optional: #optional,
-                        name: #name,
-                        value: #value,
-                    })
-
+    fn get_matching_generic(&self) -> Option<Ident> {
+        self.generic_params
+            .iter()
+            .find(|param| match self.ty {
+                syn::Type::Path(p) => {
+                    p.path
+                        .segments
+                        .iter()
+                        .map(|s| s.ident.to_string())
+                        .collect::<Vec<_>>()
+                        == vec![param.to_string()]
                 }
-            } else {
-                quote! {
-                    #zod::ast::TupleField {
-                        optional: #optional,
-                        value: #value,
-                    }
-                }
-            }
-        }
+                _ => false,
+            })
+            .cloned()
     }
 }

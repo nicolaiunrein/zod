@@ -6,7 +6,6 @@ mod r#type;
 
 use std::fmt::Display;
 
-use const_format::concatcp;
 pub use fields::*;
 pub use generics::*;
 pub use literal::*;
@@ -24,7 +23,7 @@ use crate::Namespace;
 ///         ident: "test",
 ///         generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
 ///     },
-///     fields: StructFields::Named(&[AnyNamedField::Flat(FlatField {
+///     fields: StructFields::Named(&[MaybeFlatField::Flat(FlatField {
 ///         value: FieldValue::Qualified(QualifiedType {
 ///             ns: "Other",
 ///             ident: "xx",

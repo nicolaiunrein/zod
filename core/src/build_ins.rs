@@ -328,7 +328,7 @@ impl_primitive!(ordered_float::NotNan<f64>, "F64", "number", "z.number()");
 
 #[cfg(test)]
 mod test {
-    use std::collections::{BTreeSet, HashSet};
+    use std::collections::BTreeSet;
 
     use super::*;
     use pretty_assertions::assert_eq;
