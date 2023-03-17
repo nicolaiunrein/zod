@@ -255,10 +255,10 @@ impl<T: ZodType> ZodType for Option<T> {
             ident: "Option",
             generics: &[Generic::Type { ident: "T" }],
         },
-        fields: StructFields::Tuple(&[AnyTupleField::Inner(TupleField {
+        fields: StructFields::Transparent {
+            value: FieldValue::Generic(Generic::Type { ident: "T" }),
             optional: true,
-            value: todo!(),
-        })]),
+        },
     });
 }
 
@@ -302,3 +302,21 @@ impl_primitive!(ordered_float::NotNan<f32>, "F32", "number", "z.number()");
 
 #[cfg(feature = "ordered-float")]
 impl_primitive!(ordered_float::NotNan<f64>, "F64", "number", "z.number()");
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn option_ok() {
+        assert_eq!(
+            Option::<String>::AST.to_ts_string(),
+            "export type Option<T> = T | undefined;"
+        );
+        assert_eq!(
+            Option::<String>::AST.to_zod_string(),
+            "export const Option = (T: z.ZodTypeAny) => z.lazy(() => T).optional();"
+        );
+    }
+}

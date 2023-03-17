@@ -60,10 +60,14 @@ impl FormatZod for Struct {
                 Delimited(inner_fields.as_slice(), ", ").fmt_zod(f)?;
                 f.write_str("]));")?;
             }
-            StructFields::Transparent { value } => {
+            StructFields::Transparent { value, optional } => {
                 f.write_str("z.lazy(() => ")?;
                 value.fmt_zod(f)?;
                 f.write_str(")")?;
+                if optional {
+                    f.write_str(".optional()")?;
+                }
+                f.write_str(";")?;
             }
         }
         Ok(())
@@ -112,11 +116,16 @@ impl FormatTypescript for Struct {
                     f.write_str(";")?;
                 }
             }
-            StructFields::Transparent { value } => {
+            StructFields::Transparent { value, optional } => {
                 f.write_str("type ")?;
                 self.ty.fmt_ts(f)?;
                 f.write_str(" = ")?;
                 value.fmt_ts(f)?;
+                if optional {
+                    f.write_str(" | undefined")?;
+                }
+
+                f.write_str(";")?;
             }
         }
         Ok(())
@@ -125,8 +134,8 @@ impl FormatTypescript for Struct {
 
 #[cfg(test)]
 mod test {
-    use crate::formatter::{
-        FlatField, FormatTypescript, Generic, NamedField, QualifiedType, TupleField,
+    use crate::ast::{
+        FieldValue, FlatField, FormatTypescript, Generic, NamedField, QualifiedType, TupleField,
     };
 
     use super::*;
@@ -184,35 +193,35 @@ mod test {
         let fields = &[
             AnyTupleField::Inner(TupleField {
                 optional: false,
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
                     generics: &[Generic::Type { ident: "A" }],
-                },
+                }),
             }),
             AnyTupleField::Inner(TupleField {
                 optional: false,
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
                     generics: &[Generic::Type { ident: "B" }],
-                },
+                }),
             }),
             AnyTupleField::Inner(TupleField {
                 optional: false,
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "c",
                     generics: &[],
-                },
+                }),
             }),
             AnyTupleField::Inner(TupleField {
                 optional: true,
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "d",
                     generics: &[],
-                },
+                }),
             }),
         ];
 
@@ -265,45 +274,45 @@ mod test {
             AnyNamedField::Inner(NamedField {
                 optional: false,
                 name: "hallo_a",
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
                     generics: &[Generic::Type { ident: "A" }],
-                },
+                }),
             }),
             AnyNamedField::Inner(NamedField {
                 optional: false,
                 name: "hallo_b",
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
                     generics: &[Generic::Type { ident: "B" }],
-                },
+                }),
             }),
             AnyNamedField::Inner(NamedField {
                 optional: false,
                 name: "hallo_c",
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "c",
                     generics: &[],
-                },
+                }),
             }),
             AnyNamedField::Inner(NamedField {
                 optional: true,
                 name: "hallo_d",
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "d",
                     generics: &[],
-                },
+                }),
             }),
             AnyNamedField::Flat(FlatField {
-                value: QualifiedType {
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "e",
                     generics: &[],
-                },
+                }),
             }),
         ];
 
@@ -336,16 +345,17 @@ mod test {
                 generics: &[],
             },
             fields: StructFields::Transparent {
-                value: QualifiedType {
+                optional: false,
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "inner",
                     generics: &[],
-                },
+                }),
             },
         };
 
-        assert_eq!(def.to_zod_string(), "const test = z.lazy(() => Ns.inner)");
-        assert_eq!(def.to_ts_string(), "type test = Ns.inner");
+        assert_eq!(def.to_zod_string(), "const test = z.lazy(() => Ns.inner);");
+        assert_eq!(def.to_ts_string(), "type test = Ns.inner;");
     }
 
     #[test]
@@ -357,19 +367,20 @@ mod test {
                 generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
             },
             fields: StructFields::Transparent {
-                value: QualifiedType {
+                optional: false,
+                value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "inner",
                     generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
-                },
+                }),
             },
         };
 
         assert_eq!(
             def.to_zod_string(),
-            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => Ns.inner(A, B))"
+            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => Ns.inner(A, B));"
         );
 
-        assert_eq!(def.to_ts_string(), "type test<A, B> = Ns.inner<A, B>")
+        assert_eq!(def.to_ts_string(), "type test<A, B> = Ns.inner<A, B>;")
     }
 }

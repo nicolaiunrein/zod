@@ -14,7 +14,9 @@ pub use r#type::*;
 
 use crate::Namespace;
 
+/// Example:
 /// ```
+/// # use zod_core::ast::*;
 /// inventory::submit!(Item::Struct(Struct {
 ///     ns: "abc",
 ///     ty: Type {
@@ -22,11 +24,11 @@ use crate::Namespace;
 ///         generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
 ///     },
 ///     fields: StructFields::Named(&[AnyNamedField::Flat(FlatField {
-///         value: QualifiedType {
+///         value: FieldValue::Qualified(QualifiedType {
 ///             ns: "Other",
 ///             ident: "xx",
 ///             generics: &[]
-///         }
+///         })
 ///     })])
 /// }));
 /// ```
@@ -98,11 +100,11 @@ impl FormatTypescript for Item {
         match self {
             Item::Struct(inner) => {
                 f.write_str("export ")?;
-                inner.fmt_zod(f)?;
+                inner.fmt_ts(f)?;
             }
             Item::Literal(inner) => {
                 f.write_str("export ")?;
-                inner.fmt_zod(f)?;
+                inner.fmt_ts(f)?;
             }
         }
         Ok(())

@@ -90,7 +90,7 @@ impl FormatTypescript for Type {
 
 #[cfg(test)]
 mod test {
-    use crate::formatter::Generic;
+    use crate::ast::Generic;
 
     use super::*;
     use pretty_assertions::assert_eq;
