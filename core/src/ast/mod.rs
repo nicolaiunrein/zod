@@ -17,7 +17,7 @@ use crate::Namespace;
 /// Example:
 /// ```
 /// # use zod_core::ast::*;
-/// inventory::submit!(Item::Struct(Struct {
+/// inventory::submit!(ZodDefinition::Struct(Struct {
 ///     ns: "abc",
 ///     ty: Type {
 ///         ident: "test",
@@ -33,14 +33,14 @@ use crate::Namespace;
 /// }));
 /// ```
 #[derive(Clone, Copy, Debug)]
-pub enum Item {
+pub enum ZodDefinition {
     Struct(Struct),
     Literal(Literal),
 }
 
-inventory::collect!(Item);
+inventory::collect!(ZodDefinition);
 
-impl Display for Item {
+impl Display for ZodDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.fmt_zod(f)?;
         f.write_str("\n")?;
@@ -49,44 +49,44 @@ impl Display for Item {
     }
 }
 
-impl Item {
+impl ZodDefinition {
     pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
         match self {
-            Item::Struct(inner) => T::NAME == inner.ns,
-            Item::Literal(inner) => T::NAME == inner.ns,
+            ZodDefinition::Struct(inner) => T::NAME == inner.ns,
+            ZodDefinition::Literal(inner) => T::NAME == inner.ns,
         }
     }
 
     pub const fn name(&self) -> &'static str {
         match self {
-            Item::Struct(inner) => inner.ty.ident,
-            Item::Literal(inner) => inner.ty.ident,
+            ZodDefinition::Struct(inner) => inner.ty.ident,
+            ZodDefinition::Literal(inner) => inner.ty.ident,
         }
     }
 
     pub const fn ty(&self) -> Type {
         match self {
-            Item::Struct(inner) => inner.ty,
-            Item::Literal(inner) => inner.ty,
+            ZodDefinition::Struct(inner) => inner.ty,
+            ZodDefinition::Literal(inner) => inner.ty,
         }
     }
 
     pub const fn ns(&self) -> &'static str {
         match self {
-            Item::Struct(inner) => inner.ns,
-            Item::Literal(inner) => inner.ns,
+            ZodDefinition::Struct(inner) => inner.ns,
+            ZodDefinition::Literal(inner) => inner.ns,
         }
     }
 }
 
-impl FormatZod for Item {
+impl FormatZod for ZodDefinition {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Item::Struct(inner) => {
+            ZodDefinition::Struct(inner) => {
                 f.write_str("export ")?;
                 inner.fmt_zod(f)?;
             }
-            Item::Literal(inner) => {
+            ZodDefinition::Literal(inner) => {
                 f.write_str("export ")?;
                 inner.fmt_zod(f)?;
             }
@@ -95,14 +95,14 @@ impl FormatZod for Item {
     }
 }
 
-impl FormatTypescript for Item {
+impl FormatTypescript for ZodDefinition {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Item::Struct(inner) => {
+            ZodDefinition::Struct(inner) => {
                 f.write_str("export ")?;
                 inner.fmt_ts(f)?;
             }
-            Item::Literal(inner) => {
+            ZodDefinition::Literal(inner) => {
                 f.write_str("export ")?;
                 inner.fmt_ts(f)?;
             }

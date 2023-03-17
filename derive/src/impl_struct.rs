@@ -100,10 +100,10 @@ impl<'a> Struct<'a> {
 
         quote! {
             const _: () = {
-                const AST: #zod::ast::Item = #zod::ast::Item::Struct(#struct_def);
+                const AST: #zod::ast::ZodDefinition = #zod::ast::ZodDefinition::Struct(#struct_def);
 
                 impl #impl_generics #zod::ZodType for #ident #ty_generics #where_clause {
-                    const AST: #zod::ast::Item = AST;
+                    const AST: #zod::ast::ZodDefinition = AST;
                 }
 
                 #zod::__private::inventory::submit!(AST);

@@ -12,7 +12,7 @@ impl Namespace for Rs {
 macro_rules! impl_primitive {
     ($T:ty, $name: literal, $type: literal, $schema: literal) => {
         impl ZodType for $T {
-            const AST: Item = Item::Literal(Literal {
+            const AST: ZodDefinition = ZodDefinition::Literal(Literal {
                 ns: Rs::NAME,
                 ty: Type {
                     ident: $name,
@@ -30,7 +30,7 @@ macro_rules! impl_primitive {
 macro_rules! impl_tuple {
     ( $N: literal, $($i:ident),* ) => {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
-            const AST: Item = tuple!($N, $($i),*);
+            const AST: ZodDefinition = tuple!($N, $($i),*);
         }
 
     };
@@ -41,7 +41,7 @@ macro_rules! tuple {
 
         {
 
-            const AST: Item = Item::Literal(Literal {
+            const AST: ZodDefinition = ZodDefinition::Literal(Literal {
                 ns: Rs::NAME,
                 ty: Type {
                     ident: concat!("Tuple", $N),
@@ -60,7 +60,7 @@ macro_rules! tuple {
 macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
-            const AST: Item = T::AST;
+            const AST: ZodDefinition = T::AST;
         }
     };
 }
@@ -163,7 +163,7 @@ impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Weak<T>);
 impl_wrapper!(impl<T: ZodType> ZodType for std::marker::PhantomData<T>);
 
 impl<T: ZodType> ZodType for Vec<T> {
-    const AST: Item = Item::Literal(Literal {
+    const AST: ZodDefinition = ZodDefinition::Literal(Literal {
         ns: Rs::NAME,
         ty: Type {
             ident: "Vec",
@@ -175,7 +175,7 @@ impl<T: ZodType> ZodType for Vec<T> {
 }
 
 impl<const N: usize, T: ZodType> ZodType for [T; N] {
-    const AST: Item = Item::Literal(Literal {
+    const AST: ZodDefinition = ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type{
                 ident: "Array",
@@ -194,7 +194,7 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
     });
 }
 
-const HASH_SET_AST: Item = Item::Literal(Literal {
+const HASH_SET_AST: ZodDefinition = ZodDefinition::Literal(Literal {
     ns: Rs::NAME,
     ty: Type {
         ident: "HashSet",
@@ -205,11 +205,11 @@ const HASH_SET_AST: Item = Item::Literal(Literal {
 });
 
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
-    const AST: Item = HASH_SET_AST;
+    const AST: ZodDefinition = HASH_SET_AST;
 }
 inventory::submit!(HASH_SET_AST);
 
-const BTREE_SET_AST: Item = Item::Literal(Literal {
+const BTREE_SET_AST: ZodDefinition = ZodDefinition::Literal(Literal {
     ns: Rs::NAME,
     ty: Type {
         ident: "BTreeSet",
@@ -220,12 +220,12 @@ const BTREE_SET_AST: Item = Item::Literal(Literal {
 });
 
 impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
-    const AST: Item = BTREE_SET_AST;
+    const AST: ZodDefinition = BTREE_SET_AST;
 }
 
 inventory::submit!(BTREE_SET_AST);
 
-const HASH_MAP_AST: Item = Item::Literal(Literal {
+const HASH_MAP_AST: ZodDefinition = ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "HashMap",
@@ -239,12 +239,12 @@ const HASH_MAP_AST: Item = Item::Literal(Literal {
     });
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
-    const AST: Item = HASH_MAP_AST;
+    const AST: ZodDefinition = HASH_MAP_AST;
 }
 
 inventory::submit!(HASH_MAP_AST);
 
-const BTREE_MAP_AST: Item = Item::Literal(Literal {
+const BTREE_MAP_AST: ZodDefinition = ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "BTreeMap",
@@ -258,12 +258,12 @@ const BTREE_MAP_AST: Item = Item::Literal(Literal {
     });
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
-    const AST: Item = BTREE_MAP_AST;
+    const AST: ZodDefinition = BTREE_MAP_AST;
 }
 
 inventory::submit!(BTREE_MAP_AST);
 
-const OPTION_AST: Item = Item::Struct(Struct {
+const OPTION_AST: ZodDefinition = ZodDefinition::Struct(Struct {
     ns: Rs::NAME,
     ty: Type {
         ident: "Option",
@@ -276,12 +276,12 @@ const OPTION_AST: Item = Item::Struct(Struct {
 });
 
 impl<T: ZodType> ZodType for Option<T> {
-    const AST: Item = OPTION_AST;
+    const AST: ZodDefinition = OPTION_AST;
 }
 
 inventory::submit!(OPTION_AST);
 
-const RESULT_AST: Item = Item::Literal(Literal {
+const RESULT_AST: ZodDefinition = ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "Result",
@@ -296,7 +296,7 @@ const RESULT_AST: Item = Item::Literal(Literal {
     });
 
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
-    const AST: Item = RESULT_AST;
+    const AST: ZodDefinition = RESULT_AST;
 }
 
 inventory::submit!(RESULT_AST);
@@ -347,7 +347,7 @@ mod test {
 
     #[test]
     fn inventory() {
-        let items = inventory::iter::<Item>();
+        let items = inventory::iter::<ZodDefinition>();
 
         let item_names: BTreeSet<_> = items
             .filter_map(|item| {
