@@ -194,32 +194,38 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
     });
 }
 
+const HASH_SET_AST: Item = Item::Literal(Literal {
+    ns: Rs::NAME,
+    ty: Type {
+        ident: "HashSet",
+        generics: &[Generic::Type { ident: "T" }],
+    },
+    ts: "export type HashSet<T> = Set<T>;",
+    zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
+});
+
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
-    const AST: Item = Item::Literal(Literal {
-        ns: Rs::NAME,
-        ty: Type {
-            ident: "HashSet",
-            generics: &[Generic::Type { ident: "T" }],
-        },
-        ts: "export type HashSet<T> = Set<T>;",
-        zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
-    });
+    const AST: Item = HASH_SET_AST;
 }
+inventory::submit!(HASH_SET_AST);
+
+const BTREE_SET_AST: Item = Item::Literal(Literal {
+    ns: Rs::NAME,
+    ty: Type {
+        ident: "BTreeSet",
+        generics: &[Generic::Type { ident: "T" }],
+    },
+    ts: "export type BTreeSet<T> = Set<T>;",
+    zod: "export const BTreeSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
+});
 
 impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
-    const AST: Item = Item::Literal(Literal {
-        ns: Rs::NAME,
-        ty: Type {
-            ident: "HashSet",
-            generics: &[Generic::Type { ident: "T" }],
-        },
-        ts: "export type HashSet<T> = Set<T>;",
-        zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
-    });
+    const AST: Item = BTREE_SET_AST;
 }
 
-impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
-    const AST: Item = Item::Literal(Literal {
+inventory::submit!(BTREE_SET_AST);
+
+const HASH_MAP_AST: Item = Item::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "HashMap",
@@ -231,10 +237,14 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
             ts: "export type HashMap<K, V> = Map<K, V>;",
             zod: "export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     });
+
+impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
+    const AST: Item = HASH_MAP_AST;
 }
 
-impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
-    const AST: Item = Item::Literal(Literal {
+inventory::submit!(HASH_MAP_AST);
+
+const BTREE_MAP_AST: Item = Item::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "BTreeMap",
@@ -246,24 +256,32 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
             ts: "export type BTreeMap<K, V> = Map<K, V>;",
             zod: "export const BTreeMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     });
+
+impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
+    const AST: Item = BTREE_MAP_AST;
 }
+
+inventory::submit!(BTREE_MAP_AST);
+
+const OPTION_AST: Item = Item::Struct(Struct {
+    ns: Rs::NAME,
+    ty: Type {
+        ident: "Option",
+        generics: &[Generic::Type { ident: "T" }],
+    },
+    fields: StructFields::Transparent {
+        value: FieldValue::Generic(Generic::Type { ident: "T" }),
+        optional: true,
+    },
+});
 
 impl<T: ZodType> ZodType for Option<T> {
-    const AST: Item = Item::Struct(Struct {
-        ns: Rs::NAME,
-        ty: Type {
-            ident: "Option",
-            generics: &[Generic::Type { ident: "T" }],
-        },
-        fields: StructFields::Transparent {
-            value: FieldValue::Generic(Generic::Type { ident: "T" }),
-            optional: true,
-        },
-    });
+    const AST: Item = OPTION_AST;
 }
 
-impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
-    const AST: Item = Item::Literal(Literal {
+inventory::submit!(OPTION_AST);
+
+const RESULT_AST: Item = Item::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "Result",
@@ -276,7 +294,12 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
             ts: "export type Result<T, E> = { Ok: T } | { Err: E };",
             zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeError) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
     });
+
+impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
+    const AST: Item = RESULT_AST;
 }
+
+inventory::submit!(RESULT_AST);
 
 impl_primitive!(
     std::net::Ipv4Addr,
@@ -305,6 +328,8 @@ impl_primitive!(ordered_float::NotNan<f64>, "F64", "number", "z.number()");
 
 #[cfg(test)]
 mod test {
+    use std::collections::{BTreeSet, HashSet};
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -318,5 +343,68 @@ mod test {
             Option::<String>::AST.to_zod_string(),
             "export const Option = (T: z.ZodTypeAny) => z.lazy(() => T).optional();"
         );
+    }
+
+    #[test]
+    fn inventory() {
+        let items = inventory::iter::<Item>();
+
+        let item_names: BTreeSet<_> = items
+            .filter_map(|item| {
+                if item.ns() == Rs::NAME {
+                    Some(item.ty().ident)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(
+            &item_names,
+            &[
+                "BTreeMap",
+                "BTreeSet",
+                "HashMap",
+                "HashSet",
+                "Option",
+                "Result",
+                "Tuple1",
+                "Tuple10",
+                "Tuple11",
+                "Tuple12",
+                "Tuple2",
+                "Tuple3",
+                "Tuple4",
+                "Tuple5",
+                "Tuple6",
+                "Tuple7",
+                "Tuple8",
+                "Tuple9",
+                <&str>::AST.ty().ident,
+                <()>::AST.ty().ident,
+                String::AST.ty().ident,
+                bool::AST.ty().ident,
+                char::AST.ty().ident,
+                f32::AST.ty().ident,
+                f64::AST.ty().ident,
+                i128::AST.ty().ident,
+                i16::AST.ty().ident,
+                i32::AST.ty().ident,
+                i64::AST.ty().ident,
+                i8::AST.ty().ident,
+                isize::AST.ty().ident,
+                std::net::IpAddr::AST.ty().ident,
+                std::net::Ipv4Addr::AST.ty().ident,
+                std::net::Ipv6Addr::AST.ty().ident,
+                u128::AST.ty().ident,
+                u16::AST.ty().ident,
+                u32::AST.ty().ident,
+                u64::AST.ty().ident,
+                u8::AST.ty().ident,
+                usize::AST.ty().ident,
+            ]
+            .into_iter()
+            .collect()
+        )
     }
 }
