@@ -37,17 +37,12 @@ impl RustDocs {
 
 impl ToTokens for RustDocs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self.inner {
-            Some(ref docs) => {
-                let docs = format!(
-                    "/**\n{}*/\n",
-                    docs.lines()
-                        .map(|line| format!("* {}\n", line))
-                        .collect::<String>()
-                );
-                tokens.extend(quote!(#docs))
-            }
-            None => tokens.extend(quote!("")),
-        }
+        let inner = if let Some(docs) = &self.inner {
+            quote!(Some(#docs))
+        } else {
+            quote!(None)
+        };
+
+        tokens.extend(inner);
     }
 }

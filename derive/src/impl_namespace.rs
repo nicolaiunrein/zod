@@ -19,7 +19,7 @@ pub fn expand(
     quote! {
         impl #impl_generics #zod::Namespace for #ident #ty_generics #where_clause {
             const NAME: &'static str = #name;
-            const DOCS: Option<&'static str> = Some(#docs);
+            const DOCS: Option<&'static str> = #docs;
         }
 
         // TODO???

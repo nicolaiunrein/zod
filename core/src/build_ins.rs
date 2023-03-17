@@ -10,7 +10,7 @@ impl Namespace for Rs {
 }
 
 macro_rules! impl_primitive {
-    ($T:ty, $name: literal, $type: literal, $schema: literal) => {
+    ($T:ty, $name: literal, $ts_type: literal, $zod: literal) => {
         impl ZodType for $T {
             const AST: ZodExport = ZodExport {
                 docs: None,
@@ -20,8 +20,8 @@ macro_rules! impl_primitive {
                         ident: $name,
                         generics: &[],
                     },
-                    ts: $type,
-                    zod: $schema,
+                    ts: concat!("type ", $name, " = ", $ts_type, ";"),
+                    zod: concat!("const ", $name, " = ", $zod, ";"),
                 }),
             };
         }
@@ -314,7 +314,7 @@ const RESULT_AST: ZodExport = ZodExport{docs: None, def: ZodDefinition::Literal(
 
             },
             ts: "export type Result<T, E> = { Ok: T } | { Err: E };",
-            zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeError) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
+            zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeAny) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
     })};
 
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {

@@ -55,7 +55,7 @@ impl Display for ZodExport {
 impl FormatZod for ZodExport {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(docs) = self.docs {
-            f.write_str(docs)?;
+            f.write_str(&format_docs(docs))?;
         }
         self.def.fmt_zod(f)
     }
@@ -64,7 +64,7 @@ impl FormatZod for ZodExport {
 impl FormatTypescript for ZodExport {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(docs) = self.docs {
-            f.write_str(docs)?;
+            f.write_str(&format_docs(docs))?;
         }
         self.def.fmt_ts(f)
     }
@@ -260,5 +260,63 @@ where
             }
         }
         Ok(())
+    }
+}
+
+fn format_docs(input: &str) -> String {
+    format!(
+        "/**\n{}*/\n",
+        input
+            .lines()
+            .map(|line| format!("* {}\n", line))
+            .collect::<String>()
+    )
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn format_docs_ok() {
+        let docs = "First Line\nSecond Line";
+        let expected = "/**
+* First Line
+* Second Line
+*/
+";
+        assert_eq!(format_docs(docs), expected);
+    }
+
+    #[test]
+    fn docs_export_ok() {
+        let export = ZodExport {
+            docs: Some("Hallo Welt\nSecond Line"),
+            def: ZodDefinition::Struct(Struct {
+                ns: "Ns",
+                ty: Type {
+                    ident: "test",
+                    generics: &[],
+                },
+                fields: StructFields::Named(&[]),
+            }),
+        };
+
+        assert_eq!(
+            export.to_ts_string(),
+            format!(
+                "{}{}",
+                format_docs(export.docs.unwrap()),
+                export.def.to_ts_string()
+            )
+        );
+
+        assert_eq!(
+            export.to_zod_string(),
+            format!(
+                "{}{}",
+                format_docs(export.docs.unwrap()),
+                export.def.to_zod_string()
+            )
+        );
     }
 }

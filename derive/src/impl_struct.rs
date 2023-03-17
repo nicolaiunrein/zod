@@ -95,15 +95,18 @@ impl<'a> Struct<'a> {
         let ident = &self.ident;
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         let struct_def = self.expand_struct_def();
-
         let zod = get_zod();
+        let docs = &self.docs;
 
         quote! {
             const _: () = {
-                const AST: #zod::ast::ZodDefinition = #zod::ast::ZodDefinition::Struct(#struct_def);
+                const AST: #zod::ast::ZodExport = #zod::ast::ZodExport {
+                    docs: #docs,
+                    def: #zod::ast::ZodDefinition::Struct(#struct_def)
+                };
 
                 impl #impl_generics #zod::ZodType for #ident #ty_generics #where_clause {
-                    const AST: #zod::ast::ZodDefinition = AST;
+                    const AST: #zod::ast::ZodExport = AST;
                 }
 
                 #zod::__private::inventory::submit!(AST);
