@@ -445,4 +445,39 @@ mod test {
 
         assert_eq!(def.to_ts_string(), "type test = Other.other | undefined;");
     }
+
+    #[test]
+    #[ignore]
+    fn generic_inline() {
+        // pub struct User(Generic<String, usize>);
+
+        let def = Struct {
+            ns: "Ns",
+            ty: Type {
+                ident: "test",
+                generics: &[],
+            },
+            fields: StructFields::Tuple(&[TupleField {
+                optional: false,
+                value: FieldValue::Qualified(QualifiedType {
+                    ns: "Other",
+                    ident: "Generic",
+                    generics: &[
+                        Generic::Type { ident: "Rs.String" },
+                        Generic::Type { ident: "Rs.Usize" },
+                    ],
+                }),
+            }]),
+        };
+
+        assert_eq!(
+            def.to_zod_string(),
+            "const test = z.lazy(() => Other.Generic(Rs.String, Rs.Usize));"
+        );
+
+        assert_eq!(
+            def.to_ts_string(),
+            "type test = Other.Generic<Rs.String, Rs.Usize>;"
+        );
+    }
 }

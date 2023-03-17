@@ -605,9 +605,11 @@ export namespace Watchout {
   export const T = z.lazy(() => Rs.Usize);
   export type T = Rs.Usize;
 
-  export const User = z.lazy(() => z.object({ value: Watchout.Generic }));
+  export const User = z.lazy(() =>
+    z.object({ value: Watchout.Generic(Rs.String, Rs.Usize) })
+  );
   export interface User {
-    value: Watchout.Generic;
+    value: Watchout.Generic<Rs.String, Rs.Usize>;
   }
 
   // @ts-ignore

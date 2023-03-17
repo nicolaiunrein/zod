@@ -90,6 +90,10 @@ impl ZodExport {
     pub const fn ns(&self) -> &'static str {
         self.def.ns()
     }
+
+    pub const fn generics(&self) -> &'static [Generic] {
+        self.def.generics()
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -133,6 +137,13 @@ impl ZodDefinition {
         match self {
             ZodDefinition::Struct(inner) => inner.ns,
             ZodDefinition::Literal(inner) => inner.ns,
+        }
+    }
+
+    pub const fn generics(&self) -> &'static [Generic] {
+        match self {
+            ZodDefinition::Struct(inner) => inner.ty.generics,
+            ZodDefinition::Literal(inner) => inner.ty.generics,
         }
     }
 }

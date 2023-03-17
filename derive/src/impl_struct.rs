@@ -221,29 +221,46 @@ impl<'a> StructField<'a> {
 
     fn expand_value(&self) -> TokenStream {
         let zod = get_zod();
-        if let Some(ident) = self.get_matching_generic() {
+        if let Some(ident) = self.get_matching_generic(self.ty) {
             let ident = ident.to_string();
             quote! {
-                #zod::ast::FieldValue::Generic(#zod::ast::Generic::Type {ident: #ident })
+                #zod::ast::FieldValue::Generic(#zod::ast::Generic::Type { ident: #ident })
             }
         } else {
             let ty = qualified_ty(self.ty);
             let ns_name = quote!(#ty::AST.ns());
             let name = quote!(#ty::AST.name());
+
+            let generics = self
+                .get_generic_args()
+                .into_iter()
+                .map(|ty| {
+                    if let Some(ident) =self.get_matching_generic(ty) {
+                        let name = ident.to_string();
+                        let out = quote!(#zod::ast::Generic::Type { ident: #name });
+                        println!("out: {out}");
+                        out
+                    } else {
+                        let tt = qualified_ty(ty);
+                        let out = quote!(#zod::ast::Generic::QualifiedType { ns: #tt::AST.ns(), ident: #tt::AST.name() });
+                        out
+                    }
+                });
+
             quote! {
                 #zod::ast::FieldValue::Qualified(#zod::ast::QualifiedType {
                     ns: #ns_name,
                     ident: #name,
-                    generics: &[] //todo
+                    generics: &[ #(#generics),* ],
                 })
             }
         }
     }
 
-    fn get_matching_generic(&self) -> Option<Ident> {
+    fn get_matching_generic(&self, ty: &syn::Type) -> Option<Ident> {
         self.generic_params
             .iter()
-            .find(|param| match self.ty {
+            .find(|param| match ty {
                 syn::Type::Path(p) => {
                     p.path
                         .segments
@@ -255,5 +272,43 @@ impl<'a> StructField<'a> {
                 _ => false,
             })
             .cloned()
+    }
+
+    fn get_generic_args(&self) -> Vec<&syn::Type> {
+        match self.ty {
+            syn::Type::Array(_) => todo!(),
+            syn::Type::BareFn(_) => todo!(),
+            syn::Type::Group(_) => todo!(),
+            syn::Type::ImplTrait(_) => todo!(),
+            syn::Type::Infer(_) => todo!(),
+            syn::Type::Macro(_) => todo!(),
+            syn::Type::Never(_) => todo!(),
+            syn::Type::Paren(_) => todo!(),
+            syn::Type::Ptr(_) => todo!(),
+            syn::Type::Reference(_) => todo!(),
+            syn::Type::Slice(_) => todo!(),
+            syn::Type::TraitObject(_) => todo!(),
+            syn::Type::Tuple(_) => todo!(),
+            syn::Type::Verbatim(_) => todo!(),
+            syn::Type::Path(p) => p
+                .path
+                .segments
+                .last()
+                .map(|last| match &last.arguments {
+                    syn::PathArguments::None => vec![],
+                    syn::PathArguments::AngleBracketed(inner) => inner
+                        .args
+                        .iter()
+                        .filter_map(|arg| match arg {
+                            syn::GenericArgument::Type(t) => Some(t),
+                            _ => None,
+                        })
+                        .collect(),
+
+                    syn::PathArguments::Parenthesized(_) => todo!(),
+                })
+                .unwrap_or_default(),
+            _ => todo!(),
+        }
     }
 }
