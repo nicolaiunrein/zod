@@ -6,6 +6,23 @@ use test_utils::*;
 fn main() {}
 
 #[test]
+fn one_tuple() {
+    test_case! {
+        struct Test(usize);
+    }
+
+    let json = serde_json::to_value(Test(123)).unwrap();
+    assert_eq!(json, serde_json::json!(123));
+
+    compare(
+        Test::AST.to_zod_string(),
+        "export const Test = z.lazy(() => Rs.Usize);",
+    );
+
+    compare(Test::AST.to_ts_string(), "export type Test = Rs.Usize;");
+}
+
+#[test]
 fn ok() {
     test_case! {
         struct Test(usize, usize, String);
@@ -15,11 +32,11 @@ fn ok() {
     assert_eq!(json, serde_json::json!([123, 42, "abc"]));
 
     compare(
-        Test::AST.schema,
+        Test::AST.to_zod_string(),
         "export const Test = z.lazy(() => z.tuple([Rs.Usize, Rs.Usize, Rs.String]));",
     );
     compare(
-        Test::AST.type_def,
+        Test::AST.to_ts_string(),
         "export type Test = [Rs.Usize, Rs.Usize, Rs.String];",
     );
 }
@@ -38,12 +55,12 @@ fn with_default_fields() {
     assert_eq!(test, res);
 
     compare(
-        Test::AST.schema,
+        Test::AST.to_zod_string(),
         "export const Test = z.lazy(() => z.tuple([Rs.Usize, Rs.Usize.optional()]));",
     );
 
     assert_eq!(
-        Test::AST.type_def,
+        Test::AST.to_ts_string(),
         "export type Test = [Rs.Usize, Rs.Usize | undefined];"
     );
 }

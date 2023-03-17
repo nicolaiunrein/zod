@@ -1,8 +1,6 @@
 use std::fmt::Display;
 
-use super::{
-    AnyNamedField, AnyTupleField, Delimited, FormatTypescript, FormatZod, StructFields, Type,
-};
+use super::{AnyNamedField, Delimited, FormatTypescript, FormatZod, StructFields, Type};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Struct {
@@ -13,25 +11,29 @@ pub struct Struct {
 
 impl FormatZod for Struct {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("const ")?;
-        f.write_str(self.ty.ident)?;
-        f.write_str(" = ")?;
-        if !self.ty.generics.is_empty() {
-            f.write_str("(")?;
-            let list = self
-                .ty
-                .generics
-                .iter()
-                .map(|g| format!("{}: z.ZodTypeAny", g.to_zod_string()))
-                .collect::<Vec<_>>();
+        let mut prefix = || {
+            f.write_str("const ")?;
+            f.write_str(self.ty.ident)?;
+            f.write_str(" = ")?;
+            if !self.ty.generics.is_empty() {
+                f.write_str("(")?;
+                let list = self
+                    .ty
+                    .generics
+                    .iter()
+                    .map(|g| format!("{}: z.ZodTypeAny", g.to_zod_string()))
+                    .collect::<Vec<_>>();
 
-            Delimited(list.as_slice(), ", ").fmt(f)?;
-            f.write_str(")")?;
-            f.write_str(" => ")?;
-        }
+                Delimited(list.as_slice(), ", ").fmt(f)?;
+                f.write_str(")")?;
+                f.write_str(" => ")?;
+            }
+            Ok(())
+        };
 
         match self.fields {
             StructFields::Named(fields) => {
+                prefix()?;
                 f.write_str("z.lazy(() => z.object({")?;
 
                 let (inner_fields, flat_fields) = AnyNamedField::partition(fields);
@@ -47,26 +49,34 @@ impl FormatZod for Struct {
                 f.write_str(";")?;
             }
             StructFields::Tuple(fields) => {
-                f.write_str("z.lazy(() => z.tuple([")?;
-                let inner_fields = fields
-                    .into_iter()
-                    .filter_map(|f| match f {
-                        AnyTupleField::Inner(field) => Some(field),
-                        _ => None,
-                    })
-                    .copied()
-                    .collect::<Vec<_>>();
+                if fields.len() == 1 {
+                    let field = fields.first().expect("one field");
 
-                Delimited(inner_fields.as_slice(), ", ").fmt_zod(f)?;
-                f.write_str("]));")?;
+                    Self {
+                        ns: self.ns,
+                        ty: self.ty,
+                        fields: StructFields::Transparent {
+                            optional: field.optional,
+                            value: field.value,
+                        },
+                    }
+                    .fmt_zod(f)?;
+                } else {
+                    prefix()?;
+                    f.write_str("z.lazy(() => z.tuple([")?;
+
+                    Delimited(fields, ", ").fmt_zod(f)?;
+                    f.write_str("]));")?;
+                }
             }
             StructFields::Transparent { value, optional } => {
+                prefix()?;
                 f.write_str("z.lazy(() => ")?;
                 value.fmt_zod(f)?;
-                f.write_str(")")?;
                 if optional {
                     f.write_str(".optional()")?;
                 }
+                f.write_str(")")?;
                 f.write_str(";")?;
             }
         }
@@ -81,41 +91,41 @@ impl FormatTypescript for Struct {
                 let (inner_fields, flat_fields) = AnyNamedField::partition(fields);
                 f.write_str("interface ")?;
                 self.ty.fmt_ts(f)?;
-                f.write_str(" {")?;
+
+                if !flat_fields.is_empty() {
+                    f.write_str(" extends ")?;
+                }
+
+                Delimited(flat_fields.as_slice(), ", ").fmt_ts(f)?;
+
+                f.write_str(" { ")?;
 
                 Delimited(inner_fields.as_slice(), ", ").fmt_ts(f)?;
 
-                f.write_str("}")?;
-
-                for field in flat_fields {
-                    f.write_str(" & ")?;
-                    field.fmt_ts(f)?;
-                }
+                f.write_str(" }")?;
             }
-            StructFields::Tuple(fields) => {
-                let (inner, flat) = AnyTupleField::partition(fields);
-                if inner.is_empty() {
-                    f.write_str("type ")?;
-                    self.ty.fmt_ts(f)?;
-                    f.write_str(" = []")?;
-                    for ext in flat {
-                        f.write_str("& ")?;
-                        ext.fmt_ts(f)?;
+            StructFields::Tuple(fields) => match fields.len() {
+                1 => {
+                    let field = fields.first().expect("one field");
+                    Self {
+                        ns: self.ns,
+                        ty: self.ty,
+                        fields: StructFields::Transparent {
+                            optional: field.optional,
+                            value: field.value,
+                        },
                     }
-                    f.write_str(";")?;
-                } else {
+                    .fmt_ts(f)?;
+                }
+                _ => {
                     f.write_str("type ")?;
                     self.ty.fmt_ts(f)?;
                     f.write_str(" = [")?;
-                    Delimited(inner.as_slice(), ", ").fmt_ts(f)?;
+                    Delimited(fields, ", ").fmt_ts(f)?;
                     f.write_str("]")?;
-                    for ext in flat {
-                        f.write_str("& ")?;
-                        ext.fmt_ts(f)?;
-                    }
                     f.write_str(";")?;
                 }
-            }
+            },
             StructFields::Transparent { value, optional } => {
                 f.write_str("type ")?;
                 self.ty.fmt_ts(f)?;
@@ -191,38 +201,38 @@ mod test {
     #[test]
     fn zod_tuple_struct_with_generics_and_fields() {
         let fields = &[
-            AnyTupleField::Inner(TupleField {
+            TupleField {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
                     generics: &[Generic::Type { ident: "A" }],
                 }),
-            }),
-            AnyTupleField::Inner(TupleField {
+            },
+            TupleField {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
                     generics: &[Generic::Type { ident: "B" }],
                 }),
-            }),
-            AnyTupleField::Inner(TupleField {
+            },
+            TupleField {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "c",
                     generics: &[],
                 }),
-            }),
-            AnyTupleField::Inner(TupleField {
+            },
+            TupleField {
                 optional: true,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "d",
                     generics: &[],
                 }),
-            }),
+            },
         ];
 
         let def = Struct {
@@ -327,12 +337,12 @@ mod test {
 
         assert_eq!(
             def.to_zod_string(),
-            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.object({hallo_a: Ns.a(A), hallo_b: Ns.b(B), hallo_c: Ns.c, hallo_d: Ns.d.optional()})).extend(Ns.e);",
+            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.object({hallo_a: Ns.a(A), hallo_b: Ns.b(B), hallo_c: Ns.c, hallo_d: Ns.d.optional()})).extend(z.lazy(() => Ns.e));",
         );
 
         assert_eq!(
             def.to_ts_string(),
-            "interface test<A, B> {hallo_a: Ns.a<A>, hallo_b: Ns.b<B>, hallo_c: Ns.c, hallo_d?: Ns.d | undefined} & Ns.e"
+            "interface test<A, B> extends Ns.e { hallo_a: Ns.a<A>, hallo_b: Ns.b<B>, hallo_c: Ns.c, hallo_d?: Ns.d | undefined }"
         );
     }
 
@@ -382,5 +392,57 @@ mod test {
         );
 
         assert_eq!(def.to_ts_string(), "type test<A, B> = Ns.inner<A, B>;")
+    }
+
+    #[test]
+    fn tuple_with_one_required_field_gets_flattened() {
+        let def = Struct {
+            ns: "Ns",
+            ty: Type {
+                ident: "test",
+                generics: &[],
+            },
+            fields: StructFields::Tuple(&[TupleField {
+                optional: false,
+                value: FieldValue::Qualified(QualifiedType {
+                    ns: "Other",
+                    ident: "other",
+                    generics: &[],
+                }),
+            }]),
+        };
+
+        assert_eq!(
+            def.to_zod_string(),
+            "const test = z.lazy(() => Other.other);"
+        );
+
+        assert_eq!(def.to_ts_string(), "type test = Other.other;");
+    }
+
+    #[test]
+    fn tuple_with_one_optional_field_gets_flattened() {
+        let def = Struct {
+            ns: "Ns",
+            ty: Type {
+                ident: "test",
+                generics: &[],
+            },
+            fields: StructFields::Tuple(&[TupleField {
+                optional: true,
+                value: FieldValue::Qualified(QualifiedType {
+                    ns: "Other",
+                    ident: "other",
+                    generics: &[],
+                }),
+            }]),
+        };
+
+        assert_eq!(
+            def.to_zod_string(),
+            "const test = z.lazy(() => Other.other.optional());"
+        );
+
+        assert_eq!(def.to_ts_string(), "type test = Other.other | undefined;");
     }
 }

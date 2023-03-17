@@ -2,6 +2,7 @@ use pretty_assertions::assert_eq;
 use zod::ZodType;
 
 mod test_utils;
+use test_utils::*;
 
 #[test]
 fn serde_skip_struct_field() {
@@ -23,7 +24,7 @@ fn serde_skip_struct_field() {
         value,
         serde_json::from_value(serde_json::json!({"num": 123})).unwrap()
     );
-    assert!(!Test::AST.schema.contains("to_be_skipped"));
+    assert!(!Test::AST.to_zod_string().contains("to_be_skipped"));
 }
 
 #[test]
@@ -47,5 +48,5 @@ fn serde_skip_deserializing_struct_field() {
         serde_json::from_value(serde_json::json!({"num": 123})).unwrap()
     );
 
-    assert!(!Test::AST.schema.contains("to_be_skipped"));
+    assert!(!Test::AST.to_zod_string().contains("to_be_skipped"));
 }

@@ -74,7 +74,7 @@ impl<'a> Enum<'a> {
 
         quote! {
             impl #zod::ZodType for #ident {
-                const AST: Code = todo!();
+                const AST: #zod::ast::Item = todo!();
             }
         }
     }

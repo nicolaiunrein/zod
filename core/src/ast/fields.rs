@@ -3,7 +3,7 @@ use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
 #[derive(Clone, Copy, Debug)]
 pub enum StructFields {
     Named(&'static [AnyNamedField]),
-    Tuple(&'static [AnyTupleField]),
+    Tuple(&'static [TupleField]),
     Transparent { value: FieldValue, optional: bool },
 }
 
@@ -28,28 +28,6 @@ impl FormatTypescript for FieldValue {
             FieldValue::Generic(inner) => inner.fmt_ts(f),
             FieldValue::Qualified(inner) => inner.fmt_ts(f),
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum AnyTupleField {
-    Flat(FlatField),
-    Inner(TupleField),
-}
-
-impl AnyTupleField {
-    pub fn partition(fields: &'static [Self]) -> (Vec<TupleField>, Vec<FlatField>) {
-        let mut inner = Vec::new();
-        let mut flat = Vec::new();
-
-        for field in fields.into_iter() {
-            match field {
-                Self::Flat(f) => flat.push(*f),
-                Self::Inner(f) => inner.push(*f),
-            }
-        }
-
-        (inner, flat)
     }
 }
 
@@ -96,12 +74,6 @@ pub struct NamedField {
 }
 
 impl AnyNamedField {
-    pub const fn new_flat(value: FieldValue) -> Self {
-        Self::Flat(FlatField { value })
-    }
-}
-
-impl AnyTupleField {
     pub const fn new_flat(value: FieldValue) -> Self {
         Self::Flat(FlatField { value })
     }
@@ -156,9 +128,9 @@ impl FormatTypescript for TupleField {
 
 impl FormatZod for FlatField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(".extend(")?;
+        f.write_str(".extend(z.lazy(() => ")?;
         self.value.fmt_zod(f)?;
-        f.write_str(")")?;
+        f.write_str("))")?;
         Ok(())
     }
 }
@@ -245,7 +217,7 @@ mod test {
                 generics: Default::default(),
             }),
         };
-        assert_eq!(field.to_zod_string(), ".extend(Ns.myValue)");
+        assert_eq!(field.to_zod_string(), ".extend(z.lazy(() => Ns.myValue))");
         assert_eq!(field.to_ts_string(), "Ns.myValue");
     }
 }

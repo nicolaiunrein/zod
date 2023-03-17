@@ -1,4 +1,7 @@
-use zod::{Zod, ZodType};
+use zod::{
+    ast::{FormatTypescript, FormatZod},
+    Zod, ZodType,
+};
 
 mod test_utils;
 use pretty_assertions::assert_eq;
@@ -39,11 +42,11 @@ fn serde_flatten_struct() {
         serde_json::json!({"true_value": true, "false_value": false}),
     );
     compare(
-        Test::AST.schema,
+        Test::AST.to_zod_string(),
         "export const Test = z.lazy(() => z.object({false_value: Rs.Bool})).extend(z.lazy(() => Ns.Nested));",
     );
     compare(
-        Test::AST.type_def,
-        "export interface Test extends Ns.Nested { false_value: Rs.Bool,}",
+        Test::AST.to_ts_string(),
+        "export interface Test extends Ns.Nested { false_value: Rs.Bool }",
     );
 }

@@ -1,9 +1,10 @@
 #![allow(dead_code)]
 use pretty_assertions::assert_eq;
 pub use unindent::Unindent;
+pub use zod::ast::{FormatTypescript, FormatZod};
 
-pub fn compare(a: &str, b: &str) {
-    assert_eq!(normalize(a), normalize(b))
+pub fn compare(a: impl AsRef<str>, b: &str) {
+    assert_eq!(normalize(a.as_ref()), normalize(b))
 }
 
 pub fn normalize(s: &str) -> String {

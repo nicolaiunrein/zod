@@ -6,6 +6,7 @@ mod r#type;
 
 use std::fmt::Display;
 
+use const_format::concatcp;
 pub use fields::*;
 pub use generics::*;
 pub use literal::*;
@@ -129,7 +130,7 @@ where
     }
 }
 
-pub(crate) trait FormatZod {
+pub trait FormatZod {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
     fn to_zod_string(&self) -> String
     where
@@ -139,7 +140,7 @@ pub(crate) trait FormatZod {
     }
 }
 
-pub(crate) trait FormatTypescript {
+pub trait FormatTypescript {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
     fn to_ts_string(&self) -> String
     where

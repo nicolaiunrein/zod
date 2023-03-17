@@ -341,7 +341,7 @@ mod test {
         );
         assert_eq!(
             Option::<String>::AST.to_zod_string(),
-            "export const Option = (T: z.ZodTypeAny) => z.lazy(() => T).optional();"
+            "export const Option = (T: z.ZodTypeAny) => z.lazy(() => T.optional());"
         );
     }
 

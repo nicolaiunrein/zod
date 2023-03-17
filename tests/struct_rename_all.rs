@@ -2,6 +2,7 @@ use pretty_assertions::assert_eq;
 use zod::ZodType;
 
 mod test_utils;
+use test_utils::*;
 
 fn main() {}
 
@@ -25,9 +26,9 @@ fn rename_all_struct() {
         serde_json::json!({"STRING_VALUE": "abc", "USIZE_VALUE": 123})
     );
 
-    assert!(Test::AST.schema.contains("USIZE_VALUE"),);
-    assert!(Test::AST.schema.contains("STRING_VALUE"),);
+    assert!(Test::AST.to_zod_string().contains("USIZE_VALUE"),);
+    assert!(Test::AST.to_zod_string().contains("STRING_VALUE"),);
 
-    assert!(Test::AST.type_def.contains("USIZE_VALUE"),);
-    assert!(Test::AST.type_def.contains("STRING_VALUE"),);
+    assert!(Test::AST.to_ts_string().contains("USIZE_VALUE"),);
+    assert!(Test::AST.to_ts_string().contains("STRING_VALUE"),);
 }
