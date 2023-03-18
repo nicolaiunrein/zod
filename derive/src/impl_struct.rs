@@ -1,4 +1,4 @@
-use crate::{docs::RustDocs, get_zod};
+use crate::{args::InputGeneric, docs::RustDocs, get_zod};
 
 use super::args;
 use darling::ast::{Fields, Style};
@@ -31,17 +31,6 @@ pub fn expand(
 
     let style = fields.style;
 
-    let generic_params = input
-        .generics
-        .params
-        .iter()
-        .filter_map(|p| match p {
-            syn::GenericParam::Type(t) => Some(t.ident.clone()),
-            syn::GenericParam::Lifetime(_) => None,
-            syn::GenericParam::Const(_) => None,
-        })
-        .collect::<Vec<_>>();
-
     let fields = fields
         .iter()
         .zip(fields_ast.iter().map(|f| &f.attrs))
@@ -51,7 +40,7 @@ pub fn expand(
             name: ident.as_ref().map(|_| attrs.name().deserialize_name()),
             optional: !attrs.default().is_none(),
             flatten: attrs.flatten(),
-            generic_params: &generic_params,
+            generic_params: &input.generics.params,
         })
         .collect();
 
@@ -71,7 +60,6 @@ pub fn expand(
         style,
         from_ty,
         generics: input.generics.clone(),
-        generic_params: generic_params.clone(),
     };
 
     struct_def.expand()
@@ -86,8 +74,7 @@ struct Struct<'a> {
     fields: Vec<StructField<'a>>,
     style: Style,
     from_ty: Option<syn::Type>,
-    generics: syn::Generics,
-    generic_params: Vec<Ident>,
+    generics: args::InputGenerics,
 }
 
 impl<'a> Struct<'a> {
@@ -135,9 +122,12 @@ impl<'a> Struct<'a> {
 
     fn expand_generics(&self) -> TokenStream {
         let zod = get_zod();
-        let generics = self.generic_params.iter().map(|param| {
-            let name = param.to_string();
-            quote!(#zod::ast::Generic::Type {ident: #name} )
+        let generics = self.generics.params.iter().filter_map(|param| match param {
+            args::InputGeneric::Ident(ident) => {
+                let name = ident.to_string();
+                Some(quote!(#zod::ast::Generic::Type {ident: #name} ))
+            }
+            args::InputGeneric::Lifetime => None,
         });
 
         quote! {
@@ -183,7 +173,7 @@ struct StructField<'a> {
     ty: &'a syn::Type,
     optional: bool,
     flatten: bool,
-    generic_params: &'a [syn::Ident],
+    generic_params: &'a [InputGeneric],
 }
 
 impl<'a> StructField<'a> {
@@ -235,12 +225,21 @@ impl<'a> StructField<'a> {
                             syn::PathArguments::None => {}
                             syn::PathArguments::AngleBracketed(args) => {
                                 for inner in args.args.iter_mut() {
-                                    *inner = parse_quote!(());
+                                    *inner = match inner {
+                                        syn::GenericArgument::Lifetime(_) => parse_quote!('static),
+                                        syn::GenericArgument::Type(_) => parse_quote!(()),
+                                        syn::GenericArgument::Const(_) => todo!(),
+                                        syn::GenericArgument::Binding(_) => todo!(),
+                                        syn::GenericArgument::Constraint(_) => todo!(),
+                                    }
                                 }
                             }
                             syn::PathArguments::Parenthesized(_) => todo!(),
                         }
                     }
+                }
+                syn::Type::Array(_) => {
+                    //
                 }
                 _ => todo!(),
             };
@@ -256,13 +255,10 @@ impl<'a> StructField<'a> {
                 .map(|ty| {
                     if let Some(ident) =self.get_matching_generic(ty) {
                         let name = ident.to_string();
-                        let out = quote!(#zod::ast::Generic::Type { ident: #name });
-                        println!("out: {out}");
-                        out
+                        quote!(#zod::ast::Generic::Type { ident: #name })
                     } else {
                         let tt = qualified_ty(ty);
-                        let out = quote!(#zod::ast::Generic::QualifiedType { ns: #tt::AST.ns(), ident: #tt::AST.name() });
-                        out
+                        quote!(#zod::ast::Generic::QualifiedType { ns: #tt::AST.ns(), ident: #tt::AST.name() })
                     }
                 });
 
@@ -279,23 +275,31 @@ impl<'a> StructField<'a> {
     fn get_matching_generic(&self, ty: &syn::Type) -> Option<Ident> {
         self.generic_params
             .iter()
-            .find(|param| match ty {
-                syn::Type::Path(p) => {
-                    p.path
-                        .segments
-                        .iter()
-                        .map(|s| s.ident.to_string())
-                        .collect::<Vec<_>>()
-                        == vec![param.to_string()]
-                }
-                _ => false,
+            .find_map(|param| match ty {
+                syn::Type::Path(p) => match param {
+                    InputGeneric::Ident(ident) => {
+                        if p.path
+                            .segments
+                            .iter()
+                            .map(|s| s.ident.to_string())
+                            .collect::<Vec<_>>()
+                            == vec![ident.to_string()]
+                        {
+                            Some(ident)
+                        } else {
+                            None
+                        }
+                    }
+                    InputGeneric::Lifetime => None,
+                },
+                _ => None,
             })
             .cloned()
     }
 
     fn get_generic_args(&self) -> Vec<&syn::Type> {
         match self.ty {
-            syn::Type::Array(_) => todo!(),
+            syn::Type::Array(_) => todo!("1"),
             syn::Type::BareFn(_) => todo!(),
             syn::Type::Group(_) => todo!(),
             syn::Type::ImplTrait(_) => todo!(),

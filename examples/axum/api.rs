@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use futures::Stream;
 use futures::StreamExt;
 use zod::{rpc, Namespace, Zod};
@@ -10,16 +12,19 @@ pub struct MyEntity {
 
 #[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
 #[zod(namespace = "Watchout")]
-pub struct Generic<T, V> {
+pub struct Generic<'a, T, V> {
     value: String,
     t: T,
     v: V,
+
+    #[serde(skip)]
+    _p: PhantomData<&'a T>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
 #[zod(namespace = "Watchout")]
-pub struct User {
-    value: Generic<String, usize>,
+pub struct User<'a> {
+    value: Generic<'a, usize, usize>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Zod)]
@@ -81,6 +86,11 @@ impl Watchout {
     }
 
     pub async fn hello(&mut self, _s: String, _n: usize) -> usize {
+        self.shared_data += 1;
+        self.shared_data
+    }
+
+    pub async fn hello_user(&mut self, _user: User<'static>, _n: usize) -> usize {
         self.shared_data += 1;
         self.shared_data
     }

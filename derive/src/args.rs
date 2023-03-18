@@ -1,8 +1,10 @@
+use std::ops::Deref;
+
 use darling::{
     ast::{Data, Fields},
-    FromDeriveInput, FromField, FromVariant,
+    FromDeriveInput, FromField, FromGenerics, FromVariant,
 };
-use syn::{Attribute, Type};
+use syn::{Attribute, Ident, Type};
 
 #[derive(FromDeriveInput)]
 #[darling(
@@ -15,7 +17,7 @@ pub struct Input {
     pub data: Data<EnumVariant, StructField>,
     pub namespace: syn::Path,
     pub attrs: Vec<Attribute>,
-    pub generics: syn::Generics,
+    pub generics: InputGenerics,
 }
 
 #[derive(FromVariant, Clone)]
@@ -45,4 +47,55 @@ pub struct NamespaceInput {
     pub name: Option<String>,
     pub attrs: Vec<Attribute>,
     pub generics: syn::Generics,
+}
+
+#[derive(Clone, Debug)]
+pub enum InputGeneric {
+    Ident(Ident),
+    Lifetime,
+}
+
+#[derive(Clone, Debug)]
+pub struct InputGenerics {
+    pub params: Vec<InputGeneric>,
+    orig: syn::Generics,
+}
+
+impl Deref for InputGenerics {
+    type Target = syn::Generics;
+
+    fn deref(&self) -> &Self::Target {
+        &self.orig
+    }
+}
+
+impl FromGenerics for InputGenerics {
+    fn from_generics(generics: &syn::Generics) -> darling::Result<Self> {
+        let params = generics
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                syn::GenericParam::Type(t) => {
+                    if !t.bounds.is_empty() {
+                        Some(Err(darling::Error::custom(
+                            "zod: `generics with bounds are not supported`",
+                        )
+                        .with_span(&t.bounds)))
+                    } else {
+                        Some(Ok(InputGeneric::Ident(t.ident.clone())))
+                    }
+                }
+                syn::GenericParam::Lifetime(_) => Some(Ok(InputGeneric::Lifetime)),
+                syn::GenericParam::Const(c) => Some(Err(darling::Error::custom(
+                    "zod: `const generics are not supported`",
+                )
+                .with_span(c))),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self {
+            params,
+            orig: generics.clone(),
+        })
+    }
 }
