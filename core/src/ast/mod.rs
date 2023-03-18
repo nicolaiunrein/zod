@@ -14,34 +14,11 @@ pub use r#type::*;
 
 use crate::Namespace;
 
-/// Example:
-/// ```
-/// # use zod_core::ast::*;
-/// inventory::submit!(ZodExport {
-///     docs: Some("my cool struct..."),
-///     def: ZodDefinition::Struct(Struct {
-///         ns: "abc",
-///         ty: Type {
-///             ident: "test",
-///             generics: &[Generic::Type { ident: "T1" }, Generic::Type { ident: "T2" }]
-///         },
-///         fields: StructFields::Named(&[MaybeFlatField::Flat(FlatField {
-///             value: FieldValue::Qualified(QualifiedType {
-///                 ns: "Other",
-///                 ident: "xx",
-///                 generics: &[]
-///             })
-///         })])
-///     })
-/// });
-/// ```
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ZodExport {
     pub docs: Option<&'static str>,
     pub def: ZodDefinition,
 }
-
-inventory::collect!(ZodExport);
 
 impl Display for ZodExport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -94,9 +71,13 @@ impl ZodExport {
     pub const fn generics(&self) -> &'static [Generic] {
         self.def.generics()
     }
+
+    pub fn qualified_name(&self) -> String {
+        format!("{}.{}", self.ns(), self.name())
+    }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ZodDefinition {
     Struct(Struct),
     Literal(Literal),

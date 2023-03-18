@@ -1,12 +1,12 @@
 use super::{Delimited, FormatTypescript, FormatZod, Generic};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Type {
     pub ident: &'static str,
     pub generics: &'static [Generic],
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct QualifiedType {
     pub ns: &'static str,
     pub ident: &'static str,

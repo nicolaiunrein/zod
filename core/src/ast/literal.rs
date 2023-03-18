@@ -1,6 +1,6 @@
 use super::{FormatTypescript, FormatZod, Type};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Literal {
     pub ns: &'static str,
     pub ty: Type,

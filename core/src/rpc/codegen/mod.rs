@@ -1,4 +1,3 @@
-use crate::ast::FormatTypescript;
 use crate::ast::*;
 
 pub trait ClientCodegen {
@@ -53,8 +52,6 @@ fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
         out
     }
 }
-
-inventory::collect!(RpcMember);
 
 impl RpcMember {
     pub fn decl(&self) -> String {
@@ -143,7 +140,3 @@ export function {name}({arg_fields}): Store<{res}> {{
         }
     }
 }
-
-// #[doc(hidden)]
-// / marker trait for better errors
-// pub trait RpcHandler {}

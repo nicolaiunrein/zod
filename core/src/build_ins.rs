@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::DependencyMap;
 use crate::Namespace;
 use crate::ZodType;
 
@@ -24,9 +25,14 @@ macro_rules! impl_primitive {
                     zod: concat!("const ", $name, " = ", $zod, ";"),
                 }),
             };
-        }
 
-        inventory::submit!(<$T>::AST);
+            fn register_dependencies(cx: &mut DependencyMap)
+            where
+                Self: 'static,
+            {
+                cx.add::<Self>();
+            }
+        }
     };
 }
 
@@ -34,6 +40,15 @@ macro_rules! impl_tuple {
     ( $N: literal, $($i:ident),* ) => {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
             const AST: ZodExport = tuple!($N, $($i),*);
+
+            fn register_dependencies(cx: &mut DependencyMap)
+            where
+                Self: 'static,
+            {
+                if cx.add::<Self>(){
+                    $(<$i>::register_dependencies(cx);)*
+                }
+            }
         }
 
     };
@@ -43,8 +58,7 @@ macro_rules! tuple {
     ( $N: literal, $($i:ident),* ) => {
 
         {
-
-            const AST: ZodExport = ZodExport {
+            ZodExport {
                 docs: None,
                 def: ZodDefinition::Literal(Literal {
                 ns: Rs::NAME,
@@ -54,10 +68,7 @@ macro_rules! tuple {
                 },
                 ts: concat!("export type Tuple", $N, "<",std::stringify!($($i),*) ,">",  " = [", std::stringify!($($i),*), "];"),
                 zod: concat!("export const Tuple", $N, " = (", $(std::stringify!($i: z.ZodTypeAny,)),*  ,") => z.tuple([", $(std::stringify!(z.lazy(() => $i),)),*, "])"),
-            })};
-
-            inventory::submit!(AST);
-            AST
+            })}
         }
     };
 }
@@ -66,6 +77,15 @@ macro_rules! impl_wrapper {
     ($($t:tt)*) => {
         $($t)* {
             const AST: ZodExport = T::AST;
+
+            fn register_dependencies(cx: &mut DependencyMap)
+            where
+                Self: 'static,
+            {
+                if cx.add::<Self>() {
+                    T::register_dependencies(cx);
+                }
+            }
         }
     };
 }
@@ -180,6 +200,15 @@ impl<T: ZodType> ZodType for Vec<T> {
             zod: "export const Vec = (T: z.ZodTypeAny) => z.array(z.lazy(() => T))",
         }),
     };
+
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            T::register_dependencies(cx);
+        }
+    }
 }
 
 impl<const N: usize, T: ZodType> ZodType for [T; N] {
@@ -202,46 +231,67 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
             zod:
                 "export const Array = (N: number, T: z.ZodTypeAny) => z.array(z.lazy(() => T)).length(N)",
     })};
-}
 
-const HASH_SET_AST: ZodExport = ZodExport {
-    docs: None,
-    def: ZodDefinition::Literal(Literal {
-        ns: Rs::NAME,
-        ty: Type {
-            ident: "HashSet",
-            generics: &[Generic::Type { ident: "T" }],
-        },
-        ts: "export type HashSet<T> = Set<T>;",
-        zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
-    }),
-};
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            T::register_dependencies(cx);
+        }
+    }
+}
 
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
-    const AST: ZodExport = HASH_SET_AST;
-}
-inventory::submit!(HASH_SET_AST);
+    const AST: ZodExport = ZodExport {
+        docs: None,
+        def: ZodDefinition::Literal(Literal {
+            ns: Rs::NAME,
+            ty: Type {
+                ident: "HashSet",
+                generics: &[Generic::Type { ident: "T" }],
+            },
+            ts: "export type HashSet<T> = Set<T>;",
+            zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
+        }),
+    };
 
-const BTREE_SET_AST: ZodExport = ZodExport {
-    docs: None,
-    def: ZodDefinition::Literal(Literal {
-        ns: Rs::NAME,
-        ty: Type {
-            ident: "BTreeSet",
-            generics: &[Generic::Type { ident: "T" }],
-        },
-        ts: "export type BTreeSet<T> = Set<T>;",
-        zod: "export const BTreeSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
-    }),
-};
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            T::register_dependencies(cx);
+        }
+    }
+}
 
 impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
-    const AST: ZodExport = BTREE_SET_AST;
+    const AST: ZodExport = ZodExport {
+        docs: None,
+        def: ZodDefinition::Literal(Literal {
+            ns: Rs::NAME,
+            ty: Type {
+                ident: "BTreeSet",
+                generics: &[Generic::Type { ident: "T" }],
+            },
+            ts: "export type BTreeSet<T> = Set<T>;",
+            zod: "export const BTreeSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
+        }),
+    };
+
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            T::register_dependencies(cx);
+        }
+    }
 }
 
-inventory::submit!(BTREE_SET_AST);
-
-const HASH_MAP_AST: ZodExport = ZodExport{
+impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
+    const AST : ZodExport = ZodExport{
     docs: None,
     def: ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
@@ -256,13 +306,19 @@ const HASH_MAP_AST: ZodExport = ZodExport{
             zod: "export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     })};
 
-impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
-    const AST: ZodExport = HASH_MAP_AST;
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            K::register_dependencies(cx);
+            V::register_dependencies(cx);
+        }
+    }
 }
 
-inventory::submit!(HASH_MAP_AST);
-
-const BTREE_MAP_AST: ZodExport = ZodExport{
+impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
+    const AST: ZodExport = ZodExport{
     docs: None,def:ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
@@ -276,34 +332,45 @@ const BTREE_MAP_AST: ZodExport = ZodExport{
             zod: "export const BTreeMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     })};
 
-impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
-    const AST: ZodExport = BTREE_MAP_AST;
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            K::register_dependencies(cx);
+            V::register_dependencies(cx);
+        }
+    }
 }
-
-inventory::submit!(BTREE_MAP_AST);
-
-const OPTION_AST: ZodExport = ZodExport {
-    docs: None,
-    def: ZodDefinition::Struct(Struct {
-        ns: Rs::NAME,
-        ty: Type {
-            ident: "Option",
-            generics: &[Generic::Type { ident: "T" }],
-        },
-        fields: StructFields::Transparent {
-            value: FieldValue::Generic(Generic::Type { ident: "T" }),
-            optional: true,
-        },
-    }),
-};
 
 impl<T: ZodType> ZodType for Option<T> {
-    const AST: ZodExport = OPTION_AST;
+    const AST: ZodExport = ZodExport {
+        docs: None,
+        def: ZodDefinition::Struct(Struct {
+            ns: Rs::NAME,
+            ty: Type {
+                ident: "Option",
+                generics: &[Generic::Type { ident: "T" }],
+            },
+            fields: StructFields::Transparent {
+                value: FieldValue::Generic(Generic::Type { ident: "T" }),
+                optional: true,
+            },
+        }),
+    };
+
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            T::register_dependencies(cx);
+        }
+    }
 }
 
-inventory::submit!(OPTION_AST);
-
-const RESULT_AST: ZodExport = ZodExport{docs: None, def: ZodDefinition::Literal(Literal {
+impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
+    const AST: ZodExport = ZodExport{docs: None, def: ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "Result",
@@ -317,11 +384,16 @@ const RESULT_AST: ZodExport = ZodExport{docs: None, def: ZodDefinition::Literal(
             zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeAny) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
     })};
 
-impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
-    const AST: ZodExport = RESULT_AST;
+    fn register_dependencies(cx: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            T::register_dependencies(cx);
+            E::register_dependencies(cx);
+        }
+    }
 }
-
-inventory::submit!(RESULT_AST);
 
 impl_primitive!(
     std::net::Ipv4Addr,
@@ -350,7 +422,7 @@ impl_primitive!(ordered_float::NotNan<f64>, "F64", "number", "z.number()");
 
 #[cfg(test)]
 mod test {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeSet, HashMap};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -368,65 +440,28 @@ mod test {
     }
 
     #[test]
-    fn inventory() {
-        let items = inventory::iter::<ZodExport>();
-
-        let item_names: BTreeSet<_> = items
-            .filter_map(|item| {
-                if item.ns() == Rs::NAME {
-                    Some(item.ty().ident)
-                } else {
-                    None
-                }
-            })
-            .collect();
+    fn deps_ok() {
+        type T = Vec<Option<Result<Box<[HashMap<usize, bool>; 5]>, String>>>;
 
         assert_eq!(
-            &item_names,
-            &[
-                "BTreeMap",
-                "BTreeSet",
-                "HashMap",
-                "HashSet",
-                "Option",
-                "Result",
-                "Tuple1",
-                "Tuple10",
-                "Tuple11",
-                "Tuple12",
-                "Tuple2",
-                "Tuple3",
-                "Tuple4",
-                "Tuple5",
-                "Tuple6",
-                "Tuple7",
-                "Tuple8",
-                "Tuple9",
-                <&str>::AST.ty().ident,
-                <()>::AST.ty().ident,
-                String::AST.ty().ident,
-                bool::AST.ty().ident,
-                char::AST.ty().ident,
-                f32::AST.ty().ident,
-                f64::AST.ty().ident,
-                i128::AST.ty().ident,
-                i16::AST.ty().ident,
-                i32::AST.ty().ident,
-                i64::AST.ty().ident,
-                i8::AST.ty().ident,
-                isize::AST.ty().ident,
-                std::net::IpAddr::AST.ty().ident,
-                std::net::Ipv4Addr::AST.ty().ident,
-                std::net::Ipv6Addr::AST.ty().ident,
-                u128::AST.ty().ident,
-                u16::AST.ty().ident,
-                u32::AST.ty().ident,
-                u64::AST.ty().ident,
-                u8::AST.ty().ident,
-                usize::AST.ty().ident,
+            T::dependencies()
+                .resolve()
+                .iter()
+                .map(|node| node.qualified_name())
+                .collect::<BTreeSet<_>>(),
+            vec![
+                "Rs.Vec",
+                "Rs.Option",
+                "Rs.Result",
+                "Rs.Array",
+                "Rs.HashMap",
+                "Rs.Usize",
+                "Rs.Bool",
+                "Rs.String",
             ]
             .into_iter()
-            .collect()
-        )
+            .map(String::from)
+            .collect::<BTreeSet<_>>()
+        );
     }
 }

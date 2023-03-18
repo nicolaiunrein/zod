@@ -1,13 +1,13 @@
 use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
     Named(&'static [MaybeFlatField]),
     Tuple(&'static [TupleField]),
     Transparent { value: FieldValue, optional: bool },
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
     Generic(Generic),
     Qualified(QualifiedType),
@@ -31,7 +31,7 @@ impl FormatTypescript for FieldValue {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MaybeFlatField {
     Flat(FlatField),
     Named(NamedField),
@@ -53,20 +53,20 @@ impl MaybeFlatField {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct FlatField {
     // TODO: find a way to express flat optional fields in typescript with interfaces
     // see: https://github.com/nicolaiunrein/zod/issues/3
     pub value: FieldValue,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TupleField {
     pub optional: bool,
     pub value: FieldValue,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct NamedField {
     pub optional: bool,
     pub name: &'static str,

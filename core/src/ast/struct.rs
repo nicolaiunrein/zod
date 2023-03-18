@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, StructFields, Type};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Struct {
     pub ns: &'static str,
     pub ty: Type,

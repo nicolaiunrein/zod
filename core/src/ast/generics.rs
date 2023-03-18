@@ -1,6 +1,6 @@
 use super::{FormatTypescript, FormatZod};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Generic {
     Type {
         ident: &'static str,
