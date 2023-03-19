@@ -19,7 +19,6 @@ pub trait ZodType: DependencyRegistration {
     const AST: ast::ZodExport;
 
     fn inline_zod() -> String;
-    // format!("{}.{}", Self::AST.ns(), Self::AST.name())
 }
 
 pub trait DependencyRegistration {
@@ -78,9 +77,20 @@ pub trait Namespace {
 #[cfg(test)]
 mod test {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn nesting_ok() {
         assert_eq!(<Option<String>>::inline_zod(), "Rs.Option(Rs.String)");
+        assert_eq!(
+            <Result<std::collections::HashMap<usize, Option<bool>>, String>>::inline_zod(),
+            "Rs.Result(Rs.HashMap(Rs.Usize, Rs.Option(Rs.Bool)), Rs.String)"
+        );
+
+        assert_eq!(<[String; 5]>::inline_zod(), "Rs.Array(5, Rs.String)");
+        assert_eq!(
+            <(String, usize, bool)>::inline_zod(),
+            "Rs.Tuple3(Rs.String, Rs.Usize, Rs.Bool)"
+        );
     }
 }

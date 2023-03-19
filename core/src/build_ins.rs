@@ -52,7 +52,16 @@ macro_rules! impl_tuple {
             const AST: ZodExport = tuple!($N, $($i),*);
 
             fn inline_zod() -> String {
-                format!("{}.{}(todo)", Self::AST.ns(), Self::AST.name())
+                let mut out = format!("{}.{}(", Self::AST.ns(), Self::AST.name());
+                $(
+                    out.push_str(&$i::inline_zod());
+                    out.push_str(" ");
+                )*
+
+
+                out = out.trim().replace(" ", ", ");
+                out.push_str(")");
+                out
             }
         }
 
@@ -270,7 +279,13 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
     })};
 
     fn inline_zod() -> String {
-        todo!()
+        format!(
+            "{}.{}({}, {})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            N,
+            T::inline_zod()
+        )
     }
 }
 

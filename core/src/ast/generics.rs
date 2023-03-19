@@ -36,3 +36,16 @@ impl FormatTypescript for Generic {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::ZodType;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn inline() {
+        type T = Vec<String>;
+
+        assert_eq!(T::inline_zod(), "Rs.Vec(Rs.String)")
+    }
+}

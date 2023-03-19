@@ -1,9 +1,10 @@
+use pretty_assertions::assert_eq;
 use std::sync::Arc;
 
 use zod_core::{
     ast::{
-        self, FieldValue, MaybeFlatField, NamedField, QualifiedType, StructFields, ZodDefinition,
-        ZodExport,
+        self, FieldValue, FormatZod, MaybeFlatField, NamedField, QualifiedType, StructFields,
+        ZodDefinition, ZodExport,
     },
     rpc::codegen::RpcNamespace,
     DependencyRegistration, Namespace, ZodType,
@@ -25,7 +26,7 @@ impl ZodType for MyType {
             fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "inner",
-                // value: <Vec<Arc<(String, usize)>> as ZodType>::AST.ty(),
+                // value: <Vec<Arc<(String, usize)>>>::inline_zod(),
                 value: todo!(),
             })]),
         }),
@@ -84,4 +85,7 @@ impl DependencyRegistration for MyNamespace {
 }
 
 struct MyBackend {}
-fn main() {}
+
+fn main() {
+    assert_eq!(MyType::AST.to_zod_string(), "")
+}

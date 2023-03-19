@@ -1,4 +1,4 @@
-use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
+use super::{FormatTypescript, FormatZod, Generic, QualifiedType, ZodDefinition};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
