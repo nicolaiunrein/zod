@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::{ast::*, DependencyRegistration};
 
 pub trait ClientCodegen {
     fn get() -> String;
@@ -6,7 +6,7 @@ pub trait ClientCodegen {
 
 type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
 
-pub trait RpcNamespace: crate::Namespace {
+pub trait RpcNamespace: crate::Namespace + DependencyRegistration {
     type Req: serde::de::DeserializeOwned;
 }
 
@@ -35,22 +35,6 @@ pub enum RpcMember {
         args: RuntimeValue<Vec<RpcArgument>>,
         res: RuntimeValue<&'static str>,
     },
-}
-
-fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
-    if args.is_empty() {
-        String::new()
-    } else {
-        let mut out = String::from("// phantom usage\n");
-        for arg in args {
-            out.push_str("    ");
-            let ty = arg.code.ty().qualify(arg.code.ns());
-            out.push_str(&ty.to_ts_string());
-            out.push(';');
-            out.push('\n');
-        }
-        out
-    }
 }
 
 impl RpcMember {
@@ -138,5 +122,21 @@ export function {name}({arg_fields}): Store<{res}> {{
             RpcMember::Method { name, .. } => name,
             RpcMember::Stream { name, .. } => name,
         }
+    }
+}
+
+fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
+    if args.is_empty() {
+        String::new()
+    } else {
+        let mut out = String::from("// phantom usage\n");
+        for arg in args {
+            out.push_str("    ");
+            let ty = arg.code.ty().qualify(arg.code.ns());
+            out.push_str(&ty.to_ts_string());
+            out.push(';');
+            out.push('\n');
+        }
+        out
     }
 }

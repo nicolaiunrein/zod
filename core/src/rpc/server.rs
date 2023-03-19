@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
-use crate::{rpc::codegen, rpc::Request, rpc::ResponseSender};
+use crate::{rpc::codegen, rpc::Request, rpc::ResponseSender, DependencyRegistration, Namespace};
 
 pub type StreamHandle = tokio::task::JoinHandle<()>;
 
@@ -32,12 +32,40 @@ impl Drop for SubscriberMap {
 }
 
 #[async_trait::async_trait]
-pub trait Backend {
-    const NS_NAMES: &'static [&'static str];
-
+pub trait Backend: DependencyRegistration {
     fn generate<T>() -> String
     where
-        T: codegen::ClientCodegen;
+        T: codegen::ClientCodegen,
+        Self: 'static,
+    {
+        let mut out = T::get();
+        let mut exports = BTreeMap::<&str, Vec<_>>::new();
+        for export in Self::dependencies().resolve().into_iter() {
+            exports.entry(export.ns()).or_default().push(export);
+        }
+
+        if let Some(rs) = exports.remove(crate::build_ins::Rs::NAME) {
+            out.push_str("export namepace ");
+            out.push_str(crate::build_ins::Rs::NAME);
+            out.push_str(" {\n");
+            for node in rs.into_iter() {
+                out.push_str(&node.to_string());
+            }
+            out.push_str("\n}\n")
+        }
+
+        for (ns, nodes) in exports.into_iter() {
+            out.push_str("export namepace ");
+            out.push_str(ns);
+            out.push_str(" {\n");
+            for node in nodes.into_iter() {
+                out.push_str(&node.to_string());
+            }
+            out.push_str("\n}\n")
+        }
+
+        out
+    }
 
     async fn handle_request(
         &mut self,

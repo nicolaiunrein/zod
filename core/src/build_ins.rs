@@ -1,13 +1,17 @@
 use crate::ast::*;
 use crate::DependencyMap;
+use crate::DependencyRegistration;
 use crate::Namespace;
 use crate::ZodType;
 
 pub struct Rs;
 
+pub struct RsRegistry;
+
 impl Namespace for Rs {
     const NAME: &'static str = "Rs";
     const DOCS: Option<&'static str> = Some("Rust types");
+    type Registry = RsRegistry;
 }
 
 macro_rules! impl_primitive {
@@ -26,6 +30,12 @@ macro_rules! impl_primitive {
                 }),
             };
 
+            fn inline_zod() -> String {
+                format!("{}.{}", Self::AST.ns(), Self::AST.name())
+            }
+        }
+
+        impl DependencyRegistration for $T {
             fn register_dependencies(cx: &mut DependencyMap)
             where
                 Self: 'static,
@@ -41,6 +51,12 @@ macro_rules! impl_tuple {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
             const AST: ZodExport = tuple!($N, $($i),*);
 
+            fn inline_zod() -> String {
+                format!("{}.{}(todo)", Self::AST.ns(), Self::AST.name())
+            }
+        }
+
+        impl<$($i: ZodType),*> DependencyRegistration for ($($i,)*) {
             fn register_dependencies(cx: &mut DependencyMap)
             where
                 Self: 'static,
@@ -49,6 +65,8 @@ macro_rules! impl_tuple {
                     $(<$i>::register_dependencies(cx);)*
                 }
             }
+
+
         }
 
     };
@@ -74,9 +92,17 @@ macro_rules! tuple {
 }
 
 macro_rules! impl_wrapper {
-    ($($t:tt)*) => {
-        $($t)* {
+    ($type:ty, $($t:tt)* ) => {
+        $($t)* ZodType for $type {
             const AST: ZodExport = T::AST;
+
+            fn inline_zod() -> String {
+                T::inline_zod()
+            }
+        }
+
+
+        $($t)* DependencyRegistration for $type {
 
             fn register_dependencies(cx: &mut DependencyMap)
             where
@@ -177,15 +203,15 @@ impl_tuple!(10, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
 impl_tuple!(11, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 impl_tuple!(12, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
 
-impl_wrapper!(impl<T: ZodType> ZodType for Box<T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Arc<T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::rc::Rc<T>);
-impl_wrapper!(impl<T: ZodType + ToOwned> ZodType for std::borrow::Cow<'static, T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::cell::Cell<T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::cell::RefCell<T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Mutex<T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::sync::Weak<T>);
-impl_wrapper!(impl<T: ZodType> ZodType for std::marker::PhantomData<T>);
+impl_wrapper!(Box<T>, impl<T: ZodType>);
+impl_wrapper!(std::sync::Arc<T>, impl <T: ZodType>);
+impl_wrapper!(std::rc::Rc<T>, impl<T: ZodType>);
+impl_wrapper!(std::borrow::Cow<'static, T>, impl<T: ZodType + ToOwned>);
+impl_wrapper!(std::cell::Cell<T>, impl<T: ZodType>);
+impl_wrapper!(std::cell::RefCell<T>, impl<T: ZodType>);
+impl_wrapper!(std::sync::Mutex<T>, impl<T: ZodType>);
+impl_wrapper!(std::sync::Weak<T>, impl<T: ZodType>);
+impl_wrapper!(std::marker::PhantomData<T>, impl<T: ZodType>);
 
 impl<T: ZodType> ZodType for Vec<T> {
     const AST: ZodExport = ZodExport {
@@ -201,6 +227,17 @@ impl<T: ZodType> ZodType for Vec<T> {
         }),
     };
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <T>::inline_zod()
+        )
+    }
+}
+
+impl<T: ZodType> DependencyRegistration for Vec<T> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -232,6 +269,12 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
                 "export const Array = (N: number, T: z.ZodTypeAny) => z.array(z.lazy(() => T)).length(N)",
     })};
 
+    fn inline_zod() -> String {
+        todo!()
+    }
+}
+
+impl<const N: usize, T: ZodType> DependencyRegistration for [T; N] {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -256,6 +299,16 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
         }),
     };
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <T>::inline_zod()
+        )
+    }
+}
+impl<T: ZodType> DependencyRegistration for std::collections::HashSet<T> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -280,6 +333,17 @@ impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
         }),
     };
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <T>::inline_zod()
+        )
+    }
+}
+
+impl<T: ZodType> DependencyRegistration for std::collections::BTreeSet<T> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -306,6 +370,18 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
             zod: "export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     })};
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({}, {})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <K>::inline_zod(),
+            <V>::inline_zod()
+        )
+    }
+}
+
+impl<K: ZodType, V: ZodType> DependencyRegistration for std::collections::HashMap<K, V> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -332,6 +408,18 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
             zod: "export const BTreeMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     })};
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({}, {})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <K>::inline_zod(),
+            <V>::inline_zod()
+        )
+    }
+}
+
+impl<K: ZodType, V: ZodType> DependencyRegistration for std::collections::BTreeMap<K, V> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -359,6 +447,16 @@ impl<T: ZodType> ZodType for Option<T> {
         }),
     };
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <T>::inline_zod(),
+        )
+    }
+}
+impl<T: ZodType> DependencyRegistration for Option<T> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,
@@ -384,6 +482,18 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
             zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeAny) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
     })};
 
+    fn inline_zod() -> String {
+        format!(
+            "{}.{}({}, {})",
+            Self::AST.ns(),
+            Self::AST.name(),
+            <T>::inline_zod(),
+            <E>::inline_zod(),
+        )
+    }
+}
+
+impl<T: ZodType, E: ZodType> DependencyRegistration for Result<T, E> {
     fn register_dependencies(cx: &mut DependencyMap)
     where
         Self: 'static,

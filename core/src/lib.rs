@@ -15,9 +15,14 @@ use std::{
 use ast::ZodExport;
 pub use build_ins::*;
 
-pub trait ZodType {
+pub trait ZodType: DependencyRegistration {
     const AST: ast::ZodExport;
 
+    fn inline_zod() -> String;
+    // format!("{}.{}", Self::AST.ns(), Self::AST.name())
+}
+
+pub trait DependencyRegistration {
     fn register_dependencies(_: &mut DependencyMap)
     where
         Self: 'static;
@@ -53,6 +58,7 @@ impl DependencyMap {
 pub trait Namespace {
     const NAME: &'static str;
     const DOCS: Option<&'static str>;
+    type Registry;
 
     fn generate() -> String
     where
@@ -66,5 +72,15 @@ pub trait Namespace {
 
         out.push_str("}");
         out
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn nesting_ok() {
+        assert_eq!(<Option<String>>::inline_zod(), "Rs.Option(Rs.String)");
     }
 }
