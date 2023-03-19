@@ -17,21 +17,23 @@ impl Namespace for Rs {
 macro_rules! impl_primitive {
     ($T:ty, $name: literal, $ts_type: literal, $zod: literal) => {
         impl ZodType for $T {
-            const AST: ZodExport = ZodExport {
-                docs: None,
-                def: ZodDefinition::Literal(Literal {
-                    ns: Rs::NAME,
-                    ty: Type {
-                        ident: $name,
-                        generics: &[],
-                    },
-                    ts: concat!("type ", $name, " = ", $ts_type, ";"),
-                    zod: concat!("const ", $name, " = ", $zod, ";"),
-                }),
-            };
+            fn ast() -> ZodExport {
+                ZodExport {
+                    docs: None,
+                    def: ZodDefinition::Literal(Literal {
+                        ns: Rs::NAME,
+                        ty: Type {
+                            ident: $name,
+                            generics: &[],
+                        },
+                        ts: concat!("type ", $name, " = ", $ts_type, ";"),
+                        zod: concat!("const ", $name, " = ", $zod, ";"),
+                    }),
+                }
+            }
 
             fn inline_zod() -> String {
-                format!("{}.{}", Self::AST.ns(), Self::AST.name())
+                format!("{}.{}", Self::ast().ns(), Self::ast().name())
             }
         }
 
@@ -49,10 +51,13 @@ macro_rules! impl_primitive {
 macro_rules! impl_tuple {
     ( $N: literal, $($i:ident),* ) => {
         impl<$($i: ZodType),*> ZodType for ($($i,)*) {
-            const AST: ZodExport = tuple!($N, $($i),*);
+
+            fn ast() -> ZodExport {
+                tuple!($N, $($i),*)
+            }
 
             fn inline_zod() -> String {
-                let mut out = format!("{}.{}(", Self::AST.ns(), Self::AST.name());
+                let mut out = format!("{}.{}(", Self::ast().ns(), Self::ast().name());
                 $(
                     out.push_str(&$i::inline_zod());
                     out.push_str(" ");
@@ -103,7 +108,9 @@ macro_rules! tuple {
 macro_rules! impl_wrapper {
     ($type:ty, $($t:tt)* ) => {
         $($t)* ZodType for $type {
-            const AST: ZodExport = T::AST;
+            fn ast() -> ZodExport {
+                T::ast()
+            }
 
             fn inline_zod() -> String {
                 T::inline_zod()
@@ -223,24 +230,26 @@ impl_wrapper!(std::sync::Weak<T>, impl<T: ZodType>);
 impl_wrapper!(std::marker::PhantomData<T>, impl<T: ZodType>);
 
 impl<T: ZodType> ZodType for Vec<T> {
-    const AST: ZodExport = ZodExport {
-        docs: None,
-        def: ZodDefinition::Literal(Literal {
-            ns: Rs::NAME,
-            ty: Type {
-                ident: "Vec",
-                generics: &[Generic::Type { ident: "T" }],
-            },
-            ts: "export type Vec<T> = T[];",
-            zod: "export const Vec = (T: z.ZodTypeAny) => z.array(z.lazy(() => T))",
-        }),
-    };
+    fn ast() -> ZodExport {
+        ZodExport {
+            docs: None,
+            def: ZodDefinition::Literal(Literal {
+                ns: Rs::NAME,
+                ty: Type {
+                    ident: "Vec",
+                    generics: &[Generic::Type { ident: "T" }],
+                },
+                ts: "export type Vec<T> = T[];",
+                zod: "export const Vec = (T: z.ZodTypeAny) => z.array(z.lazy(() => T))",
+            }),
+        }
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <T>::inline_zod()
         )
     }
@@ -258,7 +267,8 @@ impl<T: ZodType> DependencyRegistration for Vec<T> {
 }
 
 impl<const N: usize, T: ZodType> ZodType for [T; N] {
-    const AST: ZodExport  = ZodExport{
+    fn ast() -> ZodExport {
+        ZodExport{
         docs: None,
         def: ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
@@ -276,13 +286,14 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
             ",
             zod:
                 "export const Array = (N: number, T: z.ZodTypeAny) => z.array(z.lazy(() => T)).length(N)",
-    })};
+    })}
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({}, {})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             N,
             T::inline_zod()
         )
@@ -301,24 +312,26 @@ impl<const N: usize, T: ZodType> DependencyRegistration for [T; N] {
 }
 
 impl<T: ZodType> ZodType for std::collections::HashSet<T> {
-    const AST: ZodExport = ZodExport {
-        docs: None,
-        def: ZodDefinition::Literal(Literal {
-            ns: Rs::NAME,
-            ty: Type {
-                ident: "HashSet",
-                generics: &[Generic::Type { ident: "T" }],
-            },
-            ts: "export type HashSet<T> = Set<T>;",
-            zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
-        }),
-    };
+    fn ast() -> ZodExport {
+        ZodExport {
+            docs: None,
+            def: ZodDefinition::Literal(Literal {
+                ns: Rs::NAME,
+                ty: Type {
+                    ident: "HashSet",
+                    generics: &[Generic::Type { ident: "T" }],
+                },
+                ts: "export type HashSet<T> = Set<T>;",
+                zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
+            }),
+        }
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <T>::inline_zod()
         )
     }
@@ -335,24 +348,26 @@ impl<T: ZodType> DependencyRegistration for std::collections::HashSet<T> {
 }
 
 impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
-    const AST: ZodExport = ZodExport {
-        docs: None,
-        def: ZodDefinition::Literal(Literal {
-            ns: Rs::NAME,
-            ty: Type {
-                ident: "BTreeSet",
-                generics: &[Generic::Type { ident: "T" }],
-            },
-            ts: "export type BTreeSet<T> = Set<T>;",
-            zod: "export const BTreeSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
-        }),
-    };
+    fn ast() -> crate::ast::ZodExport {
+        ZodExport {
+            docs: None,
+            def: ZodDefinition::Literal(Literal {
+                ns: Rs::NAME,
+                ty: Type {
+                    ident: "BTreeSet",
+                    generics: &[Generic::Type { ident: "T" }],
+                },
+                ts: "export type BTreeSet<T> = Set<T>;",
+                zod: "export const BTreeSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
+            }),
+        }
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <T>::inline_zod()
         )
     }
@@ -370,7 +385,8 @@ impl<T: ZodType> DependencyRegistration for std::collections::BTreeSet<T> {
 }
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
-    const AST : ZodExport = ZodExport{
+    fn ast() -> crate::ast::ZodExport {
+        ZodExport{
     docs: None,
     def: ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
@@ -383,13 +399,14 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
             },
             ts: "export type HashMap<K, V> = Map<K, V>;",
             zod: "export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
-    })};
+    })}
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({}, {})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <K>::inline_zod(),
             <V>::inline_zod()
         )
@@ -409,7 +426,8 @@ impl<K: ZodType, V: ZodType> DependencyRegistration for std::collections::HashMa
 }
 
 impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
-    const AST: ZodExport = ZodExport{
+    fn ast() -> crate::ast::ZodExport {
+        ZodExport{
     docs: None,def:ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
@@ -421,13 +439,14 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::BTreeMap<K, V> {
             },
             ts: "export type BTreeMap<K, V> = Map<K, V>;",
             zod: "export const BTreeMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
-    })};
+    })}
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({}, {})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <K>::inline_zod(),
             <V>::inline_zod()
         )
@@ -447,26 +466,28 @@ impl<K: ZodType, V: ZodType> DependencyRegistration for std::collections::BTreeM
 }
 
 impl<T: ZodType> ZodType for Option<T> {
-    const AST: ZodExport = ZodExport {
-        docs: None,
-        def: ZodDefinition::Struct(Struct {
-            ns: Rs::NAME,
-            ty: Type {
-                ident: "Option",
-                generics: &[Generic::Type { ident: "T" }],
-            },
-            fields: StructFields::Transparent {
-                value: FieldValue::Generic(Generic::Type { ident: "T" }),
-                optional: true,
-            },
-        }),
-    };
+    fn ast() -> crate::ast::ZodExport {
+        ZodExport {
+            docs: None,
+            def: ZodDefinition::Struct(Struct {
+                ns: Rs::NAME,
+                ty: Type {
+                    ident: "Option",
+                    generics: &[Generic::Type { ident: "T" }],
+                },
+                fields: StructFields::Transparent {
+                    value: FieldValue::Generic(Generic::Type { ident: "T" }),
+                    optional: true,
+                },
+            }),
+        }
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <T>::inline_zod(),
         )
     }
@@ -483,7 +504,8 @@ impl<T: ZodType> DependencyRegistration for Option<T> {
 }
 
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
-    const AST: ZodExport = ZodExport{docs: None, def: ZodDefinition::Literal(Literal {
+    fn ast() -> crate::ast::ZodExport {
+        ZodExport{docs: None, def: ZodDefinition::Literal(Literal {
             ns: Rs::NAME,
             ty: Type {
                 ident: "Result",
@@ -495,13 +517,14 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
             },
             ts: "export type Result<T, E> = { Ok: T } | { Err: E };",
             zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeAny) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
-    })};
+    })}
+    }
 
     fn inline_zod() -> String {
         format!(
             "{}.{}({}, {})",
-            Self::AST.ns(),
-            Self::AST.name(),
+            Self::ast().ns(),
+            Self::ast().name(),
             <T>::inline_zod(),
             <E>::inline_zod(),
         )
@@ -555,11 +578,11 @@ mod test {
     #[test]
     fn option_ok() {
         assert_eq!(
-            Option::<String>::AST.to_ts_string(),
+            Option::<String>::ast().to_ts_string(),
             "export type Option<T> = T | undefined;"
         );
         assert_eq!(
-            Option::<String>::AST.to_zod_string(),
+            Option::<String>::ast().to_zod_string(),
             "export const Option = (T: z.ZodTypeAny) => z.lazy(() => T.optional());"
         );
     }

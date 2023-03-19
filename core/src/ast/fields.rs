@@ -1,16 +1,17 @@
-use super::{FormatTypescript, FormatZod, Generic, QualifiedType, ZodDefinition};
+use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
-    Named(&'static [MaybeFlatField]),
-    Tuple(&'static [TupleField]),
+    Named(Vec<MaybeFlatField>),
+    Tuple(Vec<TupleField>),
     Transparent { value: FieldValue, optional: bool },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
     Generic(Generic),
     Qualified(QualifiedType),
+    Resolved(String),
 }
 
 impl FormatZod for FieldValue {
@@ -18,6 +19,7 @@ impl FormatZod for FieldValue {
         match self {
             FieldValue::Generic(inner) => inner.fmt_zod(f),
             FieldValue::Qualified(inner) => inner.fmt_zod(f),
+            FieldValue::Resolved(inner) => f.write_str(inner),
         }
     }
 }
@@ -27,25 +29,26 @@ impl FormatTypescript for FieldValue {
         match self {
             FieldValue::Generic(inner) => inner.fmt_ts(f),
             FieldValue::Qualified(inner) => inner.fmt_ts(f),
+            FieldValue::Resolved(inner) => f.write_str(inner),
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum MaybeFlatField {
     Flat(FlatField),
     Named(NamedField),
 }
 
 impl MaybeFlatField {
-    pub fn partition(fields: &'static [Self]) -> (Vec<NamedField>, Vec<FlatField>) {
+    pub fn partition(fields: &[Self]) -> (Vec<NamedField>, Vec<FlatField>) {
         let mut inner = Vec::new();
         let mut flat = Vec::new();
 
         for field in fields.into_iter() {
             match field {
-                Self::Flat(f) => flat.push(*f),
-                Self::Named(f) => inner.push(*f),
+                Self::Flat(f) => flat.push(f.clone()),
+                Self::Named(f) => inner.push(f.clone()),
             }
         }
 
@@ -53,20 +56,20 @@ impl MaybeFlatField {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FlatField {
     // TODO: find a way to express flat optional fields in typescript with interfaces
     // see: https://github.com/nicolaiunrein/zod/issues/3
     pub value: FieldValue,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TupleField {
     pub optional: bool,
     pub value: FieldValue,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedField {
     pub optional: bool,
     pub name: &'static str,

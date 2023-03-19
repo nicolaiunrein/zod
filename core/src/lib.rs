@@ -16,8 +16,7 @@ use ast::ZodExport;
 pub use build_ins::*;
 
 pub trait ZodType: DependencyRegistration {
-    const AST: ast::ZodExport;
-
+    fn ast() -> ast::ZodExport;
     fn inline_zod() -> String;
 }
 
@@ -45,7 +44,7 @@ impl DependencyMap {
         T: ZodType + 'static,
     {
         let id = TypeId::of::<T>();
-        let node = T::AST;
+        let node = T::ast();
         !self.0.insert(id, node).is_some()
     }
 

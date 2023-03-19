@@ -15,25 +15,27 @@ struct MyType {
 }
 
 impl ZodType for MyType {
-    const AST: ZodExport = ZodExport {
-        docs: Some("My Docs"),
-        def: ZodDefinition::Struct(ast::Struct {
-            ns: "Ns",
-            ty: ast::Type {
-                ident: "MyType",
-                generics: &[],
-            },
-            fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
-                optional: false,
-                name: "inner",
-                // value: <Vec<Arc<(String, usize)>>>::inline_zod(),
-                value: todo!(),
-            })]),
-        }),
-    };
+    fn ast() -> ast::ZodExport {
+        ZodExport {
+            docs: Some("My Docs"),
+            def: ZodDefinition::Struct(ast::Struct {
+                ns: "Ns",
+                ty: ast::Type {
+                    ident: "MyType",
+                    generics: &[],
+                },
+                fields: StructFields::Named(vec![MaybeFlatField::Named(NamedField {
+                    optional: false,
+                    name: "inner",
+                    value: FieldValue::Resolved(<Vec<Arc<(String, usize)>>>::inline_zod()),
+                    // value: todo!(),
+                })]),
+            }),
+        }
+    }
 
     fn inline_zod() -> String {
-        format!("{}.{}", Self::AST.ns(), Self::AST.name())
+        format!("{}.{}", Self::ast().ns(), Self::ast().name())
     }
 }
 
@@ -87,5 +89,5 @@ impl DependencyRegistration for MyNamespace {
 struct MyBackend {}
 
 fn main() {
-    assert_eq!(MyType::AST.to_zod_string(), "")
+    assert_eq!(MyType::ast().to_zod_string(), "")
 }

@@ -14,7 +14,7 @@ pub use r#type::*;
 
 use crate::Namespace;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ZodExport {
     pub docs: Option<&'static str>,
     pub def: ZodDefinition,
@@ -77,7 +77,7 @@ impl ZodExport {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ZodDefinition {
     Struct(Struct),
     Literal(Literal),
@@ -289,7 +289,7 @@ mod test {
                     ident: "test",
                     generics: &[],
                 },
-                fields: StructFields::Named(&[]),
+                fields: StructFields::Named(Vec::new()),
             }),
         };
 

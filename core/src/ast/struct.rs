@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, StructFields, Type};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Struct {
     pub ns: &'static str,
     pub ty: Type,
@@ -32,11 +32,11 @@ impl FormatZod for Struct {
         };
 
         match self.fields {
-            StructFields::Named(fields) => {
+            StructFields::Named(ref fields) => {
                 prefix()?;
                 f.write_str("z.lazy(() => z.object({")?;
 
-                let (inner_fields, flat_fields) = MaybeFlatField::partition(fields);
+                let (inner_fields, flat_fields) = MaybeFlatField::partition(&fields);
 
                 Delimited(inner_fields.as_slice(), ", ").fmt_zod(f)?;
 
@@ -48,7 +48,7 @@ impl FormatZod for Struct {
 
                 f.write_str(";")?;
             }
-            StructFields::Tuple(fields) => {
+            StructFields::Tuple(ref fields) => {
                 if fields.len() == 1 {
                     let field = fields.first().expect("one field");
 
@@ -57,7 +57,7 @@ impl FormatZod for Struct {
                         ty: self.ty,
                         fields: StructFields::Transparent {
                             optional: field.optional,
-                            value: field.value,
+                            value: field.value.clone(),
                         },
                     }
                     .fmt_zod(f)?;
@@ -65,11 +65,14 @@ impl FormatZod for Struct {
                     prefix()?;
                     f.write_str("z.lazy(() => z.tuple([")?;
 
-                    Delimited(fields, ", ").fmt_zod(f)?;
+                    Delimited(fields.as_slice(), ", ").fmt_zod(f)?;
                     f.write_str("]));")?;
                 }
             }
-            StructFields::Transparent { value, optional } => {
+            StructFields::Transparent {
+                ref value,
+                optional,
+            } => {
                 prefix()?;
                 f.write_str("z.lazy(() => ")?;
                 value.fmt_zod(f)?;
@@ -87,7 +90,7 @@ impl FormatZod for Struct {
 impl FormatTypescript for Struct {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.fields {
-            StructFields::Named(fields) => {
+            StructFields::Named(ref fields) => {
                 let (inner_fields, flat_fields) = MaybeFlatField::partition(fields);
                 f.write_str("interface ")?;
                 self.ty.fmt_ts(f)?;
@@ -104,7 +107,7 @@ impl FormatTypescript for Struct {
 
                 f.write_str(" }")?;
             }
-            StructFields::Tuple(fields) => match fields.len() {
+            StructFields::Tuple(ref fields) => match fields.len() {
                 1 => {
                     let field = fields.first().expect("one field");
                     Self {
@@ -112,7 +115,7 @@ impl FormatTypescript for Struct {
                         ty: self.ty,
                         fields: StructFields::Transparent {
                             optional: field.optional,
-                            value: field.value,
+                            value: field.value.clone(),
                         },
                     }
                     .fmt_ts(f)?;
@@ -121,12 +124,15 @@ impl FormatTypescript for Struct {
                     f.write_str("type ")?;
                     self.ty.fmt_ts(f)?;
                     f.write_str(" = [")?;
-                    Delimited(fields, ", ").fmt_ts(f)?;
+                    Delimited(fields.as_slice(), ", ").fmt_ts(f)?;
                     f.write_str("]")?;
                     f.write_str(";")?;
                 }
             },
-            StructFields::Transparent { value, optional } => {
+            StructFields::Transparent {
+                ref value,
+                optional,
+            } => {
                 f.write_str("type ")?;
                 self.ty.fmt_ts(f)?;
                 f.write_str(" = ")?;
@@ -159,7 +165,7 @@ mod test {
                 ident: "test",
                 generics: Default::default(),
             },
-            fields: StructFields::Tuple(&[]),
+            fields: StructFields::Tuple(Vec::new()),
         };
 
         assert_eq!(
@@ -184,7 +190,7 @@ mod test {
                 ident: "test",
                 generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
             },
-            fields: StructFields::Tuple(&[]),
+            fields: StructFields::Tuple(Vec::new()),
         };
 
         assert_eq!(
@@ -241,7 +247,7 @@ mod test {
                 ident: "test",
                 generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
             },
-            fields: StructFields::Tuple(fields),
+            fields: StructFields::Tuple(fields.to_vec()),
         };
 
         assert_eq!(
@@ -266,7 +272,7 @@ mod test {
                 ident: "test",
                 generics: Default::default(),
             },
-            fields: StructFields::Named(&[]),
+            fields: StructFields::Named(Vec::new()),
         };
 
         assert_eq!(
@@ -332,7 +338,7 @@ mod test {
                 ident: "test",
                 generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
             },
-            fields: StructFields::Named(fields),
+            fields: StructFields::Named(fields.to_vec()),
         };
 
         assert_eq!(
@@ -402,7 +408,7 @@ mod test {
                 ident: "test",
                 generics: &[],
             },
-            fields: StructFields::Tuple(&[TupleField {
+            fields: StructFields::Tuple(vec![TupleField {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Other",
@@ -428,7 +434,7 @@ mod test {
                 ident: "test",
                 generics: &[],
             },
-            fields: StructFields::Tuple(&[TupleField {
+            fields: StructFields::Tuple(vec![TupleField {
                 optional: true,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Other",
@@ -457,7 +463,7 @@ mod test {
                 ident: "test",
                 generics: &[],
             },
-            fields: StructFields::Tuple(&[TupleField {
+            fields: StructFields::Tuple(vec![TupleField {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Other",

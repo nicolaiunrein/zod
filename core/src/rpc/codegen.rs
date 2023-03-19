@@ -17,7 +17,10 @@ pub struct RpcArgument {
 
 impl RpcArgument {
     pub fn new<T: crate::ZodType>(name: &'static str) -> Self {
-        Self { name, code: T::AST }
+        Self {
+            name,
+            code: T::ast(),
+        }
     }
 }
 
