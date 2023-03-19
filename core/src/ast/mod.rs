@@ -6,6 +6,7 @@ mod r#type;
 
 use std::fmt::Display;
 
+pub(crate) use crate::Delimited;
 pub use fields::*;
 pub use generics::*;
 pub use literal::*;
@@ -14,7 +15,7 @@ pub use r#type::*;
 
 use crate::Namespace;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ZodExport {
     pub docs: Option<&'static str>,
     pub def: ZodDefinition,
@@ -77,7 +78,7 @@ impl ZodExport {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ZodDefinition {
     Struct(Struct),
     Literal(Literal),
@@ -202,8 +203,6 @@ pub trait FormatTypescript {
 struct ZodFormatter<'a, T: FormatZod>(&'a T);
 struct TsFormatter<'a, T: FormatTypescript>(&'a T);
 
-struct Delimited<I>(pub I, pub &'static str);
-
 impl<T> Display for Delimited<&[T]>
 where
     T: Display,
@@ -289,7 +288,7 @@ mod test {
                     ident: "test",
                     generics: &[],
                 },
-                fields: StructFields::Named(Vec::new()),
+                fields: StructFields::Named(&[]),
             }),
         };
 

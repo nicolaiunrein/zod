@@ -1,5 +1,7 @@
 use pretty_assertions::assert_eq;
 use std::sync::Arc;
+use zod_core::ast::Generic;
+use zod_core::Inlined;
 
 use zod_core::{
     ast::{
@@ -15,28 +17,38 @@ struct MyType {
 }
 
 impl ZodType for MyType {
-    fn ast() -> ast::ZodExport {
-        ZodExport {
-            docs: Some("My Docs"),
-            def: ZodDefinition::Struct(ast::Struct {
-                ns: "Ns",
-                ty: ast::Type {
-                    ident: "MyType",
-                    generics: &[],
-                },
-                fields: StructFields::Named(vec![MaybeFlatField::Named(NamedField {
+    const AST: ZodExport = ZodExport {
+        docs: Some("My Docs"),
+        def: ZodDefinition::Struct(ast::Struct {
+            ns: "Ns",
+            ty: ast::Type {
+                ident: "MyType",
+                generics: &[Generic::Type { ident: "T" }],
+            },
+            fields: StructFields::Named(&[
+                MaybeFlatField::Named(NamedField {
                     optional: false,
                     name: "inner",
-                    value: FieldValue::Resolved(<Vec<Arc<(String, usize)>>>::inline_zod()),
-                    // value: todo!(),
-                })]),
-            }),
-        }
-    }
+                    value: FieldValue::Inlined(<Vec<Arc<(String, usize)>>>::INLINED),
+                }),
+                MaybeFlatField::Named(NamedField {
+                    optional: false,
+                    name: "test2",
+                    value: FieldValue::Qualified(QualifiedType {
+                        ns: "Rs",
+                        ident: "test",
+                        generics: &[Generic::Type { ident: "T" }],
+                    }),
+                }),
+            ]),
+        }),
+    };
 
-    fn inline_zod() -> String {
-        format!("{}.{}", Self::ast().ns(), Self::ast().name())
-    }
+    const INLINED: zod_core::Inlined = Inlined {
+        ns: "Ns",
+        name: "MyType",
+        params: &[<Vec<Arc<(String, usize)>>>::INLINED],
+    };
 }
 
 impl DependencyRegistration for MyType {
@@ -53,6 +65,7 @@ impl DependencyRegistration for MyType {
 // generated to avoid duplicate type names
 impl MyNamespaceItemRegistry {
     #[allow(non_upper_case_globals)]
+    #[allow(dead_code)]
     const MyType: () = {};
 
     // #[allow(non_upper_case_globals)]
@@ -89,5 +102,5 @@ impl DependencyRegistration for MyNamespace {
 struct MyBackend {}
 
 fn main() {
-    assert_eq!(MyType::ast().to_zod_string(), "")
+    assert_eq!(MyType::AST.to_zod_string(), "")
 }

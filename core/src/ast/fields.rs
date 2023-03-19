@@ -1,17 +1,19 @@
+use crate::Inlined;
+
 use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
-    Named(Vec<MaybeFlatField>),
-    Tuple(Vec<TupleField>),
+    Named(&'static [MaybeFlatField]),
+    Tuple(&'static [TupleField]),
     Transparent { value: FieldValue, optional: bool },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
     Generic(Generic),
     Qualified(QualifiedType),
-    Resolved(String),
+    Inlined(Inlined),
 }
 
 impl FormatZod for FieldValue {
@@ -19,7 +21,7 @@ impl FormatZod for FieldValue {
         match self {
             FieldValue::Generic(inner) => inner.fmt_zod(f),
             FieldValue::Qualified(inner) => inner.fmt_zod(f),
-            FieldValue::Resolved(inner) => f.write_str(inner),
+            FieldValue::Inlined(inner) => <Inlined as std::fmt::Display>::fmt(inner, f),
         }
     }
 }
@@ -29,7 +31,7 @@ impl FormatTypescript for FieldValue {
         match self {
             FieldValue::Generic(inner) => inner.fmt_ts(f),
             FieldValue::Qualified(inner) => inner.fmt_ts(f),
-            FieldValue::Resolved(inner) => f.write_str(inner),
+            FieldValue::Inlined(inner) => <Inlined as std::fmt::Display>::fmt(inner, f),
         }
     }
 }

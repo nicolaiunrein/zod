@@ -10,14 +10,40 @@ mod build_ins;
 use std::{
     any::TypeId,
     collections::{BTreeMap, HashSet},
+    fmt::Display,
 };
 
 use ast::ZodExport;
 pub use build_ins::*;
 
+pub(crate) struct Delimited<I>(pub I, pub &'static str);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Inlined {
+    pub ns: &'static str,
+    pub name: &'static str,
+    pub params: &'static [Inlined],
+}
+
+impl Display for Inlined {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.ns)?;
+        f.write_str(".")?;
+        f.write_str(self.name)?;
+
+        if !self.params.is_empty() {
+            f.write_str("(")?;
+            Delimited(self.params, ", ").fmt(f)?;
+            f.write_str(")")?;
+        }
+
+        Ok(())
+    }
+}
+
 pub trait ZodType: DependencyRegistration {
-    fn ast() -> ast::ZodExport;
-    fn inline_zod() -> String;
+    const AST: ast::ZodExport;
+    const INLINED: Inlined;
 }
 
 pub trait DependencyRegistration {
@@ -44,7 +70,7 @@ impl DependencyMap {
         T: ZodType + 'static,
     {
         let id = TypeId::of::<T>();
-        let node = T::ast();
+        let node = T::AST;
         !self.0.insert(id, node).is_some()
     }
 
@@ -80,16 +106,85 @@ mod test {
 
     #[test]
     fn nesting_ok() {
-        assert_eq!(<Option<String>>::inline_zod(), "Rs.Option(Rs.String)");
         assert_eq!(
-            <Result<std::collections::HashMap<usize, Option<bool>>, String>>::inline_zod(),
-            "Rs.Result(Rs.HashMap(Rs.Usize, Rs.Option(Rs.Bool)), Rs.String)"
+            <Option<String>>::INLINED,
+            Inlined {
+                ns: "Rs",
+                name: "Option",
+                params: &[String::INLINED]
+            }
+        );
+        assert_eq!(
+            <Result<std::collections::HashMap<usize, Option<bool>>, String>>::INLINED,
+            Inlined {
+                ns: "Rs",
+                name: "Result",
+                params: &[
+                    Inlined {
+                        ns: "Rs",
+                        name: "HashMap",
+                        params: &[
+                            Inlined {
+                                ns: "Rs",
+                                name: "Usize",
+                                params: &[]
+                            },
+                            Inlined {
+                                ns: "Rs",
+                                name: "Option",
+                                params: &[Inlined {
+                                    ns: "Rs",
+                                    name: "Bool",
+                                    params: &[]
+                                }]
+                            }
+                        ]
+                    },
+                    Inlined {
+                        ns: "Rs",
+                        name: "String",
+                        params: &[]
+                    }
+                ]
+            }
         );
 
-        assert_eq!(<[String; 5]>::inline_zod(), "Rs.Array(5, Rs.String)");
         assert_eq!(
-            <(String, usize, bool)>::inline_zod(),
-            "Rs.Tuple3(Rs.String, Rs.Usize, Rs.Bool)"
+            <[String; 5]>::INLINED.to_string(),
+            "Rs.Array(5, Rs.String)" // Inlined {
+                                     //     ns: "Rs",
+                                     //     name: "Array",
+                                     //     params: &[Inlined {
+                                     //         ns: "Rs",
+                                     //         name: "String",
+                                     //         params: &[]
+                                     //     }]
+                                     // }
+        );
+
+        assert_eq!(
+            <(String, usize, bool)>::INLINED,
+            Inlined {
+                ns: "Rs",
+                name: "Tuple3",
+                params: &[
+                    Inlined {
+                        ns: "Rs",
+                        name: "String",
+                        params: &[]
+                    },
+                    Inlined {
+                        ns: "Rs",
+                        name: "Usize",
+                        params: &[]
+                    },
+                    Inlined {
+                        ns: "Rs",
+                        name: "Bool",
+                        params: &[]
+                    }
+                ]
+            }
         );
     }
 }

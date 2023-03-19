@@ -46,6 +46,6 @@ mod test {
     fn inline() {
         type T = Vec<String>;
 
-        assert_eq!(T::inline_zod(), "Rs.Vec(Rs.String)")
+        assert_eq!(T::INLINED.to_string(), "Rs.Vec(Rs.String)")
     }
 }
