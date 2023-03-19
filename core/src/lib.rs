@@ -19,25 +19,64 @@ pub use build_ins::*;
 pub(crate) struct Delimited<I>(pub I, pub &'static str);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Inlined {
-    pub ns: &'static str,
-    pub name: &'static str,
-    pub params: &'static [Inlined],
+pub enum Inlined {
+    ConstUsize(usize),
+    ConstU8(u8),
+    ConstU16(u16),
+    ConstU32(u32),
+    ConstU64(u64),
+    ConstU128(u128),
+    ConstIk8(i8),
+    ConstI16(i16),
+    ConstI32(i32),
+    ConstI64(i64),
+    ConstI128(i128),
+    ConstIsize(isize),
+    ConstChar(char),
+    ConstBool(bool),
+    Type {
+        ns: &'static str,
+        name: &'static str,
+        params: &'static [Inlined],
+    },
 }
 
 impl Display for Inlined {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.ns)?;
-        f.write_str(".")?;
-        f.write_str(self.name)?;
+        match self {
+            Inlined::Type {
+                ns,
+                name,
+                ref params,
+            } => {
+                f.write_str(ns)?;
+                f.write_str(".")?;
+                f.write_str(name)?;
 
-        if !self.params.is_empty() {
-            f.write_str("(")?;
-            Delimited(self.params, ", ").fmt(f)?;
-            f.write_str(")")?;
+                if !params.is_empty() {
+                    f.write_str("(")?;
+                    Delimited(*params, ", ").fmt(f)?;
+                    f.write_str(")")?;
+                }
+
+                Ok(())
+            }
+
+            Inlined::ConstUsize(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstU8(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstU16(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstU32(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstU64(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstU128(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstIk8(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstI16(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstI32(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstI64(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstI128(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstIsize(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstChar(inner) => f.write_fmt(format_args!("{}", inner)),
+            Inlined::ConstBool(inner) => f.write_fmt(format_args!("{}", inner)),
         }
-
-        Ok(())
     }
 }
 
@@ -108,7 +147,7 @@ mod test {
     fn nesting_ok() {
         assert_eq!(
             <Option<String>>::INLINED,
-            Inlined {
+            Inlined::Type {
                 ns: "Rs",
                 name: "Option",
                 params: &[String::INLINED]
@@ -116,23 +155,23 @@ mod test {
         );
         assert_eq!(
             <Result<std::collections::HashMap<usize, Option<bool>>, String>>::INLINED,
-            Inlined {
+            Inlined::Type {
                 ns: "Rs",
                 name: "Result",
                 params: &[
-                    Inlined {
+                    Inlined::Type {
                         ns: "Rs",
                         name: "HashMap",
                         params: &[
-                            Inlined {
+                            Inlined::Type {
                                 ns: "Rs",
                                 name: "Usize",
                                 params: &[]
                             },
-                            Inlined {
+                            Inlined::Type {
                                 ns: "Rs",
                                 name: "Option",
-                                params: &[Inlined {
+                                params: &[Inlined::Type {
                                     ns: "Rs",
                                     name: "Bool",
                                     params: &[]
@@ -140,7 +179,7 @@ mod test {
                             }
                         ]
                     },
-                    Inlined {
+                    Inlined::Type {
                         ns: "Rs",
                         name: "String",
                         params: &[]
@@ -149,36 +188,25 @@ mod test {
             }
         );
 
-        assert_eq!(
-            <[String; 5]>::INLINED.to_string(),
-            "Rs.Array(5, Rs.String)" // Inlined {
-                                     //     ns: "Rs",
-                                     //     name: "Array",
-                                     //     params: &[Inlined {
-                                     //         ns: "Rs",
-                                     //         name: "String",
-                                     //         params: &[]
-                                     //     }]
-                                     // }
-        );
+        assert_eq!(<[String; 5]>::INLINED.to_string(), "Rs.Array(5, Rs.String)");
 
         assert_eq!(
             <(String, usize, bool)>::INLINED,
-            Inlined {
+            Inlined::Type {
                 ns: "Rs",
                 name: "Tuple3",
                 params: &[
-                    Inlined {
+                    Inlined::Type {
                         ns: "Rs",
                         name: "String",
                         params: &[]
                     },
-                    Inlined {
+                    Inlined::Type {
                         ns: "Rs",
                         name: "Usize",
                         params: &[]
                     },
-                    Inlined {
+                    Inlined::Type {
                         ns: "Rs",
                         name: "Bool",
                         params: &[]

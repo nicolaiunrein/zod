@@ -44,7 +44,7 @@ impl ZodType for MyType {
         }),
     };
 
-    const INLINED: zod_core::Inlined = Inlined {
+    const INLINED: zod_core::Inlined = Inlined::Type {
         ns: "Ns",
         name: "MyType",
         params: &[<Vec<Arc<(String, usize)>>>::INLINED],

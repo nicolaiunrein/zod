@@ -31,7 +31,7 @@ macro_rules! impl_primitive {
                 }),
             };
 
-            const INLINED: Inlined = Inlined {
+            const INLINED: Inlined = Inlined::Type {
                 ns: Self::AST.ns(),
                 name: Self::AST.name(),
                 params: &[],
@@ -55,7 +55,7 @@ macro_rules! impl_tuple {
 
             const AST: ZodExport = tuple!($N, $($i),*);
 
-            const INLINED: Inlined = Inlined {
+            const INLINED: Inlined = Inlined::Type {
                 ns: Self::AST.ns(),
                 name: Self::AST.name(),
                 params: &[
@@ -233,7 +233,7 @@ impl<T: ZodType> ZodType for Vec<T> {
         }),
     };
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         params: &[<T>::INLINED],
@@ -272,11 +272,11 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
                 "export const Array = (N: number, T: z.ZodTypeAny) => z.array(z.lazy(() => T)).length(N)",
     })};
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         //TODO
-        params: &[<T>::INLINED],
+        params: &[Inlined::ConstUsize(N), <T>::INLINED],
     };
 }
 
@@ -305,7 +305,7 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
         }),
     };
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         params: &[<T>::INLINED],
@@ -336,7 +336,7 @@ impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
         }),
     };
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         params: &[<T>::INLINED],
@@ -370,7 +370,7 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
             zod: "export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(z.lazy(() => K), z.lazy(() => V));",
     })};
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         params: &[<K>::INLINED, <V>::INLINED],
@@ -441,7 +441,7 @@ impl<T: ZodType> ZodType for Option<T> {
         }),
     };
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         params: &[<T>::INLINED],
@@ -473,7 +473,7 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
             zod: "export const Result = (T: z.ZodTypeAny, E: z.ZodTypeAny) => z.union([z.object({ Ok: z.lazy(() => T) }), z.object({ Err: z.lazy(() => E) })])"
     })};
 
-    const INLINED: Inlined = Inlined {
+    const INLINED: Inlined = Inlined::Type {
         ns: Self::AST.ns(),
         name: Self::AST.name(),
         params: &[<T>::INLINED, <E>::INLINED],
