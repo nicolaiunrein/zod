@@ -103,7 +103,7 @@ impl FormatTypescript for Struct {
 
                 Delimited(inner_fields.as_slice(), ", ").fmt_ts(f)?;
 
-                f.write_str(" }")?;
+                f.write_str(" }\n")?;
             }
             StructFields::Tuple(fields) => match fields.len() {
                 1 => {
@@ -339,12 +339,12 @@ mod test {
         };
 
         assert_eq!(
-            STRUCT.to_zod_string(),
+            STRUCT.to_zod_string().trim(),
             "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.object({hallo_a: Ns.a(A), hallo_b: Ns.b(B), hallo_c: Ns.c, hallo_d: Ns.d.optional()})).extend(z.lazy(() => Ns.e));",
         );
 
         assert_eq!(
-            STRUCT.to_ts_string(),
+            STRUCT.to_ts_string().trim(),
             "interface test<A, B> extends Ns.e { hallo_a: Ns.a<A>, hallo_b: Ns.b<B>, hallo_c: Ns.c, hallo_d?: Ns.d | undefined }"
         );
     }

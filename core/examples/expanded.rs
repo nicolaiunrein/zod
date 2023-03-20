@@ -17,19 +17,63 @@ struct MyType {
     inner: Vec<Arc<(String, usize)>>,
 }
 
+struct MyType2<T> {
+    inner: T,
+}
+
+struct MyType3 {
+    inner: MyType2<MyType>,
+}
+
 impl ZodType for MyType {
     const AST: ZodExport = ZodExport {
-        docs: Some("My Docs"),
+        docs: None,
         def: ZodDefinition::Struct(ast::Struct {
             ty: ast::TypeDef {
                 ns: "Ns",
                 ident: "MyType",
-                generics: &[Generic::new_for::<()>("T")],
+                generics: &[],
             },
             fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "inner",
                 value: FieldValue::Inlined(<Vec<Arc<(String, usize)>>>::AST.def.ty()),
+            })]),
+        }),
+    };
+}
+
+impl<T: ZodType> ZodType for MyType2<T> {
+    const AST: ZodExport = ZodExport {
+        docs: None,
+        def: ZodDefinition::Struct(ast::Struct {
+            ty: ast::TypeDef {
+                ns: "Ns",
+                ident: "MyType2",
+                generics: &[Generic::new_for::<T>("T")],
+            },
+            fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
+                optional: false,
+                name: "inner",
+                value: FieldValue::Generic("T"),
+            })]),
+        }),
+    };
+}
+
+impl ZodType for MyType3 {
+    const AST: ZodExport = ZodExport {
+        docs: None,
+        def: ZodDefinition::Struct(ast::Struct {
+            ty: ast::TypeDef {
+                ns: "Ns",
+                ident: "MyType3",
+                generics: &[],
+            },
+            fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
+                optional: false,
+                name: "inner",
+                value: FieldValue::Inlined(<MyType2<MyType>>::AST.def.ty()),
             })]),
         }),
     };
@@ -42,6 +86,28 @@ impl DependencyRegistration for MyType {
     {
         if cx.add::<Self>() {
             <Vec<Arc<(String, usize)>>>::register_dependencies(cx);
+        }
+    }
+}
+
+impl<T: ZodType> DependencyRegistration for MyType2<T> {
+    fn register_dependencies(cx: &mut zod_core::DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            <T>::register_dependencies(cx);
+        }
+    }
+}
+
+impl DependencyRegistration for MyType3 {
+    fn register_dependencies(cx: &mut zod_core::DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            <MyType2<MyType>>::register_dependencies(cx);
         }
     }
 }
@@ -86,11 +152,15 @@ impl DependencyRegistration for MyNamespace {
 struct MyBackend {}
 
 fn main() {
-    let expected = "\
-/**
-* My Docs
-*/
-export const MyType = (T: z.ZodTypeAny) => z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.String, Rs.Usize))}));";
+    let expected = "export const MyType = z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.String, Rs.Usize))}));";
 
     assert_eq!(MyType::AST.to_zod_string(), expected);
+
+    let out = <MyType3>::dependencies()
+        .resolve()
+        .into_iter()
+        .map(|export| export.to_string())
+        .collect::<String>();
+
+    println!("{out}")
 }

@@ -9,12 +9,14 @@ pub struct Literal {
 
 impl FormatZod for Literal {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.zod)
+        f.write_str(self.zod)?;
+        f.write_str("\n")
     }
 }
 
 impl FormatTypescript for Literal {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.ts)
+        f.write_str(self.ts)?;
+        f.write_str("\n")
     }
 }
