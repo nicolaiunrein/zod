@@ -389,7 +389,7 @@ impl<T: ZodType> ZodType for Option<T> {
                 generics: &[Generic::new_for::<T>("T")],
             },
             fields: StructFields::Transparent {
-                value: FieldValue::Generic(GenericName::Type { ident: "T" }),
+                value: FieldValue::Generic("T"),
                 optional: true,
             },
         }),

@@ -1,4 +1,4 @@
-use super::{FormatInlined, FormatTypescript, FormatZod, GenericName, TypeDef};
+use super::{FormatInlined, FormatTypescript, FormatZod, TypeDef};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
@@ -9,7 +9,7 @@ pub enum StructFields {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
-    Generic(GenericName),
+    Generic(&'static str),
     Qualified(TypeDef),
     Inlined(TypeDef),
 }
@@ -17,7 +17,7 @@ pub enum FieldValue {
 impl FormatZod for FieldValue {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FieldValue::Generic(inner) => inner.fmt_zod(f),
+            FieldValue::Generic(inner) => f.write_str(inner),
             FieldValue::Qualified(inner) => inner.as_arg().fmt_zod(f),
             FieldValue::Inlined(inner) => inner.fmt_inlined(f),
         }
@@ -27,7 +27,7 @@ impl FormatZod for FieldValue {
 impl FormatTypescript for FieldValue {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FieldValue::Generic(inner) => inner.fmt_ts(f),
+            FieldValue::Generic(inner) => f.write_str(inner),
             FieldValue::Qualified(inner) => inner.as_arg().fmt_ts(f),
             FieldValue::Inlined(inner) => inner.fmt_inlined(f),
         }
