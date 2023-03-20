@@ -31,7 +31,7 @@ impl FormatTypescript for Generic {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::FormatInlined;
+    use crate::ast::FormatInlinedZod;
     use crate::ZodType;
     use pretty_assertions::assert_eq;
 
@@ -39,6 +39,6 @@ mod test {
     fn inline() {
         type T = Vec<String>;
 
-        assert_eq!(T::AST.def.ty().to_inlined_string(), "Rs.Vec(Rs.String)")
+        assert_eq!(T::AST.def.ty().to_inlined_zod_string(), "Rs.Vec(Rs.String)")
     }
 }

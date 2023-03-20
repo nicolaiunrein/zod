@@ -5,10 +5,7 @@ use std::sync::Arc;
 use zod_core::ast::Generic;
 
 use zod_core::{
-    ast::{
-        self, FieldValue, FormatZod, MaybeFlatField, NamedField, StructFields, ZodDefinition,
-        ZodExport,
-    },
+    ast::{self, FormatZod, MaybeFlatField, NamedField, StructFields, ZodDefinition, ZodExport},
     rpc::codegen::RpcNamespace,
     DependencyRegistration, Namespace, ZodType,
 };
@@ -37,7 +34,7 @@ impl ZodType for MyType {
             fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "inner",
-                value: FieldValue::Inlined(<Vec<Arc<(String, usize)>>>::AST.def.ty()),
+                value: &<Vec<Arc<(Option<String>, usize)>>>::AST.def,
             })]),
         }),
     };
@@ -55,7 +52,7 @@ impl<T: ZodType> ZodType for MyType2<T> {
             fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "inner",
-                value: FieldValue::Generic("T"),
+                value: &<T>::AST.def,
             })]),
         }),
     };
@@ -73,7 +70,7 @@ impl ZodType for MyType3 {
             fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "inner",
-                value: FieldValue::Inlined(<MyType2<MyType>>::AST.def.ty()),
+                value: &<MyType2<MyType>>::AST.def,
             })]),
         }),
     };
@@ -152,7 +149,7 @@ impl DependencyRegistration for MyNamespace {
 struct MyBackend {}
 
 fn main() {
-    let expected = "export const MyType = z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.String, Rs.Usize))}));";
+    let expected = "export const MyType = z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.Option(Rs.String), Rs.Usize))}));";
 
     assert_eq!(MyType::AST.to_zod_string(), expected);
 

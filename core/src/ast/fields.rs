@@ -1,37 +1,13 @@
-use super::{FormatInlined, FormatTypescript, FormatZod, TypeDef};
+use super::{FormatInlinedTs, FormatInlinedZod, FormatTypescript, FormatZod, ZodDefinition};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
     Named(&'static [MaybeFlatField]),
     Tuple(&'static [TupleField]),
-    Transparent { value: FieldValue, optional: bool },
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum FieldValue {
-    Generic(&'static str),
-    Qualified(TypeDef),
-    Inlined(TypeDef),
-}
-
-impl FormatZod for FieldValue {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldValue::Generic(inner) => f.write_str(inner),
-            FieldValue::Qualified(inner) => inner.as_arg().fmt_zod(f),
-            FieldValue::Inlined(inner) => inner.fmt_inlined(f),
-        }
-    }
-}
-
-impl FormatTypescript for FieldValue {
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldValue::Generic(inner) => f.write_str(inner),
-            FieldValue::Qualified(inner) => inner.as_arg().fmt_ts(f),
-            FieldValue::Inlined(inner) => inner.fmt_inlined(f),
-        }
-    }
+    Transparent {
+        value: &'static ZodDefinition,
+        optional: bool,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -60,24 +36,24 @@ impl MaybeFlatField {
 pub struct FlatField {
     // TODO: find a way to express flat optional fields in typescript with interfaces
     // see: https://github.com/nicolaiunrein/zod/issues/3
-    pub value: FieldValue,
+    pub value: &'static ZodDefinition,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TupleField {
     pub optional: bool,
-    pub value: FieldValue,
+    pub value: &'static ZodDefinition,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedField {
     pub optional: bool,
     pub name: &'static str,
-    pub value: FieldValue,
+    pub value: &'static ZodDefinition,
 }
 
 impl MaybeFlatField {
-    pub const fn new_flat(value: FieldValue) -> Self {
+    pub const fn new_flat(value: &'static ZodDefinition) -> Self {
         Self::Flat(FlatField { value })
     }
 }
@@ -86,7 +62,7 @@ impl FormatZod for NamedField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name)?;
         f.write_str(": ")?;
-        self.value.fmt_zod(f)?;
+        self.value.ty().fmt_inlined_zod(f)?;
         if self.optional {
             f.write_str(".optional()")?;
         }
@@ -101,7 +77,7 @@ impl FormatTypescript for NamedField {
             f.write_str("?")?;
         }
         f.write_str(": ")?;
-        self.value.fmt_ts(f)?;
+        self.value.ty().fmt_inlined_ts(f)?;
         if self.optional {
             f.write_str(" | undefined")?;
         }
@@ -111,7 +87,7 @@ impl FormatTypescript for NamedField {
 
 impl FormatZod for TupleField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.value.fmt_zod(f)?;
+        self.value.ty().fmt_inlined_zod(f)?;
         if self.optional {
             f.write_str(".optional()")?;
         }
@@ -121,7 +97,7 @@ impl FormatZod for TupleField {
 
 impl FormatTypescript for TupleField {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.value.fmt_ts(f)?;
+        self.value.ty().fmt_inlined_ts(f)?;
         if self.optional {
             f.write_str(" | undefined")?;
         }
@@ -132,7 +108,7 @@ impl FormatTypescript for TupleField {
 impl FormatZod for FlatField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(".extend(z.lazy(() => ")?;
-        self.value.fmt_zod(f)?;
+        self.value.ty().fmt_inlined_zod(f)?;
         f.write_str("))")?;
         Ok(())
     }
@@ -140,13 +116,15 @@ impl FormatZod for FlatField {
 
 impl FormatTypescript for FlatField {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.value.fmt_zod(f)?;
+        self.value.ty().fmt_inlined_ts(f)?;
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod test {
+
+    use crate::ZodType;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -156,14 +134,10 @@ mod test {
         assert_eq!(
             TupleField {
                 optional: false,
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "myValue",
-                    generics: Default::default()
-                })
+                value: &String::AST.def,
             }
             .to_zod_string(),
-            "Ns.myValue"
+            "Rs.String"
         );
     }
 
@@ -171,14 +145,10 @@ mod test {
     fn zod_inner_tuple_struct_field_optional() {
         let field = TupleField {
             optional: true,
-            value: FieldValue::Qualified(TypeDef {
-                ns: "Ns",
-                ident: "myValue",
-                generics: Default::default(),
-            }),
+            value: &String::AST.def,
         };
-        assert_eq!(field.to_zod_string(), "Ns.myValue.optional()");
-        assert_eq!(field.to_ts_string(), "Ns.myValue | undefined");
+        assert_eq!(field.to_zod_string(), "Rs.String.optional()");
+        assert_eq!(field.to_ts_string(), "Rs.String | undefined");
     }
 
     #[test]
@@ -186,14 +156,10 @@ mod test {
         let field = NamedField {
             optional: false,
             name: "my_value",
-            value: FieldValue::Qualified(TypeDef {
-                ns: "Ns",
-                ident: "myValue",
-                generics: Default::default(),
-            }),
+            value: &String::AST.def,
         };
-        assert_eq!(field.to_zod_string(), "my_value: Ns.myValue");
-        assert_eq!(field.to_ts_string(), "my_value: Ns.myValue");
+        assert_eq!(field.to_zod_string(), "my_value: Rs.String");
+        assert_eq!(field.to_ts_string(), "my_value: Rs.String");
     }
 
     #[test]
@@ -201,26 +167,21 @@ mod test {
         let field = NamedField {
             optional: true,
             name: "my_value",
-            value: FieldValue::Qualified(TypeDef {
-                ns: "Ns",
-                ident: "myValue",
-                generics: Default::default(),
-            }),
+            value: &<()>::AST.def,
         };
-        assert_eq!(field.to_zod_string(), "my_value: Ns.myValue.optional()");
-        assert_eq!(field.to_ts_string(), "my_value?: Ns.myValue | undefined");
+        assert_eq!(field.to_zod_string(), "my_value: Rs.Unit.optional()");
+        assert_eq!(field.to_ts_string(), "my_value?: Rs.Unit | undefined");
     }
 
     #[test]
     fn flattened_field() {
         let field = FlatField {
-            value: FieldValue::Qualified(TypeDef {
-                ns: "Ns",
-                ident: "myValue",
-                generics: Default::default(),
-            }),
+            value: &<Option<()>>::AST.def,
         };
-        assert_eq!(field.to_zod_string(), ".extend(z.lazy(() => Ns.myValue))");
-        assert_eq!(field.to_ts_string(), "Ns.myValue");
+        assert_eq!(
+            field.to_zod_string(),
+            ".extend(z.lazy(() => Rs.Option(Rs.Unit)))"
+        );
+        assert_eq!(field.to_ts_string(), "Rs.Option<Rs.Unit>");
     }
 }

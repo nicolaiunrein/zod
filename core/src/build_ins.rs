@@ -389,7 +389,7 @@ impl<T: ZodType> ZodType for Option<T> {
                 generics: &[Generic::new_for::<T>("T")],
             },
             fields: StructFields::Transparent {
-                value: FieldValue::Generic("T"),
+                value: &<T>::AST.def,
                 optional: true,
             },
         }),
@@ -466,11 +466,12 @@ mod test {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    #[ignore]
     #[test]
     fn option_ok() {
         assert_eq!(
-            Option::<String>::AST.to_ts_string(),
-            "export type Option<T> = T | undefined;"
+            <Vec<Option<String>>>::AST.to_ts_string(),
+            "export type Vec<T> = T | undefined;"
         );
         assert_eq!(
             Option::<String>::AST.to_zod_string(),

@@ -171,12 +171,21 @@ where
     }
 }
 
-impl<'a, T> Display for InlinedFormatter<'a, T>
+impl<'a, T> Display for InlinedZodFormatter<'a, T>
 where
-    T: FormatInlined,
+    T: FormatInlinedZod,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt_inlined(f)
+        self.0.fmt_inlined_zod(f)
+    }
+}
+
+impl<'a, T> Display for InlinedTsFormatter<'a, T>
+where
+    T: FormatInlinedTs,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt_inlined_ts(f)
     }
 }
 
@@ -209,19 +218,30 @@ pub trait FormatTypescript {
     }
 }
 
-pub trait FormatInlined {
-    fn fmt_inlined(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-    fn to_inlined_string(&self) -> String
+pub trait FormatInlinedZod {
+    fn fmt_inlined_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+    fn to_inlined_zod_string(&self) -> String
     where
         Self: Sized,
     {
-        InlinedFormatter(self).to_string()
+        InlinedZodFormatter(self).to_string()
+    }
+}
+
+pub trait FormatInlinedTs {
+    fn fmt_inlined_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+    fn to_inlined_ts_string(&self) -> String
+    where
+        Self: Sized,
+    {
+        InlinedTsFormatter(self).to_string()
     }
 }
 
 struct ZodFormatter<'a, T: FormatZod>(&'a T);
 struct TsFormatter<'a, T: FormatTypescript>(&'a T);
-struct InlinedFormatter<'a, T: FormatInlined>(&'a T);
+struct InlinedZodFormatter<'a, T: FormatInlinedZod>(&'a T);
+struct InlinedTsFormatter<'a, T: FormatInlinedTs>(&'a T);
 
 impl<T> Display for Delimited<&[T]>
 where
@@ -274,15 +294,32 @@ where
     }
 }
 
-impl<T> FormatInlined for Delimited<&[T]>
+impl<T> FormatInlinedZod for Delimited<&[T]>
 where
-    T: FormatInlined,
+    T: FormatInlinedZod,
 {
-    fn fmt_inlined(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt_inlined_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut iter = self.0.clone().into_iter().peekable();
 
         while let Some(item) = iter.next() {
-            item.fmt_inlined(f)?;
+            item.fmt_inlined_zod(f)?;
+            if iter.peek().is_some() {
+                f.write_str(self.1)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<T> FormatInlinedTs for Delimited<&[T]>
+where
+    T: FormatInlinedTs,
+{
+    fn fmt_inlined_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.0.clone().into_iter().peekable();
+
+        while let Some(item) = iter.next() {
+            item.fmt_inlined_ts(f)?;
             if iter.peek().is_some() {
                 f.write_str(self.1)?;
             }

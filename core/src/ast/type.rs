@@ -1,4 +1,4 @@
-use super::{Delimited, FormatInlined, FormatTypescript, FormatZod, Generic};
+use super::{Delimited, FormatInlinedTs, FormatInlinedZod, FormatTypescript, FormatZod, Generic};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TypeDef {
@@ -20,8 +20,8 @@ impl TypeDef {
     }
 }
 
-impl FormatInlined for TypeDef {
-    fn fmt_inlined(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl FormatInlinedZod for TypeDef {
+    fn fmt_inlined_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.ns)?;
         f.write_str(".")?;
         f.write_str(self.ident)?;
@@ -34,8 +34,30 @@ impl FormatInlined for TypeDef {
                 .map(|gen| gen.resolved.ty())
                 .collect::<Vec<_>>();
 
-            Delimited(tys.as_slice(), ", ").fmt_inlined(f)?;
+            Delimited(tys.as_slice(), ", ").fmt_inlined_zod(f)?;
             f.write_str(")")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl FormatInlinedTs for TypeDef {
+    fn fmt_inlined_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.ns)?;
+        f.write_str(".")?;
+        f.write_str(self.ident)?;
+
+        if !self.generics.is_empty() {
+            f.write_str("<")?;
+            let tys = self
+                .generics
+                .into_iter()
+                .map(|gen| gen.resolved.ty())
+                .collect::<Vec<_>>();
+
+            Delimited(tys.as_slice(), ", ").fmt_inlined_ts(f)?;
+            f.write_str(">")?;
         }
 
         Ok(())
