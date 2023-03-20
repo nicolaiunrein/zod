@@ -9,7 +9,10 @@ pub struct TypeDef {
     pub generics: &'static [Generic],
 }
 
+#[derive(Debug)]
 pub struct TypeName(TypeDef);
+
+#[derive(Debug)]
 pub struct TypeArg(TypeDef, GenericMap);
 
 impl TypeDef {

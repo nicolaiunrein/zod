@@ -15,7 +15,40 @@ use zod_core::{
 };
 
 struct MyType {
-    inner: Vec<Arc<(String, usize)>>,
+    inner: Vec<(String, usize)>,
+}
+
+struct TupleWrapper<T> {
+    inner: (String, T),
+}
+
+impl<T: ZodType> ZodType for TupleWrapper<T> {
+    const AST: ZodExport = ZodExport {
+        docs: None,
+        def: ZodDefinition::Struct(ast::Struct {
+            ty: ast::TypeDef {
+                ns: "Ns",
+                ident: "TupleWrapper",
+                generics: &[Generic::new_for::<T>("T")],
+            },
+            fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
+                optional: false,
+                name: "inner",
+                value: FieldValue::new_for::<(String, usize)>(&phf_map! {1_u64 => "T"}),
+            })]),
+        }),
+    };
+}
+
+impl<T: ZodType> DependencyRegistration for TupleWrapper<T> {
+    fn register_dependencies(cx: &mut zod_core::DependencyMap)
+    where
+        Self: 'static,
+    {
+        if cx.add::<Self>() {
+            <(String, usize)>::register_dependencies(cx);
+        }
+    }
 }
 
 struct MyType2<T1, T2> {
@@ -39,7 +72,7 @@ impl ZodType for MyType {
             fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "inner",
-                value: FieldValue::new_for::<Vec<Arc<(String, usize)>>>(&phf_map! {}),
+                value: FieldValue::new_for::<Vec<Vec<Vec<String>>>>(&phf_map! {}),
             })]),
         }),
     };
@@ -162,21 +195,24 @@ impl<T: ZodType> DependencyRegistration for MyType3<T> {
 struct MyBackend {}
 
 fn main() {
-    // let expected = "export const MyType = z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.String, Rs.Usize))}));";
-    // assert_eq!(MyType::AST.to_zod_string(), expected);
+    let expected = "export const MyType = z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.String, Rs.Usize))}));";
+    assert_eq!(MyType::AST.to_zod_string(), expected);
 
-    // let expected2 = "export const MyType2 = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.lazy(() => z.object({inner1: T1, inner2: T2}));";
-    // assert_eq!(MyType2::<(), ()>::AST.to_zod_string(), expected2);
+    let expected = "export const TupleWrapper = (T: z.ZodTypeAny) => z.lazy(() => z.object({inner: Rs.Tuple2(Rs.String, T)}));";
+    assert_eq!(TupleWrapper::<()>::AST.to_zod_string(), expected);
 
-    // let expected3 = "export const MyType3 = (T: z.ZodTypeAny) => z.lazy(() => z.object({inner: Ns.MyType2(T, Rs.String)}));";
-    // assert_eq!(MyType3::<()>::AST.to_zod_string(), expected3);
+    let expected2 = "export const MyType2 = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.lazy(() => z.object({inner1: T1, inner2: T2}));";
+    assert_eq!(MyType2::<(), ()>::AST.to_zod_string(), expected2);
 
-    // let out = <MyType3<()>>::dependencies()
-    // .resolve()
-    // .into_iter()
-    // .map(|export| export.to_string())
-    // .collect::<String>();
+    let expected3 = "export const MyType3 = (T: z.ZodTypeAny) => z.lazy(() => z.object({inner: Ns.MyType2(T, Rs.String)}));";
+    assert_eq!(MyType3::<()>::AST.to_zod_string(), expected3);
 
-    // println!("{out}")
-    assert_eq!(<(String, usize)>::AST.to_zod_string(), "");
+    let out = <MyType3<()>>::dependencies()
+        .resolve()
+        .into_iter()
+        .map(|export| export.to_string())
+        .collect::<String>();
+
+    println!("{out}")
+    // assert_eq!(<(String, usize)>::AST.to_zod_string(), "");
 }

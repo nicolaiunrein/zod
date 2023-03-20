@@ -37,7 +37,9 @@ impl FormatZod for Struct {
 
                 let (inner_fields, flat_fields) = MaybeFlatField::partition(&fields);
 
+                f.write_str("xxx")?;
                 Delimited(inner_fields.as_slice(), ", ").fmt_zod(f)?;
+                f.write_str("xxx")?;
 
                 f.write_str("}))")?;
 
