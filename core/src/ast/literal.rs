@@ -1,8 +1,8 @@
-use super::{FormatTypescript, FormatZod, QualifiedType};
+use super::{FormatTypescript, FormatZod, TypeDef};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Literal {
-    pub ty: QualifiedType,
+    pub ty: TypeDef,
     pub ts: &'static str,
     pub zod: &'static str,
 }

@@ -1,16 +1,16 @@
 use super::{Delimited, FormatInlined, FormatTypescript, FormatZod, Generic};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct QualifiedType {
+pub struct TypeDef {
     pub ns: &'static str,
     pub ident: &'static str,
     pub generics: &'static [Generic],
 }
 
-pub struct TypeName(QualifiedType);
-pub struct TypeArg(QualifiedType);
+pub struct TypeName(TypeDef);
+pub struct TypeArg(TypeDef);
 
-impl QualifiedType {
+impl TypeDef {
     pub const fn as_arg(self) -> TypeArg {
         TypeArg(self)
     }
@@ -20,7 +20,7 @@ impl QualifiedType {
     }
 }
 
-impl FormatInlined for QualifiedType {
+impl FormatInlined for TypeDef {
     fn fmt_inlined(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.ns)?;
         f.write_str(".")?;
@@ -106,7 +106,7 @@ mod test {
 
     #[test]
     fn zod_qualified_type() {
-        let ty = QualifiedType {
+        let ty = TypeDef {
             ns: "Ns",
             ident: "abc",
             generics: Default::default(),
@@ -117,7 +117,7 @@ mod test {
 
     #[test]
     fn qualified_type_with_generics() {
-        const TY: QualifiedType = QualifiedType {
+        const TY: TypeDef = TypeDef {
             ns: "Ns",
             ident: "abc",
             generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],

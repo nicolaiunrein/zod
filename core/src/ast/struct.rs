@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
-use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, QualifiedType, StructFields};
+use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, StructFields, TypeDef};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Struct {
-    pub ty: QualifiedType,
+    pub ty: TypeDef,
     pub fields: StructFields,
 }
 
@@ -148,7 +148,7 @@ impl FormatTypescript for Struct {
 #[cfg(test)]
 mod test {
     use crate::ast::{
-        FieldValue, FlatField, FormatTypescript, Generic, NamedField, QualifiedType, TupleField,
+        FieldValue, FlatField, FormatTypescript, Generic, NamedField, TupleField, TypeDef,
     };
 
     use super::*;
@@ -157,7 +157,7 @@ mod test {
     #[test]
     fn zod_tuple_struct() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[],
@@ -182,7 +182,7 @@ mod test {
     #[test]
     fn zod_tuple_struct_with_generics() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
@@ -206,7 +206,7 @@ mod test {
         const FIELDS: &[TupleField] = &[
             TupleField {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "a",
                     generics: &[Generic::new_for::<()>("A")],
@@ -214,7 +214,7 @@ mod test {
             },
             TupleField {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "b",
                     generics: &[Generic::new_for::<()>("B")],
@@ -222,7 +222,7 @@ mod test {
             },
             TupleField {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "c",
                     generics: &[],
@@ -230,7 +230,7 @@ mod test {
             },
             TupleField {
                 optional: true,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "d",
                     generics: &[],
@@ -239,7 +239,7 @@ mod test {
         ];
 
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
@@ -264,7 +264,7 @@ mod test {
     #[test]
     fn zod_named_struct() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[],
@@ -287,7 +287,7 @@ mod test {
             MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_a",
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "a",
                     generics: &[Generic::new_for::<()>("A")],
@@ -296,7 +296,7 @@ mod test {
             MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_b",
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "b",
                     generics: &[Generic::new_for::<()>("B")],
@@ -305,7 +305,7 @@ mod test {
             MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_c",
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "c",
                     generics: &[],
@@ -314,14 +314,14 @@ mod test {
             MaybeFlatField::Named(NamedField {
                 optional: true,
                 name: "hallo_d",
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "d",
                     generics: &[],
                 }),
             }),
             MaybeFlatField::Flat(FlatField {
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "e",
                     generics: &[],
@@ -330,7 +330,7 @@ mod test {
         ];
 
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
@@ -352,14 +352,14 @@ mod test {
     #[test]
     fn transparent_field() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
             fields: StructFields::Transparent {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "inner",
                     generics: &[],
@@ -377,14 +377,14 @@ mod test {
     #[test]
     fn transparent_field_generics() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
             fields: StructFields::Transparent {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "inner",
                     generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
@@ -403,14 +403,14 @@ mod test {
     #[test]
     fn tuple_with_one_required_field_gets_flattened() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Other",
                     ident: "other",
                     generics: &[],
@@ -429,14 +429,14 @@ mod test {
     #[test]
     fn tuple_with_one_optional_field_gets_flattened() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: true,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Other",
                     ident: "other",
                     generics: &[],
@@ -459,14 +459,14 @@ mod test {
     #[ignore]
     fn generic_inline() {
         const STRUCT: Struct = Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Other",
                     ident: "Generic",
                     generics: &[

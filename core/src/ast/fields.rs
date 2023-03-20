@@ -1,4 +1,4 @@
-use super::{FormatInlined, FormatTypescript, FormatZod, GenericName, QualifiedType};
+use super::{FormatInlined, FormatTypescript, FormatZod, GenericName, TypeDef};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
@@ -10,8 +10,8 @@ pub enum StructFields {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
     Generic(GenericName),
-    Qualified(QualifiedType),
-    Inlined(QualifiedType),
+    Qualified(TypeDef),
+    Inlined(TypeDef),
 }
 
 impl FormatZod for FieldValue {
@@ -156,7 +156,7 @@ mod test {
         assert_eq!(
             TupleField {
                 optional: false,
-                value: FieldValue::Qualified(QualifiedType {
+                value: FieldValue::Qualified(TypeDef {
                     ns: "Ns",
                     ident: "myValue",
                     generics: Default::default()
@@ -171,7 +171,7 @@ mod test {
     fn zod_inner_tuple_struct_field_optional() {
         let field = TupleField {
             optional: true,
-            value: FieldValue::Qualified(QualifiedType {
+            value: FieldValue::Qualified(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -186,7 +186,7 @@ mod test {
         let field = NamedField {
             optional: false,
             name: "my_value",
-            value: FieldValue::Qualified(QualifiedType {
+            value: FieldValue::Qualified(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -201,7 +201,7 @@ mod test {
         let field = NamedField {
             optional: true,
             name: "my_value",
-            value: FieldValue::Qualified(QualifiedType {
+            value: FieldValue::Qualified(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -214,7 +214,7 @@ mod test {
     #[test]
     fn flattened_field() {
         let field = FlatField {
-            value: FieldValue::Qualified(QualifiedType {
+            value: FieldValue::Qualified(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),

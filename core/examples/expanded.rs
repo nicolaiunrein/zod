@@ -21,7 +21,7 @@ impl ZodType for MyType {
     const AST: ZodExport = ZodExport {
         docs: Some("My Docs"),
         def: ZodDefinition::Struct(ast::Struct {
-            ty: ast::QualifiedType {
+            ty: ast::TypeDef {
                 ns: "Ns",
                 ident: "MyType",
                 generics: &[Generic::new_for::<()>("T")],

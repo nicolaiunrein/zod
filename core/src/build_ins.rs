@@ -20,7 +20,7 @@ macro_rules! impl_primitive {
             const AST: ZodExport = ZodExport {
                 docs: None,
                 def: ZodDefinition::Literal(Literal {
-                    ty: QualifiedType {
+                    ty: TypeDef {
                         ns: Rs::NAME,
                         ident: $name,
                         generics: &[],
@@ -71,7 +71,7 @@ macro_rules! tuple {
             ZodExport {
                 docs: None,
                 def: ZodDefinition::Literal(Literal {
-                ty: QualifiedType {
+                ty: TypeDef {
                     ns: Rs::NAME,
                     ident: concat!("Tuple", $N),
                     generics: &[
@@ -207,7 +207,7 @@ impl<T: ZodType> ZodType for Vec<T> {
     const AST: ZodExport = ZodExport {
         docs: None,
         def: ZodDefinition::Literal(Literal {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: Rs::NAME,
                 ident: "Vec",
                 generics: &[Generic::new_for::<T>("T")],
@@ -233,7 +233,7 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
     const AST: ZodExport = ZodExport{
         docs: None,
         def: ZodDefinition::Literal(Literal {
-            ty: QualifiedType{
+            ty: TypeDef{
                 ns: Rs::NAME,
                 ident: "Array",
                 //todo
@@ -267,7 +267,7 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
     const AST: ZodExport = ZodExport {
         docs: None,
         def: ZodDefinition::Literal(Literal {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: Rs::NAME,
                 ident: "HashSet",
                 generics: &[Generic::new_for::<T>("T")],
@@ -292,7 +292,7 @@ impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
     const AST: ZodExport = ZodExport {
         docs: None,
         def: ZodDefinition::Literal(Literal {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: Rs::NAME,
                 ident: "BTreeSet",
                 generics: &[Generic::new_for::<T>("T")],
@@ -318,7 +318,7 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
     const AST: ZodExport =  ZodExport{
     docs: None,
     def: ZodDefinition::Literal(Literal {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: Rs::NAME,
                 ident: "HashMap",
                 generics: &[
@@ -383,7 +383,7 @@ impl<T: ZodType> ZodType for Option<T> {
     const AST: ZodExport = ZodExport {
         docs: None,
         def: ZodDefinition::Struct(Struct {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: Rs::NAME,
                 ident: "Option",
                 generics: &[Generic::new_for::<T>("T")],
@@ -408,7 +408,7 @@ impl<T: ZodType> DependencyRegistration for Option<T> {
 
 impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
     const AST: ZodExport =     ZodExport{docs: None, def: ZodDefinition::Literal(Literal {
-            ty: QualifiedType {
+            ty: TypeDef {
                 ns: Rs::NAME,
                 ident: "Result",
                 generics: &[

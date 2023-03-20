@@ -61,7 +61,7 @@ impl ZodExport {
         self.def.name()
     }
 
-    pub const fn ty(&self) -> QualifiedType {
+    pub const fn ty(&self) -> TypeDef {
         self.def.ty()
     }
 
@@ -108,7 +108,7 @@ impl ZodDefinition {
         }
     }
 
-    pub const fn ty(&self) -> QualifiedType {
+    pub const fn ty(&self) -> TypeDef {
         match self {
             ZodDefinition::Struct(inner) => inner.ty,
             ZodDefinition::Literal(inner) => inner.ty,
@@ -320,7 +320,7 @@ mod test {
         let export = ZodExport {
             docs: Some("Hallo Welt\nSecond Line"),
             def: ZodDefinition::Struct(Struct {
-                ty: QualifiedType {
+                ty: TypeDef {
                     ns: "Ns",
                     ident: "test",
                     generics: &[],
