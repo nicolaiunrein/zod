@@ -226,7 +226,7 @@ impl<T: ZodType> ZodType for Vec<T> {
             ns: Rs::NAME,
             ty: Type {
                 ident: "Vec",
-                generics: &[Generic::Type { ident: "T" }],
+                generics: &[GenericName::Type { ident: "T" }],
             },
             ts: "export type Vec<T> = T[];",
             zod: "export const Vec = (T: z.ZodTypeAny) => z.array(z.lazy(() => T))",
@@ -258,7 +258,7 @@ impl<const N: usize, T: ZodType> ZodType for [T; N] {
             ns: Rs::NAME,
             ty: Type{
                 ident: "Array",
-                generics: &[Generic::Type {ident: "T"}]
+                generics: &[GenericName::Type {ident: "T"}]
             },
             ts: "
         export type Array<N extends number, T, TObj = [T, ...T[]]> = Pick<TObj, Exclude<keyof TObj, 'splice' | 'push' | 'pop' | 'shift' |  'unshift'>>
@@ -298,7 +298,7 @@ impl<T: ZodType> ZodType for std::collections::HashSet<T> {
             ns: Rs::NAME,
             ty: Type {
                 ident: "HashSet",
-                generics: &[Generic::Type { ident: "T" }],
+                generics: &[GenericName::Type { ident: "T" }],
             },
             ts: "export type HashSet<T> = Set<T>;",
             zod: "export const HashSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
@@ -329,7 +329,7 @@ impl<T: ZodType> ZodType for std::collections::BTreeSet<T> {
             ns: Rs::NAME,
             ty: Type {
                 ident: "BTreeSet",
-                generics: &[Generic::Type { ident: "T" }],
+                generics: &[GenericName::Type { ident: "T" }],
             },
             ts: "export type BTreeSet<T> = Set<T>;",
             zod: "export const BTreeSet = (T: z.ZodTypeAny) => z.set(z.lazy(() => T))",
@@ -362,8 +362,8 @@ impl<K: ZodType, V: ZodType> ZodType for std::collections::HashMap<K, V> {
             ty: Type {
                 ident: "HashMap",
                 generics: &[
-                    Generic::Type {ident: "K"},
-                    Generic::Type {ident: "V"},
+                    GenericName::Type {ident: "K"},
+                    GenericName::Type {ident: "V"},
                 ]
             },
             ts: "export type HashMap<K, V> = Map<K, V>;",
@@ -432,10 +432,10 @@ impl<T: ZodType> ZodType for Option<T> {
             ns: Rs::NAME,
             ty: Type {
                 ident: "Option",
-                generics: &[Generic::Type { ident: "T" }],
+                generics: &[GenericName::Type { ident: "T" }],
             },
             fields: StructFields::Transparent {
-                value: FieldValue::Generic(Generic::Type { ident: "T" }),
+                value: FieldValue::Generic(GenericName::Type { ident: "T" }),
                 optional: true,
             },
         }),
@@ -464,8 +464,8 @@ impl<T: ZodType, E: ZodType> ZodType for Result<T, E> {
             ty: Type {
                 ident: "Result",
                 generics: &[
-                    Generic::Type {ident: "T"},
-                    Generic::Type {ident: "E"},
+                    GenericName::Type {ident: "T"},
+                    GenericName::Type {ident: "E"},
                 ]
 
             },

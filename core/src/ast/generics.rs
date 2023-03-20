@@ -1,7 +1,7 @@
 use super::{FormatTypescript, FormatZod};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Generic {
+pub enum GenericName {
     Type {
         ident: &'static str,
     },
@@ -11,7 +11,7 @@ pub enum Generic {
     },
 }
 
-impl FormatZod for Generic {
+impl FormatZod for GenericName {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Type { ident } => f.write_str(ident),
@@ -24,7 +24,7 @@ impl FormatZod for Generic {
     }
 }
 
-impl FormatTypescript for Generic {
+impl FormatTypescript for GenericName {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Type { ident } => f.write_str(ident),

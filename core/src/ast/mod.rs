@@ -69,7 +69,7 @@ impl ZodExport {
         self.def.ns()
     }
 
-    pub const fn generics(&self) -> &'static [Generic] {
+    pub const fn generics(&self) -> &'static [GenericName] {
         self.def.generics()
     }
 
@@ -122,7 +122,7 @@ impl ZodDefinition {
         }
     }
 
-    pub const fn generics(&self) -> &'static [Generic] {
+    pub const fn generics(&self) -> &'static [GenericName] {
         match self {
             ZodDefinition::Struct(inner) => inner.ty.generics,
             ZodDefinition::Literal(inner) => inner.ty.generics,

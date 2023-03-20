@@ -151,7 +151,7 @@ impl FormatTypescript for Struct {
 #[cfg(test)]
 mod test {
     use crate::ast::{
-        FieldValue, FlatField, FormatTypescript, Generic, NamedField, QualifiedType, TupleField,
+        FieldValue, FlatField, FormatTypescript, GenericName, NamedField, QualifiedType, TupleField,
     };
 
     use super::*;
@@ -188,7 +188,7 @@ mod test {
             ns: "Ns",
             ty: Type {
                 ident: "test",
-                generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
             },
             fields: StructFields::Tuple(&[]),
         };
@@ -212,7 +212,7 @@ mod test {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
-                    generics: &[Generic::Type { ident: "A" }],
+                    generics: &[GenericName::Type { ident: "A" }],
                 }),
             },
             TupleField {
@@ -220,7 +220,7 @@ mod test {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
-                    generics: &[Generic::Type { ident: "B" }],
+                    generics: &[GenericName::Type { ident: "B" }],
                 }),
             },
             TupleField {
@@ -245,7 +245,7 @@ mod test {
             ns: "Ns",
             ty: Type {
                 ident: "test",
-                generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
             },
             fields: StructFields::Tuple(fields),
         };
@@ -293,7 +293,7 @@ mod test {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
-                    generics: &[Generic::Type { ident: "A" }],
+                    generics: &[GenericName::Type { ident: "A" }],
                 }),
             }),
             MaybeFlatField::Named(NamedField {
@@ -302,7 +302,7 @@ mod test {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
-                    generics: &[Generic::Type { ident: "B" }],
+                    generics: &[GenericName::Type { ident: "B" }],
                 }),
             }),
             MaybeFlatField::Named(NamedField {
@@ -336,7 +336,7 @@ mod test {
             ns: "Ns",
             ty: Type {
                 ident: "test",
-                generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
             },
             fields: StructFields::Named(fields),
         };
@@ -380,14 +380,14 @@ mod test {
             ns: "Ns",
             ty: Type {
                 ident: "test",
-                generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
             },
             fields: StructFields::Transparent {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "inner",
-                    generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+                    generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
                 }),
             },
         };
@@ -469,8 +469,8 @@ mod test {
                     ns: "Other",
                     ident: "Generic",
                     generics: &[
-                        Generic::Type { ident: "Rs.String" },
-                        Generic::Type { ident: "Rs.Usize" },
+                        GenericName::Type { ident: "Rs.String" },
+                        GenericName::Type { ident: "Rs.Usize" },
                     ],
                 }),
             }]),

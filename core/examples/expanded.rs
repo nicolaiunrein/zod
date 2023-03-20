@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
 use std::sync::Arc;
-use zod_core::ast::Generic;
+use zod_core::ast::GenericName;
 use zod_core::Inlined;
 
 use zod_core::{
@@ -23,7 +23,7 @@ impl ZodType for MyType {
             ns: "Ns",
             ty: ast::Type {
                 ident: "MyType",
-                generics: &[Generic::Type { ident: "T" }],
+                generics: &[GenericName::Type { ident: "T" }],
             },
             fields: StructFields::Named(&[
                 MaybeFlatField::Named(NamedField {
@@ -37,7 +37,7 @@ impl ZodType for MyType {
                     value: FieldValue::Qualified(QualifiedType {
                         ns: "Rs",
                         ident: "test",
-                        generics: &[Generic::Type { ident: "T" }],
+                        generics: &[GenericName::Type { ident: "T" }],
                     }),
                 }),
             ]),

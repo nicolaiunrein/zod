@@ -1,16 +1,16 @@
-use super::{Delimited, FormatTypescript, FormatZod, Generic};
+use super::{Delimited, FormatTypescript, FormatZod, GenericName};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Type {
     pub ident: &'static str,
-    pub generics: &'static [Generic],
+    pub generics: &'static [GenericName],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct QualifiedType {
     pub ns: &'static str,
     pub ident: &'static str,
-    pub generics: &'static [Generic],
+    pub generics: &'static [GenericName],
 }
 
 impl Type {
@@ -90,7 +90,7 @@ impl FormatTypescript for Type {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::Generic;
+    use crate::ast::GenericName;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -120,7 +120,10 @@ mod test {
     fn type_with_generics() {
         let ty = Type {
             ident: "abc",
-            generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+            generics: &[
+                GenericName::Type { ident: "A" },
+                GenericName::Type { ident: "B" },
+            ],
         };
 
         assert_eq!(ty.to_zod_string(), "abc(A, B)");
@@ -131,7 +134,10 @@ mod test {
         let ty = QualifiedType {
             ns: "Ns",
             ident: "abc",
-            generics: &[Generic::Type { ident: "A" }, Generic::Type { ident: "B" }],
+            generics: &[
+                GenericName::Type { ident: "A" },
+                GenericName::Type { ident: "B" },
+            ],
         };
 
         assert_eq!(ty.to_zod_string(), "Ns.abc(A, B)");

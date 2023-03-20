@@ -1,6 +1,6 @@
 use crate::Inlined;
 
-use super::{FormatTypescript, FormatZod, Generic, QualifiedType};
+use super::{FormatTypescript, FormatZod, GenericName, QualifiedType};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
@@ -11,7 +11,7 @@ pub enum StructFields {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
-    Generic(Generic),
+    Generic(GenericName),
     Qualified(QualifiedType),
     Inlined(Inlined),
 }
