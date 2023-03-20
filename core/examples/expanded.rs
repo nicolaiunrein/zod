@@ -1,12 +1,13 @@
+#![allow(dead_code)]
+
 use pretty_assertions::assert_eq;
 use std::sync::Arc;
-use zod_core::ast::GenericName;
-use zod_core::Inlined;
+use zod_core::ast::Generic;
 
 use zod_core::{
     ast::{
-        self, FieldValue, FormatZod, MaybeFlatField, NamedField, QualifiedType, StructFields,
-        ZodDefinition, ZodExport,
+        self, FieldValue, FormatZod, MaybeFlatField, NamedField, StructFields, ZodDefinition,
+        ZodExport,
     },
     rpc::codegen::RpcNamespace,
     DependencyRegistration, Namespace, ZodType,
@@ -20,34 +21,17 @@ impl ZodType for MyType {
     const AST: ZodExport = ZodExport {
         docs: Some("My Docs"),
         def: ZodDefinition::Struct(ast::Struct {
-            ns: "Ns",
-            ty: ast::Type {
+            ty: ast::QualifiedType {
+                ns: "Ns",
                 ident: "MyType",
-                generics: &[GenericName::Type { ident: "T" }],
+                generics: &[Generic::new_for::<()>("T")],
             },
-            fields: StructFields::Named(&[
-                MaybeFlatField::Named(NamedField {
-                    optional: false,
-                    name: "inner",
-                    value: FieldValue::Inlined(<Vec<Arc<(String, usize)>>>::INLINED),
-                }),
-                MaybeFlatField::Named(NamedField {
-                    optional: false,
-                    name: "test2",
-                    value: FieldValue::Qualified(QualifiedType {
-                        ns: "Rs",
-                        ident: "test",
-                        generics: &[GenericName::Type { ident: "T" }],
-                    }),
-                }),
-            ]),
+            fields: StructFields::Named(&[MaybeFlatField::Named(NamedField {
+                optional: false,
+                name: "inner",
+                value: FieldValue::Inlined(<Vec<Arc<(String, usize)>>>::AST.def.ty()),
+            })]),
         }),
-    };
-
-    const INLINED: zod_core::Inlined = Inlined::Type {
-        ns: "Ns",
-        name: "MyType",
-        params: &[<Vec<Arc<(String, usize)>>>::INLINED],
     };
 }
 
@@ -102,5 +86,11 @@ impl DependencyRegistration for MyNamespace {
 struct MyBackend {}
 
 fn main() {
-    assert_eq!(MyType::AST.to_zod_string(), "")
+    let expected = "\
+/**
+* My Docs
+*/
+export const MyType = (T: z.ZodTypeAny) => z.lazy(() => z.object({inner: Rs.Vec(Rs.Tuple2(Rs.String, Rs.Usize))}));";
+
+    assert_eq!(MyType::AST.to_zod_string(), expected);
 }

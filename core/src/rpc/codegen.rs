@@ -132,8 +132,9 @@ fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
         let mut out = String::from("// phantom usage\n");
         for arg in args {
             out.push_str("    ");
-            let ty = arg.code.ty().qualify(arg.code.ns());
-            out.push_str(&ty.to_ts_string());
+            let ty = arg.code.ty();
+            // todo
+            // out.push_str(&ty.as_arg().to_ts_string());
             out.push(';');
             out.push('\n');
         }

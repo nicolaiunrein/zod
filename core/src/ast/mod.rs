@@ -61,7 +61,7 @@ impl ZodExport {
         self.def.name()
     }
 
-    pub const fn ty(&self) -> Type {
+    pub const fn ty(&self) -> QualifiedType {
         self.def.ty()
     }
 
@@ -69,7 +69,7 @@ impl ZodExport {
         self.def.ns()
     }
 
-    pub const fn generics(&self) -> &'static [GenericName] {
+    pub const fn generics(&self) -> &'static [Generic] {
         self.def.generics()
     }
 
@@ -96,8 +96,8 @@ impl Display for ZodDefinition {
 impl ZodDefinition {
     pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
         match self {
-            ZodDefinition::Struct(inner) => T::NAME == inner.ns,
-            ZodDefinition::Literal(inner) => T::NAME == inner.ns,
+            ZodDefinition::Struct(inner) => T::NAME == inner.ty.ns,
+            ZodDefinition::Literal(inner) => T::NAME == inner.ty.ns,
         }
     }
 
@@ -108,7 +108,7 @@ impl ZodDefinition {
         }
     }
 
-    pub const fn ty(&self) -> Type {
+    pub const fn ty(&self) -> QualifiedType {
         match self {
             ZodDefinition::Struct(inner) => inner.ty,
             ZodDefinition::Literal(inner) => inner.ty,
@@ -117,12 +117,12 @@ impl ZodDefinition {
 
     pub const fn ns(&self) -> &'static str {
         match self {
-            ZodDefinition::Struct(inner) => inner.ns,
-            ZodDefinition::Literal(inner) => inner.ns,
+            ZodDefinition::Struct(inner) => inner.ty.ns,
+            ZodDefinition::Literal(inner) => inner.ty.ns,
         }
     }
 
-    pub const fn generics(&self) -> &'static [GenericName] {
+    pub const fn generics(&self) -> &'static [Generic] {
         match self {
             ZodDefinition::Struct(inner) => inner.ty.generics,
             ZodDefinition::Literal(inner) => inner.ty.generics,
@@ -171,6 +171,15 @@ where
     }
 }
 
+impl<'a, T> Display for InlinedFormatter<'a, T>
+where
+    T: FormatInlined,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt_inlined(f)
+    }
+}
+
 impl<'a, T> Display for TsFormatter<'a, T>
 where
     T: FormatTypescript,
@@ -200,8 +209,19 @@ pub trait FormatTypescript {
     }
 }
 
+pub trait FormatInlined {
+    fn fmt_inlined(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+    fn to_inlined_string(&self) -> String
+    where
+        Self: Sized,
+    {
+        InlinedFormatter(self).to_string()
+    }
+}
+
 struct ZodFormatter<'a, T: FormatZod>(&'a T);
 struct TsFormatter<'a, T: FormatTypescript>(&'a T);
+struct InlinedFormatter<'a, T: FormatInlined>(&'a T);
 
 impl<T> Display for Delimited<&[T]>
 where
@@ -254,6 +274,23 @@ where
     }
 }
 
+impl<T> FormatInlined for Delimited<&[T]>
+where
+    T: FormatInlined,
+{
+    fn fmt_inlined(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.0.clone().into_iter().peekable();
+
+        while let Some(item) = iter.next() {
+            item.fmt_inlined(f)?;
+            if iter.peek().is_some() {
+                f.write_str(self.1)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 fn format_docs(input: &str) -> String {
     format!(
         "/**\n{}*/\n",
@@ -283,8 +320,8 @@ mod test {
         let export = ZodExport {
             docs: Some("Hallo Welt\nSecond Line"),
             def: ZodDefinition::Struct(Struct {
-                ns: "Ns",
-                ty: Type {
+                ty: QualifiedType {
+                    ns: "Ns",
                     ident: "test",
                     generics: &[],
                 },

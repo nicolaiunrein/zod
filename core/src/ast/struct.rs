@@ -1,11 +1,10 @@
 use std::fmt::Display;
 
-use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, StructFields, Type};
+use super::{Delimited, FormatTypescript, FormatZod, MaybeFlatField, QualifiedType, StructFields};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Struct {
-    pub ns: &'static str,
-    pub ty: Type,
+    pub ty: QualifiedType,
     pub fields: StructFields,
 }
 
@@ -53,7 +52,6 @@ impl FormatZod for Struct {
                     let field = fields.first().expect("one field");
 
                     Self {
-                        ns: self.ns,
                         ty: self.ty,
                         fields: StructFields::Transparent {
                             optional: field.optional,
@@ -93,7 +91,7 @@ impl FormatTypescript for Struct {
             StructFields::Named(fields) => {
                 let (inner_fields, flat_fields) = MaybeFlatField::partition(fields);
                 f.write_str("interface ")?;
-                self.ty.fmt_ts(f)?;
+                self.ty.as_name().fmt_ts(f)?;
 
                 if !flat_fields.is_empty() {
                     f.write_str(" extends ")?;
@@ -111,7 +109,6 @@ impl FormatTypescript for Struct {
                 1 => {
                     let field = fields.first().expect("one field");
                     Self {
-                        ns: self.ns,
                         ty: self.ty,
                         fields: StructFields::Transparent {
                             optional: field.optional,
@@ -122,7 +119,7 @@ impl FormatTypescript for Struct {
                 }
                 _ => {
                     f.write_str("type ")?;
-                    self.ty.fmt_ts(f)?;
+                    self.ty.as_name().fmt_ts(f)?;
                     f.write_str(" = [")?;
                     Delimited(fields, ", ").fmt_ts(f)?;
                     f.write_str("]")?;
@@ -134,7 +131,7 @@ impl FormatTypescript for Struct {
                 optional,
             } => {
                 f.write_str("type ")?;
-                self.ty.fmt_ts(f)?;
+                self.ty.as_name().fmt_ts(f)?;
                 f.write_str(" = ")?;
                 value.fmt_ts(f)?;
                 if optional {
@@ -151,7 +148,7 @@ impl FormatTypescript for Struct {
 #[cfg(test)]
 mod test {
     use crate::ast::{
-        FieldValue, FlatField, FormatTypescript, GenericName, NamedField, QualifiedType, TupleField,
+        FieldValue, FlatField, FormatTypescript, Generic, NamedField, QualifiedType, TupleField,
     };
 
     use super::*;
@@ -159,60 +156,60 @@ mod test {
 
     #[test]
     fn zod_tuple_struct() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
-                generics: Default::default(),
+                generics: &[],
             },
             fields: StructFields::Tuple(&[]),
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             format!(
                 "const {} = z.lazy(() => z.tuple([]));",
-                def.ty.to_zod_string()
+                STRUCT.ty.as_name().to_zod_string()
             )
         );
 
         assert_eq!(
-            def.to_ts_string(),
-            format!("type {} = [];", def.ty.to_ts_string())
+            STRUCT.to_ts_string(),
+            format!("type {} = [];", STRUCT.ty.as_name().to_ts_string())
         );
     }
 
     #[test]
     fn zod_tuple_struct_with_generics() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
-                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
+                generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
             fields: StructFields::Tuple(&[]),
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.tuple([]));",
         );
 
         assert_eq!(
-            def.to_ts_string(),
-            format!("type {} = [];", def.ty.to_ts_string(),)
+            STRUCT.to_ts_string(),
+            format!("type {} = [];", STRUCT.ty.as_name().to_ts_string(),)
         );
     }
 
     #[test]
     fn zod_tuple_struct_with_generics_and_fields() {
-        let fields = &[
+        const FIELDS: &[TupleField] = &[
             TupleField {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
-                    generics: &[GenericName::Type { ident: "A" }],
+                    generics: &[Generic::new_for::<()>("A")],
                 }),
             },
             TupleField {
@@ -220,7 +217,7 @@ mod test {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
-                    generics: &[GenericName::Type { ident: "B" }],
+                    generics: &[Generic::new_for::<()>("B")],
                 }),
             },
             TupleField {
@@ -241,59 +238,59 @@ mod test {
             },
         ];
 
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
-                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
+                generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
-            fields: StructFields::Tuple(fields),
+            fields: StructFields::Tuple(FIELDS),
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.tuple([Ns.a(A), Ns.b(B), Ns.c, Ns.d.optional()]));",
         );
 
         assert_eq!(
-            def.to_ts_string(),
+            STRUCT.to_ts_string(),
             format!(
                 "type {} = [Ns.a<A>, Ns.b<B>, Ns.c, Ns.d | undefined];",
-                def.ty.to_ts_string(),
+                STRUCT.ty.as_name().to_ts_string(),
             )
         );
     }
 
     #[test]
     fn zod_named_struct() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
-                generics: Default::default(),
+                generics: &[],
             },
             fields: StructFields::Named(&[]),
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             format!(
                 "const {} = z.lazy(() => z.object({{}}));",
-                def.ty.to_zod_string()
+                STRUCT.ty.as_name().to_zod_string()
             )
         );
     }
 
     #[test]
     fn zod_named_struct_with_generics_and_fields() {
-        let fields = &[
+        const FIELDS: &[MaybeFlatField] = &[
             MaybeFlatField::Named(NamedField {
                 optional: false,
                 name: "hallo_a",
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "a",
-                    generics: &[GenericName::Type { ident: "A" }],
+                    generics: &[Generic::new_for::<()>("A")],
                 }),
             }),
             MaybeFlatField::Named(NamedField {
@@ -302,7 +299,7 @@ mod test {
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "b",
-                    generics: &[GenericName::Type { ident: "B" }],
+                    generics: &[Generic::new_for::<()>("B")],
                 }),
             }),
             MaybeFlatField::Named(NamedField {
@@ -332,31 +329,31 @@ mod test {
             }),
         ];
 
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
-                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
+                generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
-            fields: StructFields::Named(fields),
+            fields: StructFields::Named(FIELDS),
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.object({hallo_a: Ns.a(A), hallo_b: Ns.b(B), hallo_c: Ns.c, hallo_d: Ns.d.optional()})).extend(z.lazy(() => Ns.e));",
         );
 
         assert_eq!(
-            def.to_ts_string(),
+            STRUCT.to_ts_string(),
             "interface test<A, B> extends Ns.e { hallo_a: Ns.a<A>, hallo_b: Ns.b<B>, hallo_c: Ns.c, hallo_d?: Ns.d | undefined }"
         );
     }
 
     #[test]
     fn transparent_field() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
@@ -370,41 +367,44 @@ mod test {
             },
         };
 
-        assert_eq!(def.to_zod_string(), "const test = z.lazy(() => Ns.inner);");
-        assert_eq!(def.to_ts_string(), "type test = Ns.inner;");
+        assert_eq!(
+            STRUCT.to_zod_string(),
+            "const test = z.lazy(() => Ns.inner);"
+        );
+        assert_eq!(STRUCT.to_ts_string(), "type test = Ns.inner;");
     }
 
     #[test]
     fn transparent_field_generics() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
-                generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
+                generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
             fields: StructFields::Transparent {
                 optional: false,
                 value: FieldValue::Qualified(QualifiedType {
                     ns: "Ns",
                     ident: "inner",
-                    generics: &[GenericName::Type { ident: "A" }, GenericName::Type { ident: "B" }],
+                    generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
                 }),
             },
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => Ns.inner(A, B));"
         );
 
-        assert_eq!(def.to_ts_string(), "type test<A, B> = Ns.inner<A, B>;")
+        assert_eq!(STRUCT.to_ts_string(), "type test<A, B> = Ns.inner<A, B>;")
     }
 
     #[test]
     fn tuple_with_one_required_field_gets_flattened() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
@@ -419,18 +419,18 @@ mod test {
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = z.lazy(() => Other.other);"
         );
 
-        assert_eq!(def.to_ts_string(), "type test = Other.other;");
+        assert_eq!(STRUCT.to_ts_string(), "type test = Other.other;");
     }
 
     #[test]
     fn tuple_with_one_optional_field_gets_flattened() {
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
@@ -445,21 +445,22 @@ mod test {
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = z.lazy(() => Other.other.optional());"
         );
 
-        assert_eq!(def.to_ts_string(), "type test = Other.other | undefined;");
+        assert_eq!(
+            STRUCT.to_ts_string(),
+            "type test = Other.other | undefined;"
+        );
     }
 
     #[test]
     #[ignore]
     fn generic_inline() {
-        // pub struct User(Generic<String, usize>);
-
-        let def = Struct {
-            ns: "Ns",
-            ty: Type {
+        const STRUCT: Struct = Struct {
+            ty: QualifiedType {
+                ns: "Ns",
                 ident: "test",
                 generics: &[],
             },
@@ -469,20 +470,20 @@ mod test {
                     ns: "Other",
                     ident: "Generic",
                     generics: &[
-                        GenericName::Type { ident: "Rs.String" },
-                        GenericName::Type { ident: "Rs.Usize" },
+                        Generic::new_for::<String>("A"),
+                        Generic::new_for::<usize>("B"),
                     ],
                 }),
             }]),
         };
 
         assert_eq!(
-            def.to_zod_string(),
+            STRUCT.to_zod_string(),
             "const test = z.lazy(() => Other.Generic(Rs.String, Rs.Usize));"
         );
 
         assert_eq!(
-            def.to_ts_string(),
+            STRUCT.to_ts_string(),
             "type test = Other.Generic<Rs.String, Rs.Usize>;"
         );
     }
