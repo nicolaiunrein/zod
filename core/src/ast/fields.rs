@@ -1,4 +1,52 @@
-use super::{FormatResolvedTs, FormatResolvedZod, FormatTypescript, FormatZod, TypeDef};
+use crate::ZodType;
+
+use super::{FormatTypescript, FormatZod, TypeDef};
+
+#[derive(Clone, Copy, Debug)]
+pub struct GenericMap(&'static phf::Map<u64, &'static str>);
+
+impl PartialEq for GenericMap {
+    fn eq(&self, other: &Self) -> bool {
+        if self.0.len() != other.0.len() {
+            return false;
+        }
+
+        self.0
+            .into_iter()
+            .zip(other.0.into_iter())
+            .all(|(a, b)| a == b)
+    }
+}
+
+impl Eq for GenericMap {
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
+impl std::hash::Hash for GenericMap {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for entry in self.0.into_iter() {
+            entry.hash(state)
+        }
+    }
+}
+
+impl GenericMap {
+    pub const fn empty() -> Self {
+        Self(&phf::phf_map! {})
+    }
+
+    pub const fn new(map: &'static phf::Map<u64, &'static str>) -> Self {
+        Self(map)
+    }
+}
+
+impl std::ops::Deref for GenericMap {
+    type Target = &'static phf::Map<u64, &'static str>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
@@ -8,29 +56,45 @@ pub enum StructFields {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum FieldValue {
-    Generic(&'static str),
-    Qualified(TypeDef),
-    Inlined(TypeDef),
+pub struct FieldValue {
+    def: TypeDef,
+    generics: GenericMap,
+}
+
+impl FieldValue {
+    pub const fn new_for<T: ZodType>(map: &'static phf::Map<u64, &'static str>) -> Self {
+        Self {
+            def: T::AST.def.ty(),
+            generics: GenericMap(map),
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    pub const fn empty(def: TypeDef) -> Self {
+        Self {
+            def,
+            generics: GenericMap::empty(),
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    pub const fn new(def: TypeDef, map: &'static phf::Map<u64, &'static str>) -> Self {
+        Self {
+            def,
+            generics: GenericMap::new(map),
+        }
+    }
 }
 
 impl FormatZod for FieldValue {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldValue::Generic(inner) => f.write_str(inner),
-            FieldValue::Qualified(inner) => inner.as_arg().fmt_zod(f),
-            FieldValue::Inlined(inner) => inner.fmt_resolved_zod(f),
-        }
+        self.def.as_arg(self.generics).fmt_zod(f)
     }
 }
 
 impl FormatTypescript for FieldValue {
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldValue::Generic(inner) => f.write_str(inner),
-            FieldValue::Qualified(inner) => inner.as_arg().fmt_ts(f),
-            FieldValue::Inlined(inner) => inner.fmt_resolved_ts(f),
-        }
+        self.def.as_arg(self.generics).fmt_ts(f)
     }
 }
 
@@ -148,6 +212,8 @@ impl FormatTypescript for FlatField {
 #[cfg(test)]
 mod test {
 
+    use std::collections::HashMap;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -156,11 +222,11 @@ mod test {
         assert_eq!(
             TupleField {
                 optional: false,
-                value: FieldValue::Qualified(TypeDef {
+                value: FieldValue::empty(TypeDef {
                     ns: "Ns",
                     ident: "myValue",
                     generics: Default::default()
-                })
+                },)
             }
             .to_zod_string(),
             "Ns.myValue"
@@ -171,7 +237,7 @@ mod test {
     fn zod_inner_tuple_struct_field_optional() {
         let field = TupleField {
             optional: true,
-            value: FieldValue::Qualified(TypeDef {
+            value: FieldValue::empty(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -186,7 +252,7 @@ mod test {
         let field = NamedField {
             optional: false,
             name: "my_value",
-            value: FieldValue::Qualified(TypeDef {
+            value: FieldValue::empty(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -201,7 +267,7 @@ mod test {
         let field = NamedField {
             optional: true,
             name: "my_value",
-            value: FieldValue::Qualified(TypeDef {
+            value: FieldValue::empty(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -214,7 +280,7 @@ mod test {
     #[test]
     fn flattened_field() {
         let field = FlatField {
-            value: FieldValue::Qualified(TypeDef {
+            value: FieldValue::empty(TypeDef {
                 ns: "Ns",
                 ident: "myValue",
                 generics: Default::default(),
@@ -222,5 +288,22 @@ mod test {
         };
         assert_eq!(field.to_zod_string(), ".extend(z.lazy(() => Ns.myValue))");
         assert_eq!(field.to_ts_string(), "Ns.myValue");
+    }
+
+    #[test]
+    fn ok_with_empty_generics() {
+        let res = FieldValue::new_for::<HashMap<String, usize>>(&GenericMap::empty());
+
+        assert_eq!(res.to_zod_string(), "Rs.HashMap(Rs.String, Rs.Usize)");
+        assert_eq!(res.to_ts_string(), "Rs.HashMap<Rs.String, Rs.Usize>");
+    }
+    #[test]
+    fn ok_with_partial_generics() {
+        let res = FieldValue::new_for::<HashMap<String, usize>>(&GenericMap::new(
+            &phf::phf_map! { 1_u64 => "T"},
+        ));
+
+        assert_eq!(res.to_zod_string(), "Rs.HashMap(Rs.String, T)");
+        assert_eq!(res.to_ts_string(), "Rs.HashMap<Rs.String, T>");
     }
 }

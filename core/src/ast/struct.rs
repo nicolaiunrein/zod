@@ -148,8 +148,10 @@ impl FormatTypescript for Struct {
 #[cfg(test)]
 mod test {
     use crate::ast::{
-        FieldValue, FlatField, FormatTypescript, Generic, NamedField, TupleField, TypeDef,
+        FieldValue, FlatField, FormatTypescript, Generic, GenericMap, NamedField, TupleField,
+        TypeDef,
     };
+    use phf::phf_map;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -203,59 +205,60 @@ mod test {
 
     #[test]
     fn zod_tuple_struct_with_generics_and_fields() {
-        const FIELDS: &[TupleField] = &[
-            TupleField {
-                optional: false,
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "a",
-                    generics: &[Generic::new_for::<()>("A")],
-                }),
-            },
-            TupleField {
-                optional: false,
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "b",
-                    generics: &[Generic::new_for::<()>("B")],
-                }),
-            },
-            TupleField {
-                optional: false,
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "c",
-                    generics: &[],
-                }),
-            },
-            TupleField {
-                optional: true,
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "d",
-                    generics: &[],
-                }),
-            },
-        ];
-
         const STRUCT: Struct = Struct {
             ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
-            fields: StructFields::Tuple(FIELDS),
+            fields: StructFields::Tuple(&[
+                TupleField {
+                    optional: false,
+                    value: FieldValue::new(
+                        TypeDef {
+                            ns: "Ns",
+                            ident: "a",
+                            generics: &[Generic::new_for::<()>("A")],
+                        },
+                        &phf_map! {0_u64 => "A"},
+                    ),
+                },
+                TupleField {
+                    optional: false,
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "b",
+                        generics: &[Generic::new_for::<()>("B")],
+                    }),
+                },
+                TupleField {
+                    optional: false,
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "c",
+                        generics: &[],
+                    }),
+                },
+                TupleField {
+                    optional: true,
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "d",
+                        generics: &[],
+                    }),
+                },
+            ]),
         };
 
         assert_eq!(
             STRUCT.to_zod_string(),
-            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.tuple([Ns.a(A), Ns.b(B), Ns.c, Ns.d.optional()]));",
+            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.tuple([Ns.a(A), Ns.b(Rs.Unit), Ns.c, Ns.d.optional()]));",
         );
 
         assert_eq!(
             STRUCT.to_ts_string(),
             format!(
-                "type {} = [Ns.a<A>, Ns.b<B>, Ns.c, Ns.d | undefined];",
+                "type {} = [Ns.a<A>, Ns.b<Rs.Unit>, Ns.c, Ns.d | undefined];",
                 STRUCT.ty.as_name().to_ts_string(),
             )
         );
@@ -283,69 +286,70 @@ mod test {
 
     #[test]
     fn zod_named_struct_with_generics_and_fields() {
-        const FIELDS: &[MaybeFlatField] = &[
-            MaybeFlatField::Named(NamedField {
-                optional: false,
-                name: "hallo_a",
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "a",
-                    generics: &[Generic::new_for::<()>("A")],
-                }),
-            }),
-            MaybeFlatField::Named(NamedField {
-                optional: false,
-                name: "hallo_b",
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "b",
-                    generics: &[Generic::new_for::<()>("B")],
-                }),
-            }),
-            MaybeFlatField::Named(NamedField {
-                optional: false,
-                name: "hallo_c",
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "c",
-                    generics: &[],
-                }),
-            }),
-            MaybeFlatField::Named(NamedField {
-                optional: true,
-                name: "hallo_d",
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "d",
-                    generics: &[],
-                }),
-            }),
-            MaybeFlatField::Flat(FlatField {
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "e",
-                    generics: &[],
-                }),
-            }),
-        ];
-
         const STRUCT: Struct = Struct {
             ty: TypeDef {
                 ns: "Ns",
                 ident: "test",
                 generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
             },
-            fields: StructFields::Named(FIELDS),
+            fields: StructFields::Named(&[
+                MaybeFlatField::Named(NamedField {
+                    optional: false,
+                    name: "hallo_a",
+                    value: FieldValue::new(
+                        TypeDef {
+                            ns: "Ns",
+                            ident: "a",
+                            generics: &[Generic::new_for::<()>("A")],
+                        },
+                        &phf_map! {0_u64 => "A"},
+                    ),
+                }),
+                MaybeFlatField::Named(NamedField {
+                    optional: false,
+                    name: "hallo_b",
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "b",
+                        generics: &[Generic::new_for::<()>("B")],
+                    }),
+                }),
+                MaybeFlatField::Named(NamedField {
+                    optional: false,
+                    name: "hallo_c",
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "c",
+                        generics: &[],
+                    }),
+                }),
+                MaybeFlatField::Named(NamedField {
+                    optional: true,
+                    name: "hallo_d",
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "d",
+                        generics: &[],
+                    }),
+                }),
+                MaybeFlatField::Flat(FlatField {
+                    value: FieldValue::empty(TypeDef {
+                        ns: "Ns",
+                        ident: "e",
+                        generics: &[],
+                    }),
+                }),
+            ]),
         };
 
         assert_eq!(
             STRUCT.to_zod_string().trim(),
-            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.object({hallo_a: Ns.a(A), hallo_b: Ns.b(B), hallo_c: Ns.c, hallo_d: Ns.d.optional()})).extend(z.lazy(() => Ns.e));",
+            "const test = (A: z.ZodTypeAny, B: z.ZodTypeAny) => z.lazy(() => z.object({hallo_a: Ns.a(A), hallo_b: Ns.b(Rs.Unit), hallo_c: Ns.c, hallo_d: Ns.d.optional()})).extend(z.lazy(() => Ns.e));",
         );
 
         assert_eq!(
             STRUCT.to_ts_string().trim(),
-            "interface test<A, B> extends Ns.e { hallo_a: Ns.a<A>, hallo_b: Ns.b<B>, hallo_c: Ns.c, hallo_d?: Ns.d | undefined }"
+            "interface test<A, B> extends Ns.e { hallo_a: Ns.a<A>, hallo_b: Ns.b<Rs.Unit>, hallo_c: Ns.c, hallo_d?: Ns.d | undefined }"
         );
     }
 
@@ -359,7 +363,7 @@ mod test {
             },
             fields: StructFields::Transparent {
                 optional: false,
-                value: FieldValue::Qualified(TypeDef {
+                value: FieldValue::empty(TypeDef {
                     ns: "Ns",
                     ident: "inner",
                     generics: &[],
@@ -384,11 +388,14 @@ mod test {
             },
             fields: StructFields::Transparent {
                 optional: false,
-                value: FieldValue::Qualified(TypeDef {
-                    ns: "Ns",
-                    ident: "inner",
-                    generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
-                }),
+                value: FieldValue::new(
+                    TypeDef {
+                        ns: "Ns",
+                        ident: "inner",
+                        generics: &[Generic::new_for::<()>("A"), Generic::new_for::<()>("B")],
+                    },
+                    &phf_map! {0_u64 => "A", 1_u64 => "B"},
+                ),
             },
         };
 
@@ -410,7 +417,7 @@ mod test {
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: false,
-                value: FieldValue::Qualified(TypeDef {
+                value: FieldValue::empty(TypeDef {
                     ns: "Other",
                     ident: "other",
                     generics: &[],
@@ -436,7 +443,7 @@ mod test {
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: true,
-                value: FieldValue::Qualified(TypeDef {
+                value: FieldValue::empty(TypeDef {
                     ns: "Other",
                     ident: "other",
                     generics: &[],
@@ -465,7 +472,7 @@ mod test {
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: false,
-                value: FieldValue::Inlined(TypeDef {
+                value: FieldValue::empty(TypeDef {
                     ns: "Other",
                     ident: "Generic",
                     generics: &[

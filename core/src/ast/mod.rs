@@ -1,4 +1,3 @@
-mod debug;
 mod fields;
 mod generics;
 mod literal;
@@ -129,6 +128,10 @@ impl ZodDefinition {
             ZodDefinition::Literal(inner) => inner.ty.generics,
         }
     }
+
+    pub fn qualified_name(&self) -> String {
+        format!("{}.{}", self.ns(), self.name())
+    }
 }
 
 impl FormatZod for ZodDefinition {
@@ -205,47 +208,47 @@ pub trait FormatTypescript {
     }
 }
 
-pub trait FormatResolvedZod {
-    fn fmt_resolved_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-    fn to_resolved_zod_string(&self) -> String
-    where
-        Self: Sized,
-    {
-        struct FormatHelper<'a, T: FormatResolvedZod>(&'a T);
+// pub trait FormatResolvedZod {
+// fn fmt_resolved_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+// fn to_resolved_zod_string(&self) -> String
+// where
+// Self: Sized,
+// {
+// struct FormatHelper<'a, T: FormatResolvedZod>(&'a T);
 
-        impl<'a, T> Display for FormatHelper<'a, T>
-        where
-            T: FormatResolvedZod,
-        {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt_resolved_zod(f)
-            }
-        }
+// impl<'a, T> Display for FormatHelper<'a, T>
+// where
+// T: FormatResolvedZod,
+// {
+// fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+// self.0.fmt_resolved_zod(f)
+// }
+// }
 
-        FormatHelper(self).to_string()
-    }
-}
+// FormatHelper(self).to_string()
+// }
+// }
 
-pub trait FormatResolvedTs {
-    fn fmt_resolved_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-    fn to_resolved_ts_string(&self) -> String
-    where
-        Self: Sized,
-    {
-        struct FormatHelper<'a, T: FormatResolvedTs>(&'a T);
+// pub trait FormatResolvedTs {
+// fn fmt_resolved_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+// fn to_resolved_ts_string(&self) -> String
+// where
+// Self: Sized,
+// {
+// struct FormatHelper<'a, T: FormatResolvedTs>(&'a T);
 
-        impl<'a, T> Display for FormatHelper<'a, T>
-        where
-            T: FormatResolvedTs,
-        {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt_resolved_ts(f)
-            }
-        }
+// impl<'a, T> Display for FormatHelper<'a, T>
+// where
+// T: FormatResolvedTs,
+// {
+// fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+// self.0.fmt_resolved_ts(f)
+// }
+// }
 
-        FormatHelper(self).to_string()
-    }
-}
+// FormatHelper(self).to_string()
+// }
+// }
 
 impl<T> Display for Delimited<&[T]>
 where
@@ -298,22 +301,22 @@ where
     }
 }
 
-impl<T> FormatResolvedZod for Delimited<&[T]>
-where
-    T: FormatResolvedZod,
-{
-    fn fmt_resolved_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut iter = self.0.clone().into_iter().peekable();
+// impl<T> FormatResolvedZod for Delimited<&[T]>
+// where
+// T: FormatResolvedZod,
+// {
+// fn fmt_resolved_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+// let mut iter = self.0.clone().into_iter().peekable();
 
-        while let Some(item) = iter.next() {
-            item.fmt_resolved_zod(f)?;
-            if iter.peek().is_some() {
-                f.write_str(self.1)?;
-            }
-        }
-        Ok(())
-    }
-}
+// while let Some(item) = iter.next() {
+// item.fmt_resolved_zod(f)?;
+// if iter.peek().is_some() {
+// f.write_str(self.1)?;
+// }
+// }
+// Ok(())
+// }
+// }
 
 fn format_docs(input: &str) -> String {
     format!(
