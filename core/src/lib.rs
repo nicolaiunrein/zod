@@ -12,13 +12,13 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-use ast::ZodExport;
+use ast::ZodNode;
 pub use build_ins::*;
 
 pub(crate) struct Delimited<I>(pub I, pub &'static str);
 
 pub trait ZodType: DependencyRegistration {
-    const AST: ast::ZodExport;
+    const AST: ast::ZodNode;
 }
 
 pub trait DependencyRegistration {
@@ -37,7 +37,7 @@ pub trait DependencyRegistration {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct DependencyMap(BTreeMap<TypeId, ZodExport>);
+pub struct DependencyMap(BTreeMap<TypeId, ZodNode>);
 
 impl DependencyMap {
     pub fn add<T>(&mut self) -> bool
@@ -49,7 +49,7 @@ impl DependencyMap {
         !self.0.insert(id, node).is_some()
     }
 
-    pub fn resolve(self) -> HashSet<ZodExport> {
+    pub fn resolve(self) -> HashSet<ZodNode> {
         self.0.into_iter().map(|(_, value)| value).collect()
     }
 }

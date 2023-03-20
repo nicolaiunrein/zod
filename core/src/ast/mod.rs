@@ -1,377 +1,259 @@
-mod fields;
-mod generics;
-mod literal;
-mod r#struct;
-mod r#type;
-
+use std::collections::HashMap;
 use std::fmt::Display;
 
-pub(crate) use crate::Delimited;
-pub use fields::*;
-pub use generics::*;
-pub use literal::*;
-pub use r#struct::*;
-pub use r#type::*;
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct ZodNode {
+    ns: &'static str,
+    name: &'static str,
+    export: ZodExport,
+    inline: &'static str,
+}
 
-use crate::Namespace;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct ZodExport {
-    pub docs: Option<&'static str>,
-    pub def: ZodDefinition,
+    zod: String,
 }
 
-impl Display for ZodExport {
+impl Display for ZodNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.fmt_zod(f)?;
-        f.write_str("\n")?;
-        self.fmt_ts(f)?;
+        f.write_str(&self.export.zod)?;
         Ok(())
     }
 }
 
-impl FormatZod for ZodExport {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(docs) = self.docs {
-            f.write_str(&format_docs(docs))?;
-        }
-        self.def.fmt_zod(f)
+impl ZodNode {
+    pub fn ns(&self) -> &'static str {
+        self.ns
+    }
+
+    pub fn name(&self) -> &'static str {
+        self.name
     }
 }
 
-impl FormatTypescript for ZodExport {
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(docs) = self.docs {
-            f.write_str(&format_docs(docs))?;
-        }
-        self.def.fmt_ts(f)
-    }
+pub enum Generics {
+    Literal(String),
+    Map(HashMap<usize, Generics>),
 }
 
-impl ZodExport {
-    pub fn docs(&self) -> Option<&'static str> {
-        self.docs
-    }
+pub trait ZodItem {
+    const NS: &'static str;
+    const NAME: &'static str;
 
-    pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
-        self.def.is_member_of::<T>()
-    }
+    fn export() -> ZodExport;
 
-    pub const fn name(&self) -> &'static str {
-        self.def.name()
-    }
-
-    pub const fn ty(&self) -> TypeDef {
-        self.def.ty()
-    }
-
-    pub const fn ns(&self) -> &'static str {
-        self.def.ns()
-    }
-
-    pub const fn generics(&self) -> &'static [Generic] {
-        self.def.generics()
-    }
-
-    pub fn qualified_name(&self) -> String {
-        format!("{}.{}", self.ns(), self.name())
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum ZodDefinition {
-    Struct(Struct),
-    Literal(Literal),
-}
-
-impl Display for ZodDefinition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.fmt_zod(f)?;
-        f.write_str("\n")?;
-        self.fmt_ts(f)?;
-        Ok(())
-    }
-}
-
-impl ZodDefinition {
-    pub fn is_member_of<T: Namespace + ?Sized + 'static>(&self) -> bool {
-        match self {
-            ZodDefinition::Struct(inner) => T::NAME == inner.ty.ns,
-            ZodDefinition::Literal(inner) => T::NAME == inner.ty.ns,
-        }
-    }
-
-    pub const fn name(&self) -> &'static str {
-        match self {
-            ZodDefinition::Struct(inner) => inner.ty.ident,
-            ZodDefinition::Literal(inner) => inner.ty.ident,
-        }
-    }
-
-    pub const fn ty(&self) -> TypeDef {
-        match self {
-            ZodDefinition::Struct(inner) => inner.ty,
-            ZodDefinition::Literal(inner) => inner.ty,
-        }
-    }
-
-    pub const fn ns(&self) -> &'static str {
-        match self {
-            ZodDefinition::Struct(inner) => inner.ty.ns,
-            ZodDefinition::Literal(inner) => inner.ty.ns,
-        }
-    }
-
-    pub const fn generics(&self) -> &'static [Generic] {
-        match self {
-            ZodDefinition::Struct(inner) => inner.ty.generics,
-            ZodDefinition::Literal(inner) => inner.ty.generics,
-        }
-    }
-
-    pub fn qualified_name(&self) -> String {
-        format!("{}.{}", self.ns(), self.name())
-    }
-}
-
-impl FormatZod for ZodDefinition {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ZodDefinition::Struct(inner) => {
-                f.write_str("export ")?;
-                inner.fmt_zod(f)?;
-            }
-            ZodDefinition::Literal(inner) => {
-                f.write_str("export ")?;
-                inner.fmt_zod(f)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl FormatTypescript for ZodDefinition {
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ZodDefinition::Struct(inner) => {
-                f.write_str("export ")?;
-                inner.fmt_ts(f)?;
-            }
-            ZodDefinition::Literal(inner) => {
-                f.write_str("export ")?;
-                inner.fmt_ts(f)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-pub trait FormatZod {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-    fn to_zod_string(&self) -> String
-    where
-        Self: Sized,
-    {
-        struct FormatHelper<'a, T: FormatZod>(&'a T);
-
-        impl<'a, T> Display for FormatHelper<'a, T>
-        where
-            T: FormatZod,
-        {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt_zod(f)
-            }
-        }
-
-        FormatHelper(self).to_string()
-    }
-}
-
-pub trait FormatTypescript {
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-    fn to_ts_string(&self) -> String
-    where
-        Self: Sized,
-    {
-        struct FormatHelper<'a, T: FormatTypescript>(&'a T);
-
-        impl<'a, T> Display for FormatHelper<'a, T>
-        where
-            T: FormatTypescript,
-        {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt_ts(f)
-            }
-        }
-
-        FormatHelper(self).to_string()
-    }
-}
-
-// pub trait FormatResolvedZod {
-// fn fmt_resolved_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-// fn to_resolved_zod_string(&self) -> String
-// where
-// Self: Sized,
-// {
-// struct FormatHelper<'a, T: FormatResolvedZod>(&'a T);
-
-// impl<'a, T> Display for FormatHelper<'a, T>
-// where
-// T: FormatResolvedZod,
-// {
-// fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-// self.0.fmt_resolved_zod(f)
-// }
-// }
-
-// FormatHelper(self).to_string()
-// }
-// }
-
-// pub trait FormatResolvedTs {
-// fn fmt_resolved_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-// fn to_resolved_ts_string(&self) -> String
-// where
-// Self: Sized,
-// {
-// struct FormatHelper<'a, T: FormatResolvedTs>(&'a T);
-
-// impl<'a, T> Display for FormatHelper<'a, T>
-// where
-// T: FormatResolvedTs,
-// {
-// fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-// self.0.fmt_resolved_ts(f)
-// }
-// }
-
-// FormatHelper(self).to_string()
-// }
-// }
-
-impl<T> Display for Delimited<&[T]>
-where
-    T: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut iter = self.0.clone().into_iter().peekable();
-
-        while let Some(item) = iter.next() {
-            item.fmt(f)?;
-            if iter.peek().is_some() {
-                f.write_str(self.1)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<T> FormatZod for Delimited<&[T]>
-where
-    T: FormatZod,
-{
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut iter = self.0.clone().into_iter().peekable();
-
-        while let Some(item) = iter.next() {
-            item.fmt_zod(f)?;
-            if iter.peek().is_some() {
-                f.write_str(self.1)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<T> FormatTypescript for Delimited<&[T]>
-where
-    T: FormatTypescript,
-{
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut iter = self.0.clone().into_iter().peekable();
-
-        while let Some(item) = iter.next() {
-            item.fmt_ts(f)?;
-            if iter.peek().is_some() {
-                f.write_str(self.1)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-// impl<T> FormatResolvedZod for Delimited<&[T]>
-// where
-// T: FormatResolvedZod,
-// {
-// fn fmt_resolved_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-// let mut iter = self.0.clone().into_iter().peekable();
-
-// while let Some(item) = iter.next() {
-// item.fmt_resolved_zod(f)?;
-// if iter.peek().is_some() {
-// f.write_str(self.1)?;
-// }
-// }
-// Ok(())
-// }
-// }
-
-fn format_docs(input: &str) -> String {
-    format!(
-        "/**\n{}*/\n",
-        input
-            .lines()
-            .map(|line| format!("* {}\n", line))
-            .collect::<String>()
-    )
+    fn compose_zod(_: &Generics) -> String;
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    #[test]
-    fn format_docs_ok() {
-        let docs = "First Line\nSecond Line";
-        let expected = "/**
-* First Line
-* Second Line
-*/
-";
-        assert_eq!(format_docs(docs), expected);
+
+    impl ZodItem for String {
+        const NS: &'static str = "Rs";
+        const NAME: &'static str = "String";
+
+        fn export() -> ZodExport {
+            ZodExport {
+                zod: String::from("export const String = z.string();"),
+            }
+        }
+
+        fn compose_zod(generics: &Generics) -> String {
+            if let Generics::Literal(ty) = generics {
+                ty.clone()
+            } else {
+                String::from("Rs.String")
+            }
+        }
     }
 
-    #[test]
-    fn docs_export_ok() {
-        let export = ZodExport {
-            docs: Some("Hallo Welt\nSecond Line"),
-            def: ZodDefinition::Struct(Struct {
-                ty: TypeDef {
-                    ns: "Ns",
-                    ident: "test",
-                    generics: &[],
+    impl ZodItem for usize {
+        const NS: &'static str = "Rs";
+        const NAME: &'static str = "Usize";
+
+        fn export() -> ZodExport {
+            ZodExport {
+                zod: String::from("export const Usize = z.number();"),
+            }
+        }
+
+        fn compose_zod(generics: &Generics) -> String {
+            if let Generics::Literal(ty) = generics {
+                ty.clone()
+            } else {
+                String::from("Rs.Usize")
+            }
+        }
+    }
+
+    struct Generic<T1, T2> {
+        inner1: T1,
+        inner2: T2,
+    }
+
+    impl<T1: ZodItem, T2: ZodItem> ZodItem for Generic<T1, T2> {
+        const NS: &'static str = "Custom";
+        const NAME: &'static str = "Generic";
+
+        fn export() -> ZodExport {
+            ZodExport {
+                zod: String::from(
+                    "export const Generic = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ inner1: T1, inner2: T2 })",
+                ),
+            }
+        }
+
+        fn compose_zod(generics: &Generics) -> String {
+            match generics {
+                Generics::Literal(lit) => lit.clone(),
+                Generics::Map(map) => {
+                    let t1 = if let Some(inner) = map.get(&0) {
+                        T1::compose_zod(inner)
+                    } else {
+                        let inner = Generics::Map(Default::default());
+                        T1::compose_zod(&inner)
+                    };
+
+                    let t2 = if let Some(inner) = map.get(&1) {
+                        T2::compose_zod(inner)
+                    } else {
+                        let inner = Generics::Map(Default::default());
+                        T2::compose_zod(&inner)
+                    };
+
+                    format!("{}.{}({}, {})", Self::NS, Self::NAME, t1, t2)
+                }
+            }
+        }
+    }
+
+    struct MyType<T> {
+        inner: Generic<String, T>,
+    }
+
+    impl<T: ZodItem> ZodItem for MyType<T> {
+        const NS: &'static str = "Custom";
+        const NAME: &'static str = "MyType";
+
+        fn export() -> ZodExport {
+            let mut map = HashMap::new();
+            map.insert(1, Generics::Literal(String::from("T")));
+            let generics = Generics::Map(map);
+
+            ZodExport {
+                zod: format!(
+                    "export const MyType = (T: z.ZodTypeAny) => z.object({{ inner: {} }})",
+                    Generic::<String, T>::compose_zod(&generics)
+                ),
+            }
+        }
+
+        fn compose_zod(generics: &Generics) -> String {
+            match generics {
+                Generics::Literal(inner) => inner.clone(),
+                Generics::Map(map) => match map.get(&0) {
+                    None => {
+                        let default_map = Generics::Map(Default::default());
+                        format!("Rs.MyType({})", T::compose_zod(&default_map))
+                    }
+                    Some(inner) => {
+                        format!("Rs.MyType({})", T::compose_zod(inner))
+                    }
                 },
-                fields: StructFields::Named(&[]),
-            }),
-        };
+            }
+        }
+    }
 
-        assert_eq!(
-            export.to_ts_string(),
+    struct MyType2<T> {
+        inner: Generic<String, Generic<T, usize>>,
+    }
+    impl<T: ZodItem> ZodItem for MyType2<T> {
+        const NS: &'static str = "Custom";
+        const NAME: &'static str = "MyType2";
+
+        fn export() -> ZodExport {
+            let mut map = HashMap::new();
+            map.insert(
+                1,
+                Generics::Map({
+                    let mut map = HashMap::new();
+                    map.insert(0, Generics::Literal(String::from("T")));
+                    map
+                }),
+            );
+            let generics = Generics::Map(map);
+
+            ZodExport {
+                zod: format!(
+                    "export const MyType2 = (T: z.ZodTypeAny) => z.object({{ inner: {} }})",
+                    <Generic<String, Generic<String, T>>>::compose_zod(&generics)
+                ),
+            }
+        }
+
+        fn compose_zod(_: &Generics) -> String {
             format!(
-                "{}{}",
-                format_docs(export.docs.unwrap()),
-                export.def.to_ts_string()
+                "Rs.MyType({})",
+                T::compose_zod(&Generics::Map(Default::default()))
             )
+        }
+    }
+
+    type Flat<T> = Generic<String, Generic<T, usize>>;
+
+    struct MyType3<T> {
+        inner: Flat<T>,
+    }
+    impl<T: ZodItem> ZodItem for MyType3<T> {
+        const NS: &'static str = "Custom";
+        const NAME: &'static str = "MyType2";
+
+        fn export() -> ZodExport {
+            let mut map = HashMap::new();
+            map.insert(
+                1,
+                Generics::Map({
+                    let mut map = HashMap::new();
+                    map.insert(0, Generics::Literal(String::from("T")));
+                    map
+                }),
+            );
+            let generics = Generics::Map(map);
+
+            ZodExport {
+                zod: format!(
+                    "export const MyType2 = (T: z.ZodTypeAny) => z.object({{ inner: {} }})",
+                    <Flat<T>>::compose_zod(&generics)
+                ),
+            }
+        }
+
+        fn compose_zod(_: &Generics) -> String {
+            format!(
+                "Rs.MyType({})",
+                T::compose_zod(&Generics::Map(Default::default()))
+            )
+        }
+    }
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn ok() {
+        assert_eq!(
+            <MyType<usize>>::export().zod,
+            "export const MyType = (T: z.ZodTypeAny) => z.object({ inner: Custom.Generic(Rs.String, T) })"
         );
 
         assert_eq!(
-            export.to_zod_string(),
-            format!(
-                "{}{}",
-                format_docs(export.docs.unwrap()),
-                export.def.to_zod_string()
-            )
+        <Generic<String, String>>::export().zod,
+        "export const Generic = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ inner1: T1, inner2: T2 })"
         );
+
+        assert_eq!(
+        <MyType2<usize>>::export().zod,
+        "export const MyType2 = (T: z.ZodTypeAny) => z.object({ inner: Custom.Generic(Rs.String, Custom.Generic(T, Rs.Usize)) })"
+        )
     }
 }

@@ -12,7 +12,7 @@ pub trait RpcNamespace: crate::Namespace + DependencyRegistration {
 
 pub struct RpcArgument {
     name: &'static str,
-    code: ZodExport,
+    code: ZodNode,
 }
 
 impl RpcArgument {
@@ -126,18 +126,19 @@ export function {name}({arg_fields}): Store<{res}> {{
 }
 
 fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
-    if args.is_empty() {
-        String::new()
-    } else {
-        let mut out = String::from("// phantom usage\n");
-        for arg in args {
-            out.push_str("    ");
-            let ty = arg.code.ty();
-            // todo
-            // out.push_str(&ty.as_arg().to_ts_string());
-            out.push(';');
-            out.push('\n');
-        }
-        out
-    }
+    todo!()
+    // if args.is_empty() {
+    // String::new()
+    // } else {
+    // let mut out = String::from("// phantom usage\n");
+    // for arg in args {
+    // out.push_str("    ");
+    // let ty = arg.code.ty();
+    // // todo
+    // // out.push_str(&ty.as_arg().to_ts_string());
+    // out.push(';');
+    // out.push('\n');
+    // }
+    // out
+    // }
 }
