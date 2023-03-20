@@ -1,4 +1,4 @@
-use super::{FormatInlined, FormatTypescript, FormatZod, TypeDef};
+use super::{FormatResolvedTs, FormatResolvedZod, FormatTypescript, FormatZod, TypeDef};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StructFields {
@@ -19,7 +19,7 @@ impl FormatZod for FieldValue {
         match self {
             FieldValue::Generic(inner) => f.write_str(inner),
             FieldValue::Qualified(inner) => inner.as_arg().fmt_zod(f),
-            FieldValue::Inlined(inner) => inner.fmt_inlined(f),
+            FieldValue::Inlined(inner) => inner.fmt_resolved_zod(f),
         }
     }
 }
@@ -29,7 +29,7 @@ impl FormatTypescript for FieldValue {
         match self {
             FieldValue::Generic(inner) => f.write_str(inner),
             FieldValue::Qualified(inner) => inner.as_arg().fmt_ts(f),
-            FieldValue::Inlined(inner) => inner.fmt_inlined(f),
+            FieldValue::Inlined(inner) => inner.fmt_resolved_ts(f),
         }
     }
 }

@@ -456,7 +456,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn generic_inline() {
         const STRUCT: Struct = Struct {
             ty: TypeDef {
@@ -466,7 +465,7 @@ mod test {
             },
             fields: StructFields::Tuple(&[TupleField {
                 optional: false,
-                value: FieldValue::Qualified(TypeDef {
+                value: FieldValue::Inlined(TypeDef {
                     ns: "Other",
                     ident: "Generic",
                     generics: &[
