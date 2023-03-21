@@ -1,4 +1,16 @@
-//! **_NOTE:_**  This crate is not ready for production yet!
+//!**_NOTE:_**  This crate is not ready for production yet!
+//!
+//! # Core types for the [zod](https://crates.io/zod) crate
+//! The [ast] module contains types to represent the generated code in a relatively type-safe
+//! manner.
+//!
+//! The [rpc] module contains types for generating the rpc client/server.
+//!
+//! ## Todo
+//! - Add ast for tuple structs
+//! - Add ast for enums
+//! - consider where to handle serde args
+//!
 #![deny(unsafe_code)]
 
 pub mod ast;
@@ -11,8 +23,8 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-pub trait DependencyRegistration {
-    fn register_dependencies(_: &mut DependencyMap)
+pub trait Register {
+    fn register(_: &mut DependencyMap)
     where
         Self: 'static;
 
@@ -21,7 +33,7 @@ pub trait DependencyRegistration {
         Self: 'static,
     {
         let mut cx = DependencyMap(Default::default());
-        Self::register_dependencies(&mut cx);
+        Self::register(&mut cx);
         cx
     }
 }
@@ -30,7 +42,7 @@ pub trait DependencyRegistration {
 pub struct DependencyMap(BTreeMap<TypeId, Option<ast::Export>>);
 
 impl DependencyMap {
-    pub fn add<T>(&mut self) -> bool
+    pub fn add_self<T>(&mut self) -> bool
     where
         T: ast::Node + 'static,
     {
@@ -40,6 +52,20 @@ impl DependencyMap {
 
     pub fn resolve(self) -> HashSet<ast::Export> {
         self.0.into_values().filter_map(|exp| exp).collect()
+    }
+}
+
+#[macro_export]
+macro_rules! register {
+    ($ctx: ident, $($ty: ty),*) => {
+        if $ctx.add_self::<Self>() {
+            $(<$ty as Register>::register($ctx);)*
+
+        }
+    };
+
+    ($ctx: ident) => {
+        $ctx.add_self::<Self>();
     }
 }
 

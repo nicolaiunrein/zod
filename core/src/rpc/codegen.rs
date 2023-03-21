@@ -1,4 +1,4 @@
-use crate::{ast::*, DependencyRegistration};
+use crate::{ast::*, Register};
 
 pub trait ClientCodegen {
     fn get() -> String;
@@ -6,7 +6,7 @@ pub trait ClientCodegen {
 
 type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
 
-pub trait RpcNamespace: crate::Namespace + DependencyRegistration {
+pub trait RpcNamespace: crate::Namespace + Register {
     type Req: serde::de::DeserializeOwned;
 }
 

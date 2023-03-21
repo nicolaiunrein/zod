@@ -1,6 +1,6 @@
 use crate::Namespace;
 
-use super::{Export, GenericArgument, InlineSchema, Node, Path, Schema};
+use super::{Export, GenericArgument, InlineSchema, Node, Path, Register, Schema};
 
 const ARRAY_SCHEMA: &str = r#"
 Pick<
@@ -54,6 +54,15 @@ macro_rules! impl_primitive {
                 InlineSchema::Ref(Self::PATH)
             }
         }
+
+        impl Register for $T {
+            fn register(ctx: &mut crate::DependencyMap)
+            where
+                Self: 'static,
+            {
+                crate::register!(ctx);
+            }
+        }
     };
 }
 
@@ -89,13 +98,22 @@ macro_rules! impl_tuple {
                     args: vec![$(<$i>::inline()),*],
                 }
             }
+        }
 
+        impl<$($i: Node),*> Register for ($($i,)*) {
+            fn register(ctx: &mut crate::DependencyMap)
+            where
+                Self: 'static,
+            {
+                crate::register!(ctx, $($i),*);
+
+            }
         }
     }
 }
 
 macro_rules! impl_wrapper {
-    ($name: literal, $type:ty) => {
+    ($name: literal, $type: ty) => {
         impl<T: Node> Node for $type {
             const PATH: Path = Path {
                 ns: Rs::NAME,
@@ -106,11 +124,20 @@ macro_rules! impl_wrapper {
                 T::inline()
             }
         }
+
+        impl<T: Node> Register for $type {
+            fn register(ctx: &mut crate::DependencyMap)
+            where
+                Self: 'static,
+            {
+                crate::register!(ctx, T);
+            }
+        }
     };
 }
 
 macro_rules! impl_generic {
-    ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),*], ts: $ts: literal, zod: $zod: literal}) => {
+    ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: Node),*> Node for $ty {
             const PATH: Path = Path {
                 ns: Rs::NAME,
@@ -122,7 +149,7 @@ macro_rules! impl_generic {
                     docs: None,
                     path: Self::PATH,
                     schema: Schema::Raw {
-                        args: &[$(GenericArgument::Type(stringify!($generics))),*],
+                        args: &[$(GenericArgument::Type(stringify!($generics))),+],
                         zod: $zod,
                         ts: $ts
                     },
@@ -131,6 +158,15 @@ macro_rules! impl_generic {
 
             fn inline() -> InlineSchema {
                 InlineSchema::Ref(Self::PATH)
+            }
+        }
+
+        impl<$($generics: Node),*> Register for $ty {
+            fn register(ctx: &mut crate::DependencyMap)
+            where
+                Self: 'static,
+            {
+                crate::register!(ctx, $($generics),*);
             }
         }
     }
@@ -377,7 +413,16 @@ impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
     }
 }
 
-impl<const N: usize, T> Node for [T; N] {
+impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
+    fn register(ctx: &mut crate::DependencyMap)
+    where
+        Self: 'static,
+    {
+        crate::register!(ctx, T);
+    }
+}
+
+impl<const N: usize, T: Node> Node for [T; N] {
     const PATH: Path = Path {
         ns: "Rs",
         name: "Array",
@@ -407,6 +452,15 @@ impl<const N: usize, T> Node for [T; N] {
 
     fn inline() -> InlineSchema {
         InlineSchema::Ref(Self::PATH)
+    }
+}
+
+impl<const N: usize, T: Node> Register for [T; N] {
+    fn register(ctx: &mut crate::DependencyMap)
+    where
+        Self: 'static,
+    {
+        crate::register!(ctx, T);
     }
 }
 

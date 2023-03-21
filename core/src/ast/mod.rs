@@ -36,7 +36,9 @@ pub use formatter::*;
 use std::fmt::Display;
 pub use utils::*;
 
-pub trait Node {
+use crate::Register;
+
+pub trait Node: Register {
     const PATH: Path;
     fn export() -> Option<Export> {
         None
@@ -321,6 +323,8 @@ impl Formatter for NamedField {
 #[cfg(test)]
 mod test {
     #![allow(dead_code)]
+    use std::collections::HashSet;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -339,6 +343,26 @@ mod test {
                 path: Self::PATH,
                 args: vec![T1::inline(), T2::inline()],
             }
+        }
+
+        fn export() -> Option<Export> {
+            Some(Export {
+                docs: None,
+                path: Self::PATH,
+                schema: Schema::Object(vec![
+                    NamedField::new::<T1>("t1"),
+                    NamedField::new::<T2>("t2"),
+                ]),
+            })
+        }
+    }
+
+    impl<T1: Node, T2: Node> Register for MyGeneric<T1, T2> {
+        fn register(ctx: &mut crate::DependencyMap)
+        where
+            Self: 'static,
+        {
+            crate::register!(ctx, T1, T2);
         }
     }
 
@@ -368,6 +392,15 @@ mod test {
         }
     }
 
+    impl Register for MyType {
+        fn register(ctx: &mut crate::DependencyMap)
+        where
+            Self: 'static,
+        {
+            crate::register!(ctx, Partial<usize>);
+        }
+    }
+
     struct Partial<T> {
         partial_inner: MyGeneric<String, T>,
     }
@@ -385,6 +418,15 @@ mod test {
         }
     }
 
+    impl<T: Node> Register for Partial<T> {
+        fn register(ctx: &mut crate::DependencyMap)
+        where
+            Self: 'static,
+        {
+            crate::register!(ctx, MyGeneric<String, T>);
+        }
+    }
+
     #[test]
     fn nested_ok() {
         let export = <MyType>::export();
@@ -396,5 +438,21 @@ mod test {
         );
 
         assert_eq!(export.as_ref().unwrap().to_ts_string(), expected_ts_export);
+    }
+
+    #[test]
+    fn register_ok() {
+        let deps = <MyType>::dependencies().resolve();
+        let mut expected = HashSet::new();
+        expected.insert(MyType::export().unwrap());
+        expected.insert(<MyGeneric<String, usize>>::export().unwrap());
+        expected.insert(<usize>::export().unwrap());
+        expected.insert(<String>::export().unwrap());
+
+        // partial does not export anything
+        assert!(<Partial<usize>>::export().is_none());
+
+        assert_eq!(deps, expected);
+        assert_eq!(deps, Default::default());
     }
 }

@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{rpc::codegen, rpc::Request, rpc::ResponseSender, DependencyRegistration, Namespace};
+use crate::{rpc::codegen, rpc::Request, rpc::ResponseSender, Namespace, Register};
 
 use crate::ast::build_ins::Rs;
 
@@ -34,7 +34,7 @@ impl Drop for SubscriberMap {
 }
 
 #[async_trait::async_trait]
-pub trait Backend: DependencyRegistration {
+pub trait Backend: Register {
     fn generate<T>() -> String
     where
         T: codegen::ClientCodegen,
