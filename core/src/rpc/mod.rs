@@ -1,6 +1,5 @@
 #![deny(unsafe_code)]
 
-pub mod codegen;
 pub mod error;
 pub mod server;
 

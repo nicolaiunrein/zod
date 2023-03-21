@@ -30,6 +30,7 @@
 
 pub(crate) mod build_ins;
 mod formatter;
+pub mod rpc;
 mod utils;
 
 pub use formatter::*;

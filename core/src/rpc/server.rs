@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{rpc::codegen, rpc::Request, rpc::ResponseSender, Namespace, Register};
+use crate::{ast::rpc, rpc::Request, rpc::ResponseSender, Namespace, Register};
 
 use crate::ast::build_ins::Rs;
 
@@ -37,7 +37,7 @@ impl Drop for SubscriberMap {
 pub trait Backend: Register {
     fn generate<T>() -> String
     where
-        T: codegen::ClientCodegen,
+        T: rpc::ClientCodegen,
         Self: 'static,
     {
         let mut out = T::get();
