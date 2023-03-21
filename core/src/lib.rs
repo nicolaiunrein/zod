@@ -27,7 +27,7 @@ pub trait DependencyRegistration {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct DependencyMap(BTreeMap<TypeId, ast::Export>);
+pub struct DependencyMap(BTreeMap<TypeId, Option<ast::Export>>);
 
 impl DependencyMap {
     pub fn add<T>(&mut self) -> bool
@@ -35,34 +35,15 @@ impl DependencyMap {
         T: ast::Node + 'static,
     {
         let id = TypeId::of::<T>();
-        if let Some(export) = T::export() {
-            self.0.insert(id, export).is_none()
-        } else {
-            false
-        }
+        self.0.insert(id, T::export()).is_none()
     }
 
     pub fn resolve(self) -> HashSet<ast::Export> {
-        self.0.into_values().collect()
+        self.0.into_values().filter_map(|exp| exp).collect()
     }
 }
 
 pub trait Namespace {
     const NAME: &'static str;
     const DOCS: Option<&'static str>;
-    type Registry;
-
-    fn generate() -> String
-    where
-        Self: 'static,
-    {
-        let mut out = String::from("export namespace ");
-        out.push_str(Self::NAME);
-        out.push_str(" { \n");
-
-        //TODO ...
-
-        out.push_str("}\n");
-        out
-    }
 }

@@ -15,12 +15,9 @@ Pick<
 
 pub struct Rs;
 
-pub struct RsRegistry;
-
 impl Namespace for Rs {
     const NAME: &'static str = "Rs";
     const DOCS: Option<&'static str> = Some("Rust types");
-    type Registry = RsRegistry;
 }
 
 macro_rules! join {
