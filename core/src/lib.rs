@@ -3,73 +3,73 @@
 
 pub mod ast;
 
-#[cfg(feature = "rpc")]
-pub mod rpc;
+// #[cfg(feature = "rpc")]
+// pub mod rpc;
 
-mod build_ins;
-use std::{
-    any::TypeId,
-    collections::{BTreeMap, HashSet},
-};
+// mod build_ins;
+// use std::{
+// any::TypeId,
+// collections::{BTreeMap, HashSet},
+// };
 
-use ast::ZodNode;
-pub use build_ins::*;
+// use ast::ZodNode;
+// pub use build_ins::*;
 
-pub(crate) struct Delimited<I>(pub I, pub &'static str);
+// pub(crate) struct Delimited<I>(pub I, pub &'static str);
 
-pub trait ZodType: DependencyRegistration {
-    const AST: ast::ZodNode;
-}
+// pub trait ZodType: DependencyRegistration {
+// const AST: ast::ZodNode;
+// }
 
-pub trait DependencyRegistration {
-    fn register_dependencies(_: &mut DependencyMap)
-    where
-        Self: 'static;
+// pub trait DependencyRegistration {
+// fn register_dependencies(_: &mut DependencyMap)
+// where
+// Self: 'static;
 
-    fn dependencies() -> DependencyMap
-    where
-        Self: 'static,
-    {
-        let mut cx = DependencyMap(Default::default());
-        Self::register_dependencies(&mut cx);
-        cx
-    }
-}
+// fn dependencies() -> DependencyMap
+// where
+// Self: 'static,
+// {
+// let mut cx = DependencyMap(Default::default());
+// Self::register_dependencies(&mut cx);
+// cx
+// }
+// }
 
-#[derive(Debug, PartialEq)]
-pub struct DependencyMap(BTreeMap<TypeId, ZodNode>);
+// #[derive(Debug, PartialEq)]
+// pub struct DependencyMap(BTreeMap<TypeId, ZodNode>);
 
-impl DependencyMap {
-    pub fn add<T>(&mut self) -> bool
-    where
-        T: ZodType + 'static,
-    {
-        let id = TypeId::of::<T>();
-        let node = T::AST;
-        !self.0.insert(id, node).is_some()
-    }
+// impl DependencyMap {
+// pub fn add<T>(&mut self) -> bool
+// where
+// T: ZodType + 'static,
+// {
+// let id = TypeId::of::<T>();
+// let node = T::AST;
+// !self.0.insert(id, node).is_some()
+// }
 
-    pub fn resolve(self) -> HashSet<ZodNode> {
-        self.0.into_iter().map(|(_, value)| value).collect()
-    }
-}
+// pub fn resolve(self) -> HashSet<ZodNode> {
+// self.0.into_iter().map(|(_, value)| value).collect()
+// }
+// }
 
-pub trait Namespace {
-    const NAME: &'static str;
-    const DOCS: Option<&'static str>;
-    type Registry;
+// pub trait Namespace {
+// const NAME: &'static str;
+// const DOCS: Option<&'static str>;
+// type Registry;
 
-    fn generate() -> String
-    where
-        Self: 'static,
-    {
-        let mut out = String::from("export namespace ");
-        out.push_str(Self::NAME);
-        out.push_str(" { \n");
+// fn generate() -> String
+// where
+// Self: 'static,
+// {
+// let mut out = String::from("export namespace ");
+// out.push_str(Self::NAME);
+// out.push_str(" { \n");
 
-        //TODO ...
+// //TODO ...
 
-        out.push_str("}");
-        out
-    }
-}
+// out.push_str("}");
+// out
+// }
+// }
