@@ -18,6 +18,46 @@
 
 use std::fmt::Display;
 
+trait Delimited<F> {
+    type Item;
+    fn fmt_delimited(
+        self,
+        f: &mut std::fmt::Formatter<'_>,
+        delim: &'static str,
+        func: F,
+    ) -> std::fmt::Result;
+
+    fn comma_separated(self, f: &mut std::fmt::Formatter<'_>, func: F) -> std::fmt::Result
+    where
+        Self: Sized,
+    {
+        self.fmt_delimited(f, ", ", func)
+    }
+}
+
+impl<Iter, Item, Func> Delimited<Func> for Iter
+where
+    Iter: Iterator<Item = Item>,
+    Func: Fn(&mut std::fmt::Formatter<'_>, Item) -> std::fmt::Result,
+{
+    type Item = Item;
+    fn fmt_delimited(
+        self,
+        f: &mut std::fmt::Formatter<'_>,
+        delim: &'static str,
+        func: Func,
+    ) -> std::fmt::Result {
+        let mut iter = self.peekable();
+        while let Some(item) = iter.next() {
+            (func)(f, item)?;
+            if iter.peek().is_some() {
+                f.write_str(delim)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 pub struct Path<'a> {
     ns: &'a str,
     name: &'a str,
@@ -122,28 +162,15 @@ impl Formatter for InlineSchema {
             InlineSchema::Generic { path, args } => {
                 path.fmt(f)?;
                 f.write_str("(")?;
-                let mut iter = args.iter().peekable();
-                while let Some(arg) = iter.next() {
-                    arg.fmt_zod(f)?;
-                    if iter.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
+                args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
+
                 f.write_str(")")?;
             }
             InlineSchema::Object(fields) => {
                 f.write_str("z.object({ ")?;
-                let mut iter = fields.iter().peekable();
-
-                while let Some(field) = iter.next() {
-                    f.write_str(field.name)?;
-                    f.write_str(": ")?;
-                    field.value.fmt_zod(f)?;
-
-                    if iter.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
                 f.write_str(" })")?;
             }
@@ -158,28 +185,15 @@ impl Formatter for InlineSchema {
                 path.fmt(f)?;
                 if !args.is_empty() {
                     f.write_str("<")?;
-                    let mut iter = args.iter().peekable();
-                    while let Some(arg) = iter.next() {
-                        arg.fmt_ts(f)?;
-
-                        if iter.peek().is_some() {
-                            f.write_str(", ")?;
-                        }
-                    }
+                    args.iter().comma_separated(f, |f, arg| arg.fmt_ts(f))?;
                     f.write_str(">")?;
                 }
             }
             InlineSchema::Object(fields) => {
                 f.write_str("{ ")?;
-                let mut iter = fields.iter().peekable();
-                while let Some(field) = iter.next() {
-                    f.write_str(field.name)?;
-                    f.write_str(": ")?;
-                    field.value.fmt_ts(f)?;
-                    if iter.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_ts(f))?;
                 f.write_str(" }")?;
             }
         }
@@ -204,17 +218,9 @@ impl Formatter for Schema {
             }
             Schema::Object(fields) => {
                 f.write_str("z.object({ ")?;
-                let mut iter = fields.iter().peekable();
-
-                while let Some(field) = iter.next() {
-                    f.write_str(field.name)?;
-                    f.write_str(": ")?;
-                    field.value.fmt_zod(f)?;
-
-                    if iter.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
                 f.write_str(" })")?;
             }
@@ -235,15 +241,9 @@ impl Formatter for Schema {
             }
             Schema::Object(fields) => {
                 f.write_str(" { ")?;
-                let mut iter = fields.iter().peekable();
-                while let Some(field) = iter.next() {
-                    f.write_str(field.name)?;
-                    f.write_str(": ")?;
-                    field.value.fmt_ts(f)?;
-                    if iter.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_ts(f))?;
                 f.write_str(" }")?;
             }
         }
@@ -276,13 +276,9 @@ impl Formatter for Export {
                 f.write_str(self.ident)?;
                 if !raw.args.is_empty() {
                     f.write_str("<")?;
-                    let mut iter = raw.args.iter().peekable();
-                    while let Some(arg) = iter.next() {
-                        f.write_str(arg)?;
-                        if iter.peek().is_some() {
-                            f.write_str(", ")?;
-                        }
-                    }
+                    raw.args
+                        .iter()
+                        .comma_separated(f, |f, arg| f.write_str(arg))?;
                     f.write_str(">")?;
                 }
                 f.write_str(" = ")?;
@@ -296,6 +292,20 @@ impl Formatter for Export {
             }
         }
         Ok(())
+    }
+}
+
+impl Formatter for NamedField {
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name)?;
+        f.write_str(": ")?;
+        self.value.fmt_zod(f)
+    }
+
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name)?;
+        f.write_str(": ")?;
+        self.value.fmt_ts(f)
     }
 }
 
