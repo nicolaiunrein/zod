@@ -12,12 +12,15 @@ pub trait RpcNamespace: crate::Namespace + DependencyRegistration {
 
 pub struct RpcArgument {
     name: &'static str,
-    code: ZodNode,
+    schema: crate::ast::InlineSchema,
 }
 
 impl RpcArgument {
-    pub fn new<T: crate::ZodType>(name: &'static str) -> Self {
-        Self { name, code: T::AST }
+    pub fn new<T: crate::ast::Node>(name: &'static str) -> Self {
+        Self {
+            name,
+            schema: <T>::inline(),
+        }
     }
 }
 
@@ -52,7 +55,7 @@ impl RpcMember {
 
                 let arg_fields = args
                     .iter()
-                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns(), arg.code.name()))
+                    .map(|arg| format!("{}: {}", arg.name, arg.schema.to_ts_string()))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -60,7 +63,7 @@ impl RpcMember {
 
                 let arg_zod = args
                     .iter()
-                    .map(|arg| format!("{}.{}", arg.code.ns(), arg.code.name()))
+                    .map(|arg| arg.schema.to_zod_string())
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -86,7 +89,7 @@ export async function {name}({arg_fields}): Promise<{res}> {{
 
                 let arg_fields = args
                     .iter()
-                    .map(|arg| format!("{}: {}.{}", arg.name, arg.code.ns(), arg.code.name()))
+                    .map(|arg| format!("{}: {}", arg.name, arg.schema.to_ts_string()))
                     .collect::<Vec<_>>()
                     .join(",");
 
@@ -94,7 +97,7 @@ export async function {name}({arg_fields}): Promise<{res}> {{
 
                 let arg_zod = args
                     .iter()
-                    .map(|arg| format!("{}.{}", arg.code.ns(), arg.code.name()))
+                    .map(|arg| arg.schema.to_zod_string())
                     .collect::<Vec<_>>()
                     .join(",");
 

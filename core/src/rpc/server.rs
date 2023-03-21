@@ -2,6 +2,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::{rpc::codegen, rpc::Request, rpc::ResponseSender, DependencyRegistration, Namespace};
 
+use crate::ast::build_ins::Rs;
+
 pub type StreamHandle = tokio::task::JoinHandle<()>;
 
 #[derive(Debug, Default)]
@@ -44,9 +46,9 @@ pub trait Backend: DependencyRegistration {
             exports.entry(export.ns()).or_default().push(export);
         }
 
-        if let Some(rs) = exports.remove(crate::build_ins::Rs::NAME) {
+        if let Some(rs) = exports.remove(Rs::NAME) {
             out.push_str("export namepace ");
-            out.push_str(crate::build_ins::Rs::NAME);
+            out.push_str(Rs::NAME);
             out.push_str(" {\n");
             for node in rs.into_iter() {
                 out.push_str(&node.to_string());
