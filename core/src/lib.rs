@@ -11,12 +11,6 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-pub(crate) struct Delimited<I>(pub I, pub &'static str);
-
-pub trait ZodType: DependencyRegistration {
-    const AST: ast::Export;
-}
-
 pub trait DependencyRegistration {
     fn register_dependencies(_: &mut DependencyMap)
     where
@@ -38,11 +32,14 @@ pub struct DependencyMap(BTreeMap<TypeId, ast::Export>);
 impl DependencyMap {
     pub fn add<T>(&mut self) -> bool
     where
-        T: ZodType + 'static,
+        T: ast::Node + 'static,
     {
         let id = TypeId::of::<T>();
-        let node = T::AST;
-        !self.0.insert(id, node).is_some()
+        if let Some(export) = T::export() {
+            !self.0.insert(id, export).is_some()
+        } else {
+            false
+        }
     }
 
     pub fn resolve(self) -> HashSet<ast::Export> {

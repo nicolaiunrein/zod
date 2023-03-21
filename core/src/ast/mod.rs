@@ -1,18 +1,30 @@
+//! # Core building blocks of this library
+//!
+//! ## Resolving generic types
+//!
 //! We cannot inline partially resolved types.
-//! # Example
-//! ```rust,ignore
+//! ## Example
+//! ```rust
 //! struct Generic<T1, T2> {
 //!   t1: T1,
 //!   t2: T2,
 //! }
 //!
+//!
+//! type Flipped<T1, T2> = Generic<T2, T1>;
+//!
 //! struct MyType<T> {
-//!     inner: Generic<String, T>
+//!     inner: Flipped<String, T>
 //! }
+//!
+//! ```
+//! Deriving [Node] on `MyType` would generate an export like:
+//! ```ts
+//! export const MyType = (T: z.ZodTypeAny) => z.object({ inner: Ns.Generic(z.String, T) })
 //! ```
 //!
-//! Here `MyType<T>` cannot be exported as `const MyType = (T: z.ZodTypeAny) => z.object({ inner:
-//! Ns.Generic(z.String, T) })`
+//! which would be wrong because the generic parameters are flipped!
+//!
 //!
 //!
 
@@ -308,6 +320,7 @@ impl Formatter for NamedField {
 
 #[cfg(test)]
 mod test {
+    #![allow(dead_code)]
     use super::*;
     use pretty_assertions::assert_eq;
 
