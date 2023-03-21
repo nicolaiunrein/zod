@@ -36,14 +36,14 @@ impl DependencyMap {
     {
         let id = TypeId::of::<T>();
         if let Some(export) = T::export() {
-            !self.0.insert(id, export).is_some()
+            self.0.insert(id, export).is_none()
         } else {
             false
         }
     }
 
     pub fn resolve(self) -> HashSet<ast::Export> {
-        self.0.into_iter().map(|(_, value)| value).collect()
+        self.0.into_values().collect()
     }
 }
 
@@ -62,7 +62,7 @@ pub trait Namespace {
 
         //TODO ...
 
-        out.push_str("}");
+        out.push_str("}\n");
         out
     }
 }

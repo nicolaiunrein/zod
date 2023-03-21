@@ -121,7 +121,7 @@ pub struct Path {
     name: &'static str,
 }
 
-impl<'a> Display for Path {
+impl Display for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.ns)?;
         f.write_str(".")?;
@@ -282,7 +282,7 @@ impl Formatter for Export {
 
         f.write_str("export ")?;
         match self.schema {
-            Schema::Raw { ref args, ts, .. } => {
+            Schema::Raw { args, ts, .. } => {
                 f.write_str("type ")?;
                 f.write_str(self.path.name)?;
                 if !args.is_empty() {

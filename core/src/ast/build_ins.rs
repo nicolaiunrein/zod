@@ -2,7 +2,7 @@ use crate::Namespace;
 
 use super::{Export, GenericArgument, InlineSchema, Node, Path, Schema};
 
-const ARRAY_SCHEMA: &'static str = r#"
+const ARRAY_SCHEMA: &str = r#"
 Pick<
   TObj,
   Exclude<keyof TObj, "splice" | "push" | "pop" | "shift" | "unshift">
