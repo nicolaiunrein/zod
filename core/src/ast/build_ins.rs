@@ -465,13 +465,28 @@ impl<const N: usize, T: Node> Register for [T; N] {
 }
 
 #[cfg(feature = "smol_str")]
-impl_primitive!(smol_str::SmolStr, "String", "string", "z.string()");
+impl_primitive!({
+    ty: smol_str::SmolStr,
+    name: "String",
+    ts: "string",
+    zod: "z.string()"
+});
 
 #[cfg(feature = "ordered-float")]
-impl_primitive!(ordered_float::NotNan<f32>, "F32", "number", "z.number()");
+impl_primitive!({
+    ty: ordered_float::NotNan<f32>,
+    name: "F32",
+    ts: "number",
+    zod: "z.number()"
+});
 
 #[cfg(feature = "ordered-float")]
-impl_primitive!(ordered_float::NotNan<f64>, "F64", "number", "z.number()");
+impl_primitive!({
+    ty: ordered_float::NotNan<f64>,
+    name: "F64",
+    ts: "number",
+    zod: "z.number()"
+});
 
 #[cfg(test)]
 mod test {

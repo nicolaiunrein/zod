@@ -11,6 +11,7 @@
 //! - Add ast for enums
 //! - consider where to handle serde args
 //!
+#![doc = document_features::document_features!()]
 #![deny(unsafe_code)]
 
 pub mod ast;

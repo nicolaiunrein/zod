@@ -30,7 +30,10 @@
 
 pub(crate) mod build_ins;
 mod formatter;
+
+#[cfg(feature = "rpc")]
 pub mod rpc;
+
 mod utils;
 
 pub use formatter::*;
@@ -454,6 +457,5 @@ mod test {
         assert!(<Partial<usize>>::export().is_none());
 
         assert_eq!(deps, expected);
-        assert_eq!(deps, Default::default());
     }
 }
