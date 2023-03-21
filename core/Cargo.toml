@@ -24,7 +24,6 @@ smol_str = { version = "0.1", optional = true }
 async-trait = { version = "0.1.64", optional = true }
 serde_json = { version = "1.0.92", optional = true }
 futures = { version = "0.3.26", optional = true }
-pin-project-lite = { version = "0.2.9", optional = true }
 thiserror = { version = "1.0.38", optional = true }
 tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread", "time"], optional = true }
 serde = { version = "1.0.152", features = ["derive"], optional = true }
@@ -39,6 +38,6 @@ default = ["rpc", "ordered-float"]
 
 #! # Features
 ## This feature enables rpc clien/server code
-rpc = ["dep:async-trait", "dep:serde_json", "dep:futures", "dep:pin-project-lite", "dep:thiserror", "dep:tokio", "dep:serde"]
+rpc = ["dep:async-trait", "dep:serde_json", "dep:futures", "dep:thiserror", "dep:tokio", "dep:serde"]
 
 
