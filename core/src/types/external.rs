@@ -246,7 +246,7 @@ impl<const N: usize, T: Node> Node for [T; N] {
             },
         }),
 
-        inline: InlineSchema::Generic {
+        inline: InlineSchema::Ref {
             path: Path::new::<crate::types::Rs>("Array"),
             args: &[],
         },

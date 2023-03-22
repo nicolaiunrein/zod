@@ -76,7 +76,7 @@ mod test {
 
     impl<T1: Node, T2: Node> Node for MyGeneric<T1, T2> {
         const DEFINITION: Definition = Definition {
-            inline: InlineSchema::Generic {
+            inline: InlineSchema::Ref {
                 path: Path::new::<Ns>("MyGeneric"),
                 args: &[T1::DEFINITION.inline, T2::DEFINITION.inline],
             },
@@ -110,7 +110,7 @@ mod test {
                 schema: Schema::Object(&[NamedField::new::<Partial<Usize>>("my_type_inner")]),
             }),
 
-            inline: InlineSchema::Generic {
+            inline: InlineSchema::Ref {
                 path: Path::new::<Ns>("MyType"),
                 args: &[],
             },

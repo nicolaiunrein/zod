@@ -12,7 +12,7 @@ macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::ast::Node for $T {
             const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
-                inline: $crate::ast::InlineSchema::Generic {
+                inline: $crate::ast::InlineSchema::Ref {
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     args: &[],
                 },
@@ -60,7 +60,7 @@ macro_rules! impl_tuple {
                 const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
                     export: Some($crate::types::macros::tuple!($N, $($i),*)),
 
-                inline: InlineSchema::Generic {
+                inline: InlineSchema::Ref {
                     path: $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N)),
                     args: &[$(<$i>::DEFINITION.inline),*],
                 }
@@ -114,7 +114,7 @@ macro_rules! impl_generic {
                     },
                 }),
 
-                inline: InlineSchema::Generic{
+                inline: InlineSchema::Ref {
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     args: &[]
                 }
