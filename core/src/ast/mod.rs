@@ -364,7 +364,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register!(ctx, T1, T2);
+            crate::register_dependency!(ctx, T1, T2);
         }
     }
 
@@ -399,7 +399,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register!(ctx, Partial<Usize>);
+            crate::register_dependency!(ctx, Partial<Usize>);
         }
     }
 
@@ -425,7 +425,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register!(ctx, MyGeneric<String, T>);
+            crate::register_dependency!(ctx, MyGeneric<String, T>);
         }
     }
 

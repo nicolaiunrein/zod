@@ -2,7 +2,7 @@
 //! This module adds wrapper types for integers which are too big to be numbers in
 //! javascript/typescript
 
-use super::impl_primitive;
+use super::macros::impl_primitive;
 
 macro_rules! impl_conversion {
     ($ty: ty, $name: ident) => {

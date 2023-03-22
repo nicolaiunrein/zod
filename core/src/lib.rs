@@ -58,7 +58,7 @@ impl DependencyMap {
 }
 
 #[macro_export]
-macro_rules! register {
+macro_rules! register_dependency {
     ($ctx: ident, $($ty: ty),*) => {
         if $ctx.add_self::<Self>() {
             $(<$ty as Register>::register($ctx);)*

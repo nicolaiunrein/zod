@@ -1,9 +1,9 @@
 use crate::types::Usize;
 
-use super::impl_generic;
-use super::impl_primitive;
-use super::impl_tuple;
-use super::impl_wrapper;
+use super::macros::impl_generic;
+use super::macros::impl_primitive;
+use super::macros::impl_tuple;
+use super::macros::impl_wrapper;
 
 use crate::ast::{Export, GenericArgument, InlineSchema, Node, Path, Schema};
 use crate::Register;
@@ -223,7 +223,7 @@ impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
     where
         Self: 'static,
     {
-        crate::register!(ctx, T);
+        crate::register_dependency!(ctx, T);
     }
 }
 
@@ -265,7 +265,7 @@ impl<const N: usize, T: Node> Register for [T; N] {
     where
         Self: 'static,
     {
-        crate::register!(ctx, T);
+        crate::register_dependency!(ctx, T);
     }
 }
 
@@ -295,10 +295,9 @@ impl_primitive!({
 
 #[cfg(test)]
 mod test {
-    use crate::ast::Formatter;
-    use crate::types::join;
-
     use super::*;
+    use crate::ast::Formatter;
+    use crate::types::macros::join;
     use pretty_assertions::assert_eq;
 
     #[test]
