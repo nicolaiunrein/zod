@@ -140,7 +140,10 @@ function execute({
   method: string;
   args: any[];
 }): string {
-  return JSON.stringify({ exec: { id: req_id, method, namespace, args } });
+  return JSON.stringify(
+    { exec: { id: req_id, method, namespace, args } },
+    (_, v) => (typeof v == "bigint" ? v.toString() : v)
+  );
 }
 
 export function subscribe<T>(

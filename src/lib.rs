@@ -99,8 +99,7 @@
 //! - [x] add a mapping table to README.md
 //! - [x] write detailed intro
 //! - [x] write rust-docs
-//!
-//! - [ ] Consider to allow the use of generics otherwise force implementors to not have generics
+//! - [x] Consider to allow the use of generics otherwise force implementors to not have generics
 //! - [ ] RPC ui tests
 //! - [ ] improve diagnostics on rpc (eg. correct spans, better compile time errors)
 //! - [ ] improve macro hygiene
