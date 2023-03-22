@@ -43,7 +43,7 @@ pub trait Backend: Register {
         let mut out = T::get();
         let mut exports = BTreeMap::<&str, Vec<_>>::new();
         for export in Self::dependencies().resolve().into_iter() {
-            exports.entry(export.ns()).or_default().push(export);
+            exports.entry(export.path.ns()).or_default().push(export);
         }
 
         if let Some(rs) = exports.remove(Rs::NAME) {

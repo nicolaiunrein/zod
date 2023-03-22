@@ -11,10 +11,7 @@ macro_rules! join {
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::ast::Node for $T {
-            const PATH: $crate::ast::Path = $crate::ast::Path {
-                ns: <$crate::types::Rs as $crate::Namespace>::NAME,
-                name: $name,
-            };
+            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>($name);
 
             fn export() -> Option<$crate::ast::Export> {
                 Some($crate::ast::Export {
@@ -61,10 +58,7 @@ macro_rules! tuple {
 macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
         impl<$($i: Node),*> Node for ($($i,)*) {
-            const PATH: Path = Path {
-                ns: <$crate::types::Rs as $crate::Namespace>::NAME,
-                name: concat!("Tuple", $N),
-            };
+            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N));
 
             fn export() -> Option<Export> {
                 Some($crate::types::macros::tuple!($N, $($i),*))
@@ -93,10 +87,7 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: Node> Node for $type {
-            const PATH: Path = Path {
-                ns: <$crate::types::Rs as $crate::Namespace>::NAME,
-                name: $name,
-            };
+            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>($name);
 
             fn inline() -> InlineSchema {
                 T::inline()
@@ -117,10 +108,7 @@ macro_rules! impl_wrapper {
 macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: Node),*> Node for $ty {
-            const PATH: Path = Path {
-                ns: <$crate::types::Rs as $crate::Namespace>::NAME,
-                name: $name
-            };
+            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>($name);
 
             fn export() -> Option<Export> {
                 Some(Export {

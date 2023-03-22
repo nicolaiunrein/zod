@@ -208,10 +208,7 @@ impl_generic!({
 });
 
 impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
-    const PATH: Path = Path {
-        ns: <crate::types::Rs as crate::Namespace>::NAME,
-        name: "Cow",
-    };
+    const PATH: Path = Path::new::<crate::types::Rs>("Cow");
 
     fn inline() -> InlineSchema {
         T::inline()
@@ -228,10 +225,7 @@ impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
 }
 
 impl<const N: usize, T: Node> Node for [T; N] {
-    const PATH: Path = Path {
-        ns: "Rs",
-        name: "Array",
-    };
+    const PATH: Path = Path::new::<crate::types::Rs>("Array");
 
     fn export() -> Option<Export> {
         Some(Export {

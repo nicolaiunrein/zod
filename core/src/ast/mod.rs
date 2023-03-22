@@ -28,15 +28,23 @@
 //!
 //!
 
-mod formatter;
-
 #[cfg(feature = "rpc")]
 pub mod rpc;
 
+mod export;
+mod fields;
+mod formatter;
+mod generics;
+mod path;
+mod schema;
 mod utils;
 
+pub use export::*;
+pub use fields::*;
 pub use formatter::*;
-use std::fmt::Display;
+pub use generics::*;
+pub use path::*;
+pub use schema::*;
 pub use utils::*;
 
 use crate::Register;
@@ -50,285 +58,25 @@ pub trait Node: Register {
     fn inline() -> InlineSchema;
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Export {
-    pub docs: Option<&'static str>,
-    pub path: Path,
-    pub schema: Schema,
-}
-
-impl Export {
-    pub const fn ns(&self) -> &'static str {
-        self.path.ns
-    }
-}
-
-impl Display for Export {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.fmt_ts(f)?;
-        f.write_str("\n")?;
-        self.fmt_zod(f)?;
-        Ok(())
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum GenericArgument {
-    Type(&'static str),
-    Const {
-        name: &'static str,
-        path: Path,
-    },
-    Assign {
-        name: &'static str,
-        value: &'static str,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Schema {
-    Raw {
-        args: &'static [GenericArgument],
-        ts: &'static str,
-        zod: &'static str,
-    },
-    Object(Vec<NamedField>),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum InlineSchema {
-    Ref(Path),
-    Generic { path: Path, args: Vec<InlineSchema> },
-    Object(Vec<NamedField>),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct NamedField {
-    name: &'static str,
-    value: InlineSchema,
-}
-
-impl NamedField {
-    pub fn new<T: Node>(name: &'static str) -> Self {
-        Self {
-            name,
-            value: T::inline(),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Path {
-    pub ns: &'static str,
-    pub name: &'static str,
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.ns)?;
-        f.write_str(".")?;
-        f.write_str(self.name)?;
-        Ok(())
-    }
-}
-
-impl Formatter for GenericArgument {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GenericArgument::Type(name) => {
-                f.write_str(name)?;
-                f.write_str(": ")?;
-                f.write_str("z.ZodTypeAny")?;
-            }
-
-            GenericArgument::Const { name, path } => {
-                f.write_str(name)?;
-                f.write_str(": ")?;
-                path.fmt(f)?;
-            }
-            GenericArgument::Assign { .. } => {}
-        }
-        Ok(())
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GenericArgument::Type(name) => f.write_str(name),
-            GenericArgument::Assign { name, value } => {
-                f.write_str(name)?;
-                f.write_str(" = ")?;
-                f.write_str(value)?;
-                Ok(())
-            }
-            GenericArgument::Const { name, path } => {
-                f.write_str(name)?;
-                f.write_str(" extends ")?;
-                path.fmt(f)?;
-                Ok(())
-            }
-        }
-    }
-}
-
-impl Formatter for InlineSchema {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InlineSchema::Ref(path) => {
-                path.fmt(f)?;
-            }
-            InlineSchema::Generic { path, args } => {
-                path.fmt(f)?;
-                f.write_str("(")?;
-                args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-
-                f.write_str(")")?;
-            }
-            InlineSchema::Object(fields) => {
-                f.write_str("z.object({ ")?;
-                fields
-                    .iter()
-                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
-
-                f.write_str(" })")?;
-            }
-        }
-        Ok(())
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InlineSchema::Ref(path) => path.fmt(f)?,
-            InlineSchema::Generic { path, args } => {
-                path.fmt(f)?;
-                if !args.is_empty() {
-                    f.write_str("<")?;
-                    args.iter().comma_separated(f, |f, arg| arg.fmt_ts(f))?;
-                    f.write_str(">")?;
-                }
-            }
-            InlineSchema::Object(fields) => {
-                f.write_str("{ ")?;
-                fields
-                    .iter()
-                    .comma_separated(f, |f, field| field.fmt_ts(f))?;
-                f.write_str(" }")?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Formatter for Schema {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Schema::Raw { args, zod, .. } => {
-                if !args.is_empty() {
-                    f.write_str("(")?;
-                    args.iter()
-                        .filter(|arg| !matches!(arg, GenericArgument::Assign { .. }))
-                        .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-                    f.write_str(") => ")?;
-                }
-                f.write_str(zod)?;
-            }
-            Schema::Object(fields) => {
-                f.write_str("z.object({ ")?;
-                fields
-                    .iter()
-                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
-
-                f.write_str(" })")?;
-            }
-        }
-        Ok(())
-    }
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Schema::Raw { args, ts, .. } => {
-                if !args.is_empty() {
-                    f.write_str("<")?;
-                    args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-                    f.write_str("> => ")?;
-                }
-                f.write_str(ts)?;
-            }
-            Schema::Object(fields) => {
-                f.write_str(" { ")?;
-                fields
-                    .iter()
-                    .comma_separated(f, |f, field| field.fmt_ts(f))?;
-                f.write_str(" }")?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Formatter for Export {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(docs) = self.docs {
-            f.write_str(docs)?;
-        }
-        f.write_str("export const ")?;
-        f.write_str(self.path.name)?;
-        f.write_str(" = z.lazy(() => ")?;
-        self.schema.fmt_zod(f)?;
-        f.write_str(");")?;
-        Ok(())
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(docs) = self.docs {
-            f.write_str(docs)?;
-        }
-
-        f.write_str("export ")?;
-        match self.schema {
-            Schema::Raw { args, ts, .. } => {
-                f.write_str("type ")?;
-                f.write_str(self.path.name)?;
-                if !args.is_empty() {
-                    f.write_str("<")?;
-                    args.iter().comma_separated(f, |f, arg| arg.fmt_ts(f))?;
-                    f.write_str(">")?;
-                }
-                f.write_str(" = ")?;
-                f.write_str(ts)?;
-                f.write_str(";")?;
-            }
-            Schema::Object(_) => {
-                f.write_str("interface ")?;
-                f.write_str(self.path.name)?;
-                self.schema.fmt_ts(f)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Formatter for NamedField {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.name)?;
-        f.write_str(": ")?;
-        self.value.fmt_zod(f)
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.name)?;
-        f.write_str(": ")?;
-        self.value.fmt_ts(f)
-    }
-}
-
 #[cfg(test)]
 mod test {
     #![allow(dead_code)]
     use std::collections::HashSet;
 
     use crate::types::Usize;
+    use crate::Namespace;
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    struct Ns;
+    impl Namespace for Ns {
+        const NAME: &'static str = "Ns";
+
+        const DOCS: Option<&'static str> = None;
+
+        type UniqueMembers = ();
+    }
 
     struct MyGeneric<T1, T2> {
         t1: T1,
@@ -336,10 +84,7 @@ mod test {
     }
 
     impl<T1: Node, T2: Node> Node for MyGeneric<T1, T2> {
-        const PATH: Path = Path {
-            ns: "Ns",
-            name: "MyGeneric",
-        };
+        const PATH: Path = Path::new::<Ns>("MyGeneric");
         fn inline() -> InlineSchema {
             InlineSchema::Generic {
                 path: Self::PATH,
@@ -373,10 +118,7 @@ mod test {
     }
 
     impl Node for MyType {
-        const PATH: Path = Path {
-            ns: "Rs",
-            name: "MyType",
-        };
+        const PATH: Path = Path::new::<Ns>("MyType");
 
         fn export() -> Option<Export> {
             Some(Export {
@@ -387,10 +129,7 @@ mod test {
         }
 
         fn inline() -> InlineSchema {
-            InlineSchema::Ref(Path {
-                ns: "Ns",
-                name: "MyType",
-            })
+            InlineSchema::Ref(Path::new::<Ns>("MyType"))
         }
     }
 
@@ -408,10 +147,7 @@ mod test {
     }
 
     impl<T: Node> Node for Partial<T> {
-        const PATH: Path = Path {
-            ns: "Custom",
-            name: "Partial",
-        };
+        const PATH: Path = Path::new::<Ns>("Partial");
 
         fn inline() -> InlineSchema {
             InlineSchema::Object(vec![NamedField::new::<MyGeneric<String, T>>(
