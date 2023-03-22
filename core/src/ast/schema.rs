@@ -6,6 +6,11 @@ use super::{Delimited, Formatter, GenericArgument, NamedField, Path};
 pub enum Typed {
     Object(&'static [NamedField]),
     Tuple(&'static [InlineSchema]),
+    Union(&'static [InlineSchema]),
+    DiscriminatedUnion {
+        key: &'static str,
+        variants: &'static [&'static [NamedField]],
+    },
 }
 
 impl Typed {
@@ -13,6 +18,8 @@ impl Typed {
         match self {
             Typed::Object(_) => true,
             Typed::Tuple(_) => false,
+            Typed::Union(_) => false,
+            Typed::DiscriminatedUnion { .. } => false,
         }
     }
 }
@@ -38,6 +45,27 @@ impl Formatter for Typed {
                 f.write_str("])")?;
                 Ok(())
             }
+
+            Typed::Union(fields) => {
+                f.write_str("z.union([")?;
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
+
+                f.write_str("])")?;
+                Ok(())
+            }
+
+            Typed::DiscriminatedUnion { key, variants } => {
+                f.write_fmt(format_args!("z.discriminatedUnion(\"{key}\", ["))?;
+
+                variants
+                    .iter()
+                    .comma_separated(f, |f, fields| Self::Object(fields).fmt_zod(f))?;
+
+                f.write_str("])")?;
+                Ok(())
+            }
         }
     }
 
@@ -58,6 +86,18 @@ impl Formatter for Typed {
                     .comma_separated(f, |f, field| field.fmt_ts(f))?;
                 f.write_str("]")?;
                 Ok(())
+            }
+
+            Typed::Union(fields) => {
+                fields
+                    .iter()
+                    .fmt_delimited(f, " | ", |f, field| field.fmt_ts(f))?;
+                Ok(())
+            }
+            Typed::DiscriminatedUnion { variants, .. } => {
+                variants
+                    .iter()
+                    .fmt_delimited(f, " | ", |f, fields| Self::Object(fields).fmt_ts(f))
             }
         }
     }
@@ -141,5 +181,50 @@ mod test {
         ]);
         assert_eq!(TYPED.to_zod_string(), "z.tuple([Rs.String, Rs.Usize])");
         assert_eq!(TYPED.to_ts_string(), "[Rs.String, Rs.Usize]");
+    }
+
+    #[test]
+    fn object_ok() {
+        const TYPED: Typed = Typed::Object(&[
+            NamedField::new::<String>("a"),
+            NamedField::new::<crate::types::Usize>("b"),
+        ]);
+        assert_eq!(
+            TYPED.to_zod_string(),
+            "z.object({ a: Rs.String, b: Rs.Usize })"
+        );
+        assert_eq!(TYPED.to_ts_string(), "{ a: Rs.String, b: Rs.Usize }");
+    }
+
+    #[test]
+    fn union_ok() {
+        const TYPED: Typed = Typed::Union(&[
+            String::DEFINITION.inline(),
+            crate::types::Usize::DEFINITION.inline(),
+        ]);
+        assert_eq!(TYPED.to_zod_string(), "z.union([Rs.String, Rs.Usize])");
+        assert_eq!(TYPED.to_ts_string(), "Rs.String | Rs.Usize");
+    }
+
+    #[test]
+    fn discriminated_union_ok() {
+        const TYPED: Typed = Typed::DiscriminatedUnion {
+            key: "myKey",
+            variants: &[
+                &[
+                    NamedField::new::<String>("myKey"),
+                    NamedField::new::<crate::types::Usize>("b"),
+                ],
+                &[
+                    NamedField::new::<String>("myKey"),
+                    NamedField::new::<crate::types::Isize>("c"),
+                ],
+            ],
+        };
+        assert_eq!(TYPED.to_zod_string(), "z.discriminatedUnion(\"myKey\", [z.object({ myKey: Rs.String, b: Rs.Usize }), z.object({ myKey: Rs.String, c: Rs.Isize })])");
+        assert_eq!(
+            TYPED.to_ts_string(),
+            "{ myKey: Rs.String, b: Rs.Usize } | { myKey: Rs.String, c: Rs.Isize }"
+        );
     }
 }
