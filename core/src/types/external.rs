@@ -6,7 +6,7 @@ use super::macros::impl_primitive;
 use super::macros::impl_tuple;
 use super::macros::impl_wrapper;
 
-use crate::ast::{Export, GenericArgument, Node, Path, Schema};
+use crate::ast::{Export, ExportSchema, GenericArgument, Node, Path};
 use crate::Register;
 
 const ARRAY_SCHEMA: &str = r#"
@@ -226,7 +226,7 @@ impl<const N: usize, T: Node> Node for [T; N] {
         Export {
             docs: None,
             path: Path::new::<crate::types::Rs>("Array"),
-            schema: Schema::Raw {
+            schema: ExportSchema::Raw {
                 args: &[
                     GenericArgument::Type("T"),
                     GenericArgument::Const {

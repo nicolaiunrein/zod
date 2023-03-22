@@ -15,7 +15,7 @@ macro_rules! impl_primitive {
                 $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    schema: $crate::ast::Schema::Raw {
+                    schema: $crate::ast::ExportSchema::Raw {
                         args: &[],
                         zod: $zod,
                         ts: $ts,
@@ -41,7 +41,7 @@ macro_rules! tuple {
         Export {
             docs: None,
             path: $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N)),
-            schema: Schema::Raw {
+            schema: $crate::ast::ExportSchema::Raw {
                 args: &[$(GenericArgument::Type(stringify!($i))),*],
                 zod: concat!("z.tuple([", $crate::types::macros::join!(", ", $($i),*),"])"),
                 ts: concat!("[", $crate::types::macros::join!(", ", $($i),*) ,"]")
@@ -97,7 +97,7 @@ macro_rules! impl_generic {
                 Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    schema: Schema::Raw {
+                    schema: $crate::ast::ExportSchema::Raw {
                         args: &[$(GenericArgument::Type(stringify!($generics))),+],
                         zod: $zod,
                         ts: $ts

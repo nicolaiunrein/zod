@@ -133,7 +133,7 @@ mod test {
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyGeneric"),
-                schema: Schema::Typed(Typed::Object(&[
+                schema: ExportSchema::Typed(Typed::Object(&[
                     NamedField::new::<T1>("t1"),
                     NamedField::new::<T2>("t2"),
                 ])),
@@ -160,7 +160,7 @@ mod test {
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyType"),
-                schema: Schema::Typed(Typed::Object(&[NamedField::new::<Partial<Usize>>(
+                schema: ExportSchema::Typed(Typed::Object(&[NamedField::new::<Partial<Usize>>(
                     "my_type_inner",
                 )])),
             },

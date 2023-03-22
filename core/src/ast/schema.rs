@@ -5,12 +5,15 @@ use super::{Delimited, Formatter, GenericArgument, NamedField, Path};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Typed {
     Object(&'static [NamedField]),
+    Tuple(&'static [InlineSchema]),
 }
 
 impl Typed {
     pub fn is_interface(&self) -> bool {
-        //todo
-        true
+        match self {
+            Typed::Object(_) => true,
+            Typed::Tuple(_) => false,
+        }
     }
 }
 
@@ -26,6 +29,15 @@ impl Formatter for Typed {
                 f.write_str(" })")?;
                 Ok(())
             }
+            Typed::Tuple(fields) => {
+                f.write_str("z.tuple([")?;
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
+
+                f.write_str("])")?;
+                Ok(())
+            }
         }
     }
 
@@ -39,12 +51,20 @@ impl Formatter for Typed {
                 f.write_str(" }")?;
                 Ok(())
             }
+            Typed::Tuple(fields) => {
+                f.write_str("[")?;
+                fields
+                    .iter()
+                    .comma_separated(f, |f, field| field.fmt_ts(f))?;
+                f.write_str("]")?;
+                Ok(())
+            }
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Schema {
+pub enum ExportSchema {
     Raw {
         args: &'static [GenericArgument],
         ts: &'static str,
@@ -106,36 +126,20 @@ impl Formatter for InlineSchema {
     }
 }
 
-// impl Formatter for Schema {
-// fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-// match self {
-// Schema::Raw { args, zod, .. } => {
-// if !args.is_empty() {
-// f.write_str("(")?;
-// args.iter()
-// .filter(|arg| !matches!(arg, GenericArgument::Assign { .. }))
-// .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-// f.write_str(") => ")?;
-// }
-// f.write_str(zod)?;
-// }
-// Schema::Typed(typed) => typed.fmt_zod(f)?,
-// }
-// Ok(())
-// }
-// fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-// f.write_str("xxxxx")?;
-// match self {
-// Schema::Raw { args, ts, .. } => {
-// if !args.is_empty() {
-// f.write_str("<")?;
-// args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-// f.write_str("> => ")?;
-// }
-// f.write_str(ts)?;
-// }
-// Schema::Typed(typed) => typed.fmt_ts(f)?,
-// }
-// Ok(())
-// }
-// }
+#[cfg(test)]
+mod test {
+    use crate::ast::Node;
+
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn tuple_ok() {
+        const TYPED: Typed = Typed::Tuple(&[
+            String::DEFINITION.inline(),
+            crate::types::Usize::DEFINITION.inline(),
+        ]);
+        assert_eq!(TYPED.to_zod_string(), "z.tuple([Rs.String, Rs.Usize])");
+        assert_eq!(TYPED.to_ts_string(), "[Rs.String, Rs.Usize]");
+    }
+}
