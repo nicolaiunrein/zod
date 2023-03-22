@@ -133,10 +133,10 @@ mod test {
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyGeneric"),
-                schema: ExportSchema::Typed(Typed::Object(&[
+                schema: ExportSchema::Typed(Typed::Object(ObjectSchema::new(&[
                     NamedField::new::<T1>("t1"),
                     NamedField::new::<T2>("t2"),
-                ])),
+                ]))),
             },
             &[T1::DEFINITION.inline(), T2::DEFINITION.inline()],
         );
@@ -160,9 +160,9 @@ mod test {
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyType"),
-                schema: ExportSchema::Typed(Typed::Object(&[NamedField::new::<Partial<Usize>>(
-                    "my_type_inner",
-                )])),
+                schema: ExportSchema::Typed(Typed::Object(ObjectSchema::new(&[
+                    NamedField::new::<Partial<Usize>>("my_type_inner"),
+                ]))),
             },
             &[],
         );
@@ -183,9 +183,9 @@ mod test {
 
     impl<T: Node> Node for Partial<T> {
         const DEFINITION: Definition =
-            Definition::partially_inlined(InlineSchema::Typed(Typed::Object(&[
-                NamedField::new::<MyGeneric<String, T>>("partial_inner"),
-            ])));
+            Definition::partially_inlined(InlineSchema::Typed(Typed::Object(ObjectSchema::new(
+                &[NamedField::new::<MyGeneric<String, T>>("partial_inner")],
+            ))));
     }
 
     impl<T: Node> Register for Partial<T> {

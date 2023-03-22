@@ -86,7 +86,7 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, Node, Typed};
+    use crate::ast::{NamedField, Node, ObjectSchema, TupleSchema, Typed};
     use crate::Namespace;
 
     use super::*;
@@ -101,10 +101,10 @@ mod test {
 
     #[test]
     fn object_ok() {
-        const OBJECT: Typed = Typed::Object(&[
+        const OBJECT: Typed = Typed::Object(ObjectSchema::new(&[
             NamedField::new::<String>("a"),
             NamedField::new::<crate::types::Usize>("b"),
-        ]);
+        ]));
 
         const EXPORT_OBJECT: Export = Export {
             docs: None,
@@ -127,10 +127,10 @@ mod test {
 
     #[test]
     fn tuple_ok() {
-        const TUPLE: Typed = Typed::Tuple(&[
+        const TUPLE: Typed = Typed::Tuple(TupleSchema::new(&[
             String::DEFINITION.inline(),
             crate::types::Usize::DEFINITION.inline(),
-        ]);
+        ]));
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,
