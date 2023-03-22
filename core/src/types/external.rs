@@ -303,8 +303,11 @@ mod test {
     #[test]
     fn option_ok() {
         let export = <Option<String>>::export();
+        let inlined = <Option<String>>::inline();
+
         let expected_zod_export =
             "export const Option = z.lazy(() => (T: z.ZodTypeAny) => T.optional());";
+
         let expected_ts_export = "export type Option<T> = T | undefined;";
 
         assert_eq!(
@@ -313,6 +316,30 @@ mod test {
         );
 
         assert_eq!(export.as_ref().unwrap().to_ts_string(), expected_ts_export);
+
+        assert_eq!(inlined.to_zod_string(), "Rs.Option(Rs.String)");
+        assert_eq!(inlined.to_ts_string(), "Rs.Option<Rs.String>");
+    }
+
+    #[test]
+    fn generics_ok() {
+        let export = <Vec<String>>::export();
+        let inlined = <Vec<String>>::inline();
+
+        let expected_zod_export =
+            "export const Vec = z.lazy(() => (T: z.ZodTypeAny) => z.array(T));";
+
+        let expected_ts_export = "export type Vec<T> = T[];";
+
+        assert_eq!(
+            export.as_ref().unwrap().to_zod_string(),
+            expected_zod_export
+        );
+
+        assert_eq!(export.as_ref().unwrap().to_ts_string(), expected_ts_export);
+
+        assert_eq!(inlined.to_zod_string(), "Rs.Vec(Rs.String)");
+        assert_eq!(inlined.to_ts_string(), "Rs.Vec<Rs.String>");
     }
 
     #[test]

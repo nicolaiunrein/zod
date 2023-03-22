@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Delimited, Docs, Formatter, Path, Schema};
+use super::{Delimited, Docs, Formatter, GenericArgument, Path, Schema};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
@@ -26,7 +26,21 @@ impl Formatter for Export {
         f.write_str("export const ")?;
         f.write_str(self.path.name())?;
         f.write_str(" = z.lazy(() => ")?;
-        self.schema.fmt_zod(f)?;
+
+        match self.schema {
+            Schema::Raw { args, zod, .. } => {
+                if !args.is_empty() {
+                    f.write_str("(")?;
+                    args.iter()
+                        .filter(|arg| !matches!(arg, GenericArgument::Assign { .. }))
+                        .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
+                    f.write_str(") => ")?;
+                }
+                f.write_str(zod)?;
+            }
+            Schema::Typed(typed) => typed.fmt_zod(f)?,
+        }
+
         f.write_str(");")?;
         Ok(())
     }
@@ -50,10 +64,19 @@ impl Formatter for Export {
                 f.write_str(ts)?;
                 f.write_str(";")?;
             }
-            Schema::Object(_) => {
-                f.write_str("interface ")?;
-                f.write_str(self.path.name())?;
-                self.schema.fmt_ts(f)?;
+
+            Schema::Typed(typed) => {
+                if typed.is_interface() {
+                    f.write_str("interface ")?;
+                    f.write_str(self.path.name())?;
+                    f.write_str(" ")?;
+                    typed.fmt_ts(f)?;
+                } else {
+                    f.write_str("const ")?;
+                    f.write_str(self.path.name())?;
+                    f.write_str(" ")?;
+                    typed.fmt_ts(f)?;
+                }
             }
         }
         Ok(())

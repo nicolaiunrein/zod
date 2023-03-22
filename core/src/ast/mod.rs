@@ -36,7 +36,6 @@ mod export;
 mod fields;
 mod formatter;
 mod generics;
-mod node;
 mod path;
 mod schema;
 mod utils;
@@ -46,10 +45,63 @@ pub use export::*;
 pub use fields::*;
 pub use formatter::*;
 pub use generics::*;
-pub use node::*;
 pub use path::*;
 pub use schema::*;
 pub use utils::*;
+
+use crate::Register;
+
+pub trait Node: Register {
+    const DEFINITION: Definition;
+
+    fn export() -> Option<Export> {
+        Self::DEFINITION.export()
+    }
+
+    fn inline() -> InlineSchema {
+        Self::DEFINITION.inline()
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Definition {
+    Exported {
+        export: Export,
+        args: &'static [InlineSchema],
+    },
+
+    Inlined(InlineSchema),
+}
+
+impl Definition {
+    pub const fn exported(export: Export, args: &'static [InlineSchema]) -> Self {
+        Self::Exported { export, args }
+    }
+
+    pub const fn inlined<T: Node>() -> Self {
+        Self::Inlined(T::DEFINITION.inline())
+    }
+
+    pub const fn partially_inlined(schema: InlineSchema) -> Self {
+        Self::Inlined(schema)
+    }
+
+    pub const fn export(self) -> Option<Export> {
+        match self {
+            Definition::Exported { export, .. } => Some(export),
+            Definition::Inlined(_) => None,
+        }
+    }
+    pub const fn inline(self) -> InlineSchema {
+        match self {
+            Definition::Exported { args, export } => InlineSchema::Ref {
+                path: export.path,
+                args,
+            },
+            Definition::Inlined(inline) => inline,
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -81,7 +133,10 @@ mod test {
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyGeneric"),
-                schema: Schema::Object(&[NamedField::new::<T1>("t1"), NamedField::new::<T2>("t2")]),
+                schema: Schema::Typed(Typed::Object(&[
+                    NamedField::new::<T1>("t1"),
+                    NamedField::new::<T2>("t2"),
+                ])),
             },
             &[T1::DEFINITION.inline(), T2::DEFINITION.inline()],
         );
@@ -105,7 +160,9 @@ mod test {
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyType"),
-                schema: Schema::Object(&[NamedField::new::<Partial<Usize>>("my_type_inner")]),
+                schema: Schema::Typed(Typed::Object(&[NamedField::new::<Partial<Usize>>(
+                    "my_type_inner",
+                )])),
             },
             &[],
         );
@@ -126,9 +183,9 @@ mod test {
 
     impl<T: Node> Node for Partial<T> {
         const DEFINITION: Definition =
-            Definition::partially_inlined(InlineSchema::Object(&[NamedField::new::<
-                MyGeneric<String, T>,
-            >("partial_inner")]));
+            Definition::partially_inlined(InlineSchema::Typed(Typed::Object(&[
+                NamedField::new::<MyGeneric<String, T>>("partial_inner"),
+            ])));
     }
 
     impl<T: Node> Register for Partial<T> {
