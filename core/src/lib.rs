@@ -15,6 +15,7 @@
 #![deny(unsafe_code)]
 
 pub mod ast;
+pub mod num;
 
 #[cfg(feature = "rpc")]
 pub mod rpc;

@@ -329,6 +329,8 @@ mod test {
     #![allow(dead_code)]
     use std::collections::HashSet;
 
+    use crate::num::Usize;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -384,7 +386,7 @@ mod test {
             Some(Export {
                 docs: None,
                 path: Self::PATH,
-                schema: Schema::Object(vec![NamedField::new::<Partial<usize>>("my_type_inner")]),
+                schema: Schema::Object(vec![NamedField::new::<Partial<Usize>>("my_type_inner")]),
             })
         }
 
@@ -401,7 +403,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register!(ctx, Partial<usize>);
+            crate::register!(ctx, Partial<Usize>);
         }
     }
 
@@ -449,12 +451,12 @@ mod test {
         let deps = <MyType>::dependencies().resolve();
         let mut expected = HashSet::new();
         expected.insert(MyType::export().unwrap());
-        expected.insert(<MyGeneric<String, usize>>::export().unwrap());
-        expected.insert(<usize>::export().unwrap());
+        expected.insert(<MyGeneric<String, Usize>>::export().unwrap());
+        expected.insert(<Usize>::export().unwrap());
         expected.insert(<String>::export().unwrap());
 
         // partial does not export anything
-        assert!(<Partial<usize>>::export().is_none());
+        assert!(<Partial<crate::num::Usize>>::export().is_none());
 
         assert_eq!(deps, expected);
     }

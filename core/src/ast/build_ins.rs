@@ -1,3 +1,4 @@
+use crate::num::Usize;
 use crate::Namespace;
 
 use super::{Export, GenericArgument, InlineSchema, Node, Path, Register, Schema};
@@ -221,24 +222,41 @@ impl_primitive!({
 });
 
 impl_primitive!({
-    ty: u64,
+    ty: crate::num::U64,
     name: "U64",
     ts: "number",
-    zod: "z.number().finite().int().nonnegative().lte(18446744073709551615)"
+    zod: "z.bigint().nonnegative().lt(2n ** 64n)"
 });
 
 impl_primitive!({
-    ty: u128,
+    ty: crate::num::U128,
     name: "U128",
     ts: "number",
-    zod: "z.number().finite().int().nonnegative().lte(340282366920938463463374607431768211455)"
+    zod: "z.bigint().nonnegative().lt(2n ** 128n)"
 });
 
+#[cfg(target_pointer_width = "64")]
 impl_primitive!({
-    ty: usize,
+    ty: crate::num::Usize,
     name: "Usize",
-    ts: "number",
-    zod: "z.number().finite().int().nonnegative()"
+    ts: "BigInt",
+    zod: "z.bigint().nonnegative().lt(2n ** 64n)"
+});
+
+#[cfg(target_pointer_width = "32")]
+impl_primitive!({
+    ty: crate::num::Usize,
+    name: "Usize",
+    ts: "BigInt",
+    zod: "z.bigint().nonnegative().lt(2n ** 32n)"
+});
+
+#[cfg(target_pointer_width = "16")]
+impl_primitive!({
+    ty: crate::num::Usize,
+    name: "Usize",
+    ts: "BigInt",
+    zod: "z.bigint().nonnegative().lt(2n ** 16n)"
 });
 
 impl_primitive!({
@@ -263,24 +281,41 @@ impl_primitive!({
 });
 
 impl_primitive!({
-    ty: i64,
+    ty: crate::num::I64,
     name: "I64",
     ts: "number",
-    zod: "z.number().finite().int().lte(9223372036854775807).gte(-9223372036854775808)"
+    zod: "z.bigint().gte(-(2n ** 63n)).lt(2n ** 63n)"
 });
 
 impl_primitive!({
-    ty: i128,
+    ty: crate::num::I128,
     name: "I128",
     ts: "number",
-    zod: "z.number().finite().int().lte(170141183460469231731687303715884105727).gte(-170141183460469231731687303715884105728)"
+    zod: "z.bigint().gte(-(2n ** 127n)).lt(2n ** 127n)"
 });
 
+#[cfg(target_pointer_width = "64")]
 impl_primitive!({
-    ty: isize,
+    ty: crate::num::Isize,
     name: "Isize",
     ts: "number",
-    zod: "z.number().finite().int()"
+    zod: "z.bigint().gte(-(2n ** 63n)).lt(2n ** 63n)"
+});
+
+#[cfg(target_pointer_width = "32")]
+impl_primitive!({
+    ty: crate::num::Isize,
+    name: "Isize",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 31n)).lt(2n ** 31n)"
+});
+
+#[cfg(target_pointer_width = "16")]
+impl_primitive!({
+    ty: crate::num::Isize,
+    name: "Isize",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 15n)).lt(2n ** 15n)"
 });
 
 impl_primitive!({
@@ -437,7 +472,7 @@ impl<const N: usize, T: Node> Node for [T; N] {
                     GenericArgument::Type("T"),
                     GenericArgument::Const {
                         name: "N",
-                        path: usize::PATH,
+                        path: Usize::PATH,
                     },
                     GenericArgument::Assign {
                         name: "TObj",
@@ -491,6 +526,7 @@ impl_primitive!({
 #[cfg(test)]
 mod test {
     use crate::ast::Formatter;
+    use crate::num::Usize;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -547,7 +583,7 @@ mod test {
     }
     #[test]
     fn tuple_ok() {
-        let export = <(String, usize)>::export();
+        let export = <(String, Usize)>::export();
 
         assert_eq!(export.as_ref().unwrap().to_zod_string(), "export const Tuple2 = z.lazy(() => (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.tuple([T1, T2]));");
         assert_eq!(
@@ -578,6 +614,21 @@ mod test {
         assert_eq!(
             export.as_ref().unwrap().to_ts_string(),
             "export type Vec<T> = T[];"
+        );
+    }
+
+    #[test]
+    fn bigints_ok() {
+        let json = serde_json::to_value(&Usize(123123)).unwrap();
+        assert_eq!(json, serde_json::json!("123123"));
+
+        let num: Usize = serde_json::from_value(json).unwrap();
+        assert_eq!(num, 123123);
+
+        let export = Usize::export().unwrap();
+        assert_eq!(
+            export.to_zod_string(),
+            "export const Usize = z.lazy(() => z.bigint().nonnegative().lt(2n ** 64n));"
         );
     }
 }
