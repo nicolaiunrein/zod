@@ -31,6 +31,7 @@
 #[cfg(feature = "rpc")]
 pub mod rpc;
 
+mod docs;
 mod export;
 mod fields;
 mod formatter;
@@ -40,6 +41,7 @@ mod path;
 mod schema;
 mod utils;
 
+pub use docs::*;
 pub use export::*;
 pub use fields::*;
 pub use formatter::*;

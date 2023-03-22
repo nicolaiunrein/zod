@@ -6,7 +6,7 @@ use super::macros::impl_primitive;
 use super::macros::impl_tuple;
 use super::macros::impl_wrapper;
 
-use crate::ast::{Export, GenericArgument, InlineSchema, Node, Path, Schema};
+use crate::ast::{Export, GenericArgument, Node, Path, Schema};
 use crate::Register;
 
 const ARRAY_SCHEMA: &str = r#"

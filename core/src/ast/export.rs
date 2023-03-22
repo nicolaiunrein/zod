@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
-use super::{Delimited, Formatter, Path, Schema};
+use super::{Delimited, Docs, Formatter, Path, Schema};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
-    pub docs: Option<&'static str>,
+    pub docs: Option<Docs>,
     pub path: Path,
     pub schema: Schema,
 }
@@ -21,7 +21,7 @@ impl Display for Export {
 impl Formatter for Export {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(docs) = self.docs {
-            f.write_str(docs)?;
+            docs.fmt_zod(f)?;
         }
         f.write_str("export const ")?;
         f.write_str(self.path.name())?;
@@ -33,7 +33,7 @@ impl Formatter for Export {
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(docs) = self.docs {
-            f.write_str(docs)?;
+            docs.fmt_ts(f)?;
         }
 
         f.write_str("export ")?;

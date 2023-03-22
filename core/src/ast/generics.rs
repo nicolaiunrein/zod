@@ -2,11 +2,16 @@ use super::{Formatter, InlineSchema};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GenericArgument {
+    /// Example: the `T` in `Vec<T>`
     Type(&'static str),
+
+    /// Example: the `N: Rs.Usize` in `Array<N: Rs.Usize>`
     Const {
         name: &'static str,
         schema: InlineSchema,
     },
+
+    /// Example: the `Def = [T, ...T[]]` in `Array<T, N: Rs.Usize, Def = [T, ..T[]]>`
     Assign {
         name: &'static str,
         value: &'static str,
