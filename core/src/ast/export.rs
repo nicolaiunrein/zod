@@ -38,7 +38,10 @@ impl Formatter for Export {
                 }
                 f.write_str(zod)?;
             }
-            ExportSchema::Typed(typed) => typed.fmt_zod(f)?,
+            ExportSchema::Object(inner) => inner.fmt_zod(f)?,
+            ExportSchema::Tuple(inner) => inner.fmt_zod(f)?,
+            ExportSchema::Union(inner) => inner.fmt_zod(f)?,
+            ExportSchema::DiscriminatedUnion(inner) => inner.fmt_zod(f)?,
         }
 
         f.write_str(");")?;
@@ -51,6 +54,16 @@ impl Formatter for Export {
         }
 
         f.write_str("export ")?;
+
+        let mut fmt_type = |inner: &dyn Formatter| {
+            f.write_str("type ")?;
+            f.write_str(self.path.name())?;
+            f.write_str(" = ")?;
+            inner.fmt_ts(f)?;
+            f.write_str(";")?;
+            std::fmt::Result::Ok(())
+        };
+
         match self.schema {
             ExportSchema::Raw { args, ts, .. } => {
                 f.write_str("type ")?;
@@ -64,20 +77,20 @@ impl Formatter for Export {
                 f.write_str(ts)?;
                 f.write_str(";")?;
             }
-
-            ExportSchema::Typed(typed) => {
-                if typed.is_interface() {
-                    f.write_str("interface ")?;
-                    f.write_str(self.path.name())?;
-                    f.write_str(" ")?;
-                    typed.fmt_ts(f)?;
-                } else {
-                    f.write_str("type ")?;
-                    f.write_str(self.path.name())?;
-                    f.write_str(" = ")?;
-                    typed.fmt_ts(f)?;
-                    f.write_str(";")?;
-                }
+            ExportSchema::Object(inner) => {
+                f.write_str("interface ")?;
+                f.write_str(self.path.name())?;
+                f.write_str(" ")?;
+                inner.fmt_ts(f)?;
+            }
+            ExportSchema::Tuple(inner) => {
+                fmt_type(&inner)?;
+            }
+            ExportSchema::Union(inner) => {
+                fmt_type(&inner)?;
+            }
+            ExportSchema::DiscriminatedUnion(inner) => {
+                fmt_type(&inner)?;
             }
         }
         Ok(())
@@ -86,7 +99,7 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, Node, ObjectSchema, TupleSchema, Typed};
+    use crate::ast::{NamedField, Node, ObjectSchema, TupleSchema};
     use crate::Namespace;
 
     use super::*;
@@ -101,15 +114,15 @@ mod test {
 
     #[test]
     fn object_ok() {
-        const OBJECT: Typed = Typed::Object(ObjectSchema::new(&[
+        const OBJECT: ObjectSchema = ObjectSchema::new(&[
             NamedField::new::<String>("a"),
             NamedField::new::<crate::types::Usize>("b"),
-        ]));
+        ]);
 
         const EXPORT_OBJECT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("test"),
-            schema: ExportSchema::Typed(OBJECT),
+            schema: ExportSchema::Object(OBJECT),
         };
 
         assert_eq!(
@@ -127,15 +140,15 @@ mod test {
 
     #[test]
     fn tuple_ok() {
-        const TUPLE: Typed = Typed::Tuple(TupleSchema::new(&[
+        const TUPLE: TupleSchema = TupleSchema::new(&[
             String::DEFINITION.inline(),
             crate::types::Usize::DEFINITION.inline(),
-        ]));
+        ]);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,
             path: Path::new::<Ns>("test"),
-            schema: ExportSchema::Typed(TUPLE),
+            schema: ExportSchema::Tuple(TUPLE),
         };
 
         assert_eq!(

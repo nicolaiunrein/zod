@@ -10,46 +10,7 @@ pub use tuple::*;
 
 use std::fmt::Display;
 
-use super::{Delimited, Formatter, GenericArgument, NamedField, Path};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Typed {
-    Object(ObjectSchema),
-    Tuple(TupleSchema),
-    Union(UnionSchema),
-    DiscriminatedUnion(DiscriminatedUnionSchema),
-}
-
-impl Typed {
-    pub fn is_interface(&self) -> bool {
-        match self {
-            Typed::Object(_) => true,
-            Typed::Tuple(_) => false,
-            Typed::Union(_) => false,
-            Typed::DiscriminatedUnion { .. } => false,
-        }
-    }
-}
-
-impl Formatter for Typed {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Typed::Object(inner) => inner.fmt_zod(f),
-            Typed::Tuple(inner) => inner.fmt_zod(f),
-            Typed::Union(inner) => inner.fmt_zod(f),
-            Typed::DiscriminatedUnion(inner) => inner.fmt_zod(f),
-        }
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Typed::Object(inner) => inner.fmt_ts(f),
-            Typed::Tuple(inner) => inner.fmt_ts(f),
-            Typed::Union(inner) => inner.fmt_ts(f),
-            Typed::DiscriminatedUnion(inner) => inner.fmt_ts(f),
-        }
-    }
-}
+use super::{Delimited, Formatter, GenericArgument, Path};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ExportSchema {
@@ -58,7 +19,10 @@ pub enum ExportSchema {
         ts: &'static str,
         zod: &'static str,
     },
-    Typed(Typed),
+    Object(ObjectSchema),
+    Tuple(TupleSchema),
+    Union(UnionSchema),
+    DiscriminatedUnion(DiscriminatedUnionSchema),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -67,14 +31,17 @@ pub enum InlineSchema {
         path: Path,
         args: &'static [InlineSchema],
     },
-    Typed(Typed),
+    Object(ObjectSchema),
+    Tuple(TupleSchema),
+    Union(UnionSchema),
+    DiscriminatedUnion(DiscriminatedUnionSchema),
 }
 
 impl InlineSchema {
     pub const fn path(&self) -> Option<Path> {
         match self {
             InlineSchema::Ref { path, .. } => Some(*path),
-            InlineSchema::Typed(_) => None,
+            _ => None,
         }
     }
 }
@@ -91,9 +58,10 @@ impl Formatter for InlineSchema {
                     f.write_str(")")?;
                 }
             }
-            InlineSchema::Typed(typed) => {
-                typed.fmt_zod(f)?;
-            }
+            InlineSchema::Object(typed) => typed.fmt_zod(f)?,
+            InlineSchema::Tuple(typed) => typed.fmt_zod(f)?,
+            InlineSchema::Union(typed) => typed.fmt_zod(f)?,
+            InlineSchema::DiscriminatedUnion(typed) => typed.fmt_zod(f)?,
         }
         Ok(())
     }
@@ -108,7 +76,10 @@ impl Formatter for InlineSchema {
                     f.write_str(">")?;
                 }
             }
-            InlineSchema::Typed(typed) => typed.fmt_ts(f)?,
+            InlineSchema::Object(typed) => typed.fmt_ts(f)?,
+            InlineSchema::Tuple(typed) => typed.fmt_ts(f)?,
+            InlineSchema::Union(typed) => typed.fmt_ts(f)?,
+            InlineSchema::DiscriminatedUnion(typed) => typed.fmt_ts(f)?,
         }
         Ok(())
     }
@@ -116,7 +87,7 @@ impl Formatter for InlineSchema {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::Node;
+    use crate::ast::{NamedField, Node};
 
     use super::*;
     use pretty_assertions::assert_eq;
