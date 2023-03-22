@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::{Delimited, Formatter, Path, Schema};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
     pub docs: Option<&'static str>,
     pub path: Path,

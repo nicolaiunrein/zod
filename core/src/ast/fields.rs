@@ -7,10 +7,10 @@ pub struct NamedField {
 }
 
 impl NamedField {
-    pub fn new<T: Node>(name: &'static str) -> Self {
+    pub const fn new<T: Node>(name: &'static str) -> Self {
         Self {
             name,
-            value: T::inline(),
+            value: T::DEFINITION.inline,
         }
     }
 }

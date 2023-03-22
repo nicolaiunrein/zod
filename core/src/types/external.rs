@@ -1,3 +1,4 @@
+use crate::ast::Definition;
 use crate::types::Usize;
 
 use super::macros::impl_generic;
@@ -208,9 +209,10 @@ impl_generic!({
 });
 
 impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
-    fn inline() -> InlineSchema {
-        T::inline()
-    }
+    const DEFINITION: Definition = Definition {
+        export: None,
+        inline: T::DEFINITION.inline,
+    };
 }
 
 impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
@@ -223,18 +225,17 @@ impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
 }
 
 impl<const N: usize, T: Node> Node for [T; N] {
-    fn export() -> Option<Export> {
-        Some(Export {
+    const DEFINITION: Definition = Definition {
+        export: Some(Export {
             docs: None,
             path: Path::new::<crate::types::Rs>("Array"),
             schema: Schema::Raw {
                 args: &[
                     GenericArgument::Type("T"),
-                    // todo uncomment
-                    // GenericArgument::Const {
-                    // name: "N",
-                    // schema: Usize::inline(),
-                    // },
+                    GenericArgument::Const {
+                        name: "N",
+                        schema: Usize::DEFINITION.inline,
+                    },
                     GenericArgument::Assign {
                         name: "TObj",
                         value: "[T, ...T[]]",
@@ -243,12 +244,10 @@ impl<const N: usize, T: Node> Node for [T; N] {
                 zod: "z.array(T).length(N)",
                 ts: ARRAY_SCHEMA,
             },
-        })
-    }
+        }),
 
-    fn inline() -> InlineSchema {
-        InlineSchema::Ref(Self::export().unwrap().path)
-    }
+        inline: InlineSchema::Ref(Path::new::<crate::types::Rs>("Array")),
+    };
 }
 
 impl<const N: usize, T: Node> Register for [T; N] {

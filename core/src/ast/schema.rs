@@ -2,22 +2,26 @@ use std::fmt::Display;
 
 use super::{Delimited, Formatter, GenericArgument, NamedField, Path};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Schema {
     Raw {
         args: &'static [GenericArgument],
         ts: &'static str,
         zod: &'static str,
     },
-    Object(Vec<NamedField>),
+    Object(&'static [NamedField]),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum InlineSchema {
     Ref(Path),
-    Generic { path: Path, args: Vec<InlineSchema> },
-    Object(Vec<NamedField>),
+    Generic {
+        path: Path,
+        args: &'static [InlineSchema],
+    },
+    Object(&'static [NamedField]),
 }
+
 impl InlineSchema {
     pub const fn path(&self) -> Option<Path> {
         match self {

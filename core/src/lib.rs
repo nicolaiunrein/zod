@@ -49,7 +49,7 @@ impl DependencyMap {
         T: ast::Node + 'static,
     {
         let id = TypeId::of::<T>();
-        self.0.insert(id, T::export()).is_none()
+        self.0.insert(id, T::DEFINITION.export).is_none()
     }
 
     pub fn resolve(self) -> HashSet<ast::Export> {
