@@ -1,7 +1,12 @@
-use crate::num::Usize;
-use crate::Namespace;
+use crate::types::Usize;
 
-use super::{Export, GenericArgument, InlineSchema, Node, Path, Register, Schema};
+use super::impl_generic;
+use super::impl_primitive;
+use super::impl_tuple;
+use super::impl_wrapper;
+
+use crate::ast::{Export, GenericArgument, InlineSchema, Node, Path, Schema};
+use crate::Register;
 
 const ARRAY_SCHEMA: &str = r#"
 Pick<
@@ -13,165 +18,6 @@ Pick<
   [Symbol.iterator]: () => IterableIterator<T>;
 };
 "#;
-
-pub struct Rs;
-
-impl Namespace for Rs {
-    const NAME: &'static str = "Rs";
-    const DOCS: Option<&'static str> = Some("Rust types");
-}
-
-macro_rules! join {
-    ($sep: literal, $first: ident) => {
-        stringify!($first)
-    };
-
-    ($sep: literal, $first: ident, $($rest: ident),+) => {
-        concat!(stringify!($first), $sep, join!($sep, $($rest),+))
-    };
-}
-
-macro_rules! impl_primitive {
-    ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
-        impl Node for $T {
-            const PATH: Path = Path {
-                ns: Rs::NAME,
-                name: $name,
-            };
-
-            fn export() -> Option<Export> {
-                Some(Export {
-                    docs: None,
-                    path: Self::PATH,
-                    schema: Schema::Raw {
-                        args: &[],
-                        zod: $zod,
-                        ts: $ts,
-                    },
-                })
-            }
-
-            fn inline() -> InlineSchema {
-                InlineSchema::Ref(Self::PATH)
-            }
-        }
-
-        impl Register for $T {
-            fn register(ctx: &mut crate::DependencyMap)
-            where
-                Self: 'static,
-            {
-                crate::register!(ctx);
-            }
-        }
-    };
-}
-
-macro_rules! tuple {
-    ( $N: literal, $($i:ident),* ) => {
-        Export {
-            docs: None,
-            path: Self::PATH,
-            schema: Schema::Raw {
-                args: &[$(GenericArgument::Type(stringify!($i))),*],
-                zod: concat!("z.tuple([", join!(", ", $($i),*),"])"),
-                ts: concat!("[", join!(", ", $($i),*) ,"]")
-            }
-        }
-    };
-}
-
-macro_rules! impl_tuple {
-( $N: literal, $($i:ident),* ) => {
-        impl<$($i: Node),*> Node for ($($i,)*) {
-            const PATH: Path = Path {
-                ns: Rs::NAME,
-                name: concat!("Tuple", $N),
-            };
-
-            fn export() -> Option<Export> {
-                Some(tuple!($N, $($i),*))
-            }
-
-            fn inline() -> InlineSchema {
-                InlineSchema::Generic {
-                    path: Self::PATH,
-                    args: vec![$(<$i>::inline()),*],
-                }
-            }
-        }
-
-        impl<$($i: Node),*> Register for ($($i,)*) {
-            fn register(ctx: &mut crate::DependencyMap)
-            where
-                Self: 'static,
-            {
-                crate::register!(ctx, $($i),*);
-
-            }
-        }
-    }
-}
-
-macro_rules! impl_wrapper {
-    ($name: literal, $type: ty) => {
-        impl<T: Node> Node for $type {
-            const PATH: Path = Path {
-                ns: Rs::NAME,
-                name: $name,
-            };
-
-            fn inline() -> InlineSchema {
-                T::inline()
-            }
-        }
-
-        impl<T: Node> Register for $type {
-            fn register(ctx: &mut crate::DependencyMap)
-            where
-                Self: 'static,
-            {
-                crate::register!(ctx, T);
-            }
-        }
-    };
-}
-
-macro_rules! impl_generic {
-    ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
-        impl<$($generics: Node),*> Node for $ty {
-            const PATH: Path = Path {
-                ns: Rs::NAME,
-                name: $name
-            };
-
-            fn export() -> Option<Export> {
-                Some(Export {
-                    docs: None,
-                    path: Self::PATH,
-                    schema: Schema::Raw {
-                        args: &[$(GenericArgument::Type(stringify!($generics))),+],
-                        zod: $zod,
-                        ts: $ts
-                    },
-                })
-            }
-
-            fn inline() -> InlineSchema {
-                InlineSchema::Ref(Self::PATH)
-            }
-        }
-
-        impl<$($generics: Node),*> Register for $ty {
-            fn register(ctx: &mut crate::DependencyMap)
-            where
-                Self: 'static,
-            {
-                crate::register!(ctx, $($generics),*);
-            }
-        }
-    }
-}
 
 impl_tuple!(1, T1);
 impl_tuple!(2, T1, T2);
@@ -222,44 +68,6 @@ impl_primitive!({
 });
 
 impl_primitive!({
-    ty: crate::num::U64,
-    name: "U64",
-    ts: "number",
-    zod: "z.bigint().nonnegative().lt(2n ** 64n)"
-});
-
-impl_primitive!({
-    ty: crate::num::U128,
-    name: "U128",
-    ts: "number",
-    zod: "z.bigint().nonnegative().lt(2n ** 128n)"
-});
-
-#[cfg(target_pointer_width = "64")]
-impl_primitive!({
-    ty: crate::num::Usize,
-    name: "Usize",
-    ts: "BigInt",
-    zod: "z.bigint().nonnegative().lt(2n ** 64n)"
-});
-
-#[cfg(target_pointer_width = "32")]
-impl_primitive!({
-    ty: crate::num::Usize,
-    name: "Usize",
-    ts: "BigInt",
-    zod: "z.bigint().nonnegative().lt(2n ** 32n)"
-});
-
-#[cfg(target_pointer_width = "16")]
-impl_primitive!({
-    ty: crate::num::Usize,
-    name: "Usize",
-    ts: "BigInt",
-    zod: "z.bigint().nonnegative().lt(2n ** 16n)"
-});
-
-impl_primitive!({
     ty: i8,
     name: "I8",
     ts: "number",
@@ -278,44 +86,6 @@ impl_primitive!({
     name: "I32",
     ts: "number",
     zod: "z.number().finite().int().lte(2147483647).gte(-2147483648)"
-});
-
-impl_primitive!({
-    ty: crate::num::I64,
-    name: "I64",
-    ts: "number",
-    zod: "z.bigint().gte(-(2n ** 63n)).lt(2n ** 63n)"
-});
-
-impl_primitive!({
-    ty: crate::num::I128,
-    name: "I128",
-    ts: "number",
-    zod: "z.bigint().gte(-(2n ** 127n)).lt(2n ** 127n)"
-});
-
-#[cfg(target_pointer_width = "64")]
-impl_primitive!({
-    ty: crate::num::Isize,
-    name: "Isize",
-    ts: "number",
-    zod: "z.bigint().gte(-(2n ** 63n)).lt(2n ** 63n)"
-});
-
-#[cfg(target_pointer_width = "32")]
-impl_primitive!({
-    ty: crate::num::Isize,
-    name: "Isize",
-    ts: "number",
-    zod: "z.bigint().gte(-(2n ** 31n)).lt(2n ** 31n)"
-});
-
-#[cfg(target_pointer_width = "16")]
-impl_primitive!({
-    ty: crate::num::Isize,
-    name: "Isize",
-    ts: "number",
-    zod: "z.bigint().gte(-(2n ** 15n)).lt(2n ** 15n)"
 });
 
 impl_primitive!({
@@ -439,7 +209,7 @@ impl_generic!({
 
 impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
     const PATH: Path = Path {
-        ns: Rs::NAME,
+        ns: <crate::types::Rs as crate::Namespace>::NAME,
         name: "Cow",
     };
 
@@ -526,7 +296,7 @@ impl_primitive!({
 #[cfg(test)]
 mod test {
     use crate::ast::Formatter;
-    use crate::num::Usize;
+    use crate::types::join;
 
     use super::*;
     use pretty_assertions::assert_eq;

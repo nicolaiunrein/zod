@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::{ast::rpc, rpc::Request, rpc::ResponseSender, Namespace, Register};
 
-use crate::ast::build_ins::Rs;
+use crate::types::Rs;
 
 pub type StreamHandle = tokio::task::JoinHandle<()>;
 

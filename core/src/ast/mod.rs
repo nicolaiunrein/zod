@@ -28,7 +28,6 @@
 //!
 //!
 
-pub(crate) mod build_ins;
 mod formatter;
 
 #[cfg(feature = "rpc")]
@@ -53,17 +52,14 @@ pub trait Node: Register {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
-    docs: Option<&'static str>,
-    path: Path,
-    schema: Schema,
+    pub docs: Option<&'static str>,
+    pub path: Path,
+    pub schema: Schema,
 }
 
 impl Export {
     pub const fn ns(&self) -> &'static str {
         self.path.ns
-    }
-    pub fn schema(&self) -> &Schema {
-        &self.schema
     }
 }
 
@@ -123,8 +119,8 @@ impl NamedField {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Path {
-    ns: &'static str,
-    name: &'static str,
+    pub ns: &'static str,
+    pub name: &'static str,
 }
 
 impl Display for Path {
@@ -329,7 +325,7 @@ mod test {
     #![allow(dead_code)]
     use std::collections::HashSet;
 
-    use crate::num::Usize;
+    use crate::types::Usize;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -456,7 +452,7 @@ mod test {
         expected.insert(<String>::export().unwrap());
 
         // partial does not export anything
-        assert!(<Partial<crate::num::Usize>>::export().is_none());
+        assert!(<Partial<crate::types::Usize>>::export().is_none());
 
         assert_eq!(deps, expected);
     }

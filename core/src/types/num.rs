@@ -2,6 +2,8 @@
 //! This module adds wrapper types for integers which are too big to be numbers in
 //! javascript/typescript
 
+use super::impl_primitive;
+
 macro_rules! impl_conversion {
     ($ty: ty, $name: ident) => {
         #[derive(
@@ -94,6 +96,82 @@ mod string {
             .map_err(de::Error::custom)
     }
 }
+
+impl_primitive!({
+    ty: crate::types::U64,
+    name: "U64",
+    ts: "number",
+    zod: "z.bigint().nonnegative().lt(2n ** 64n)"
+});
+
+impl_primitive!({
+    ty: crate::types::U128,
+    name: "U128",
+    ts: "number",
+    zod: "z.bigint().nonnegative().lt(2n ** 128n)"
+});
+
+#[cfg(target_pointer_width = "64")]
+impl_primitive!({
+    ty: crate::types::Usize,
+    name: "Usize",
+    ts: "BigInt",
+    zod: "z.bigint().nonnegative().lt(2n ** 64n)"
+});
+
+#[cfg(target_pointer_width = "32")]
+impl_primitive!({
+    ty: crate::types::Usize,
+    name: "Usize",
+    ts: "BigInt",
+    zod: "z.bigint().nonnegative().lt(2n ** 32n)"
+});
+
+#[cfg(target_pointer_width = "16")]
+impl_primitive!({
+    ty: crate::types::Usize,
+    name: "Usize",
+    ts: "BigInt",
+    zod: "z.bigint().nonnegative().lt(2n ** 16n)"
+});
+
+impl_primitive!({
+    ty: crate::types::I64,
+    name: "I64",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 63n)).lt(2n ** 63n)"
+});
+
+impl_primitive!({
+    ty: crate::types::I128,
+    name: "I128",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 127n)).lt(2n ** 127n)"
+});
+
+#[cfg(target_pointer_width = "64")]
+impl_primitive!({
+    ty: crate::types::Isize,
+    name: "Isize",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 63n)).lt(2n ** 63n)"
+});
+
+#[cfg(target_pointer_width = "32")]
+impl_primitive!({
+    ty: crate::types::Isize,
+    name: "Isize",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 31n)).lt(2n ** 31n)"
+});
+
+#[cfg(target_pointer_width = "16")]
+impl_primitive!({
+    ty: crate::types::Isize,
+    name: "Isize",
+    ts: "number",
+    zod: "z.bigint().gte(-(2n ** 15n)).lt(2n ** 15n)"
+});
 
 #[cfg(test)]
 mod test {
