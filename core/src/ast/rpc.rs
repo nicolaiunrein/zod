@@ -19,7 +19,7 @@ impl RpcArgument {
     pub fn new<T: crate::ast::Node>(name: &'static str) -> Self {
         Self {
             name,
-            schema: <T>::DEFINITION.inline,
+            schema: <T>::DEFINITION.inline(),
         }
     }
 }

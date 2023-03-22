@@ -10,7 +10,7 @@ impl NamedField {
     pub const fn new<T: Node>(name: &'static str) -> Self {
         Self {
             name,
-            value: T::DEFINITION.inline,
+            value: T::DEFINITION.inline(),
         }
     }
 }

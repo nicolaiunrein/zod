@@ -11,12 +11,8 @@ macro_rules! join {
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::ast::Node for $T {
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
-                inline: $crate::ast::InlineSchema::Ref {
-                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    args: &[],
-                },
-                export: Some($crate::ast::Export {
+            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::exported(
+                $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: $crate::ast::Schema::Raw {
@@ -24,8 +20,9 @@ macro_rules! impl_primitive {
                         zod: $zod,
                         ts: $ts,
                     },
-                }),
-            };
+                },
+                &[],
+            );
         }
 
         impl $crate::Register for $T {
@@ -57,14 +54,10 @@ macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
         impl<$($i: Node),*> Node for ($($i,)*) {
 
-                const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
-                    export: Some($crate::types::macros::tuple!($N, $($i),*)),
-
-                inline: InlineSchema::Ref {
-                    path: $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N)),
-                    args: &[$(<$i>::DEFINITION.inline),*],
-                }
-                };
+            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::exported(
+                $crate::types::macros::tuple!($N, $($i),*),
+                &[$(<$i>::DEFINITION.inline()),*]
+            );
         }
 
         impl<$($i: Node),*> Register for ($($i,)*) {
@@ -82,10 +75,7 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: Node> Node for $type {
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
-                export: None,
-                inline: T::DEFINITION.inline,
-            };
+            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::inlined::<T>();
         }
 
         impl<T: Node> Register for $type {
@@ -103,8 +93,8 @@ macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: Node),*> Node for $ty {
 
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
-                export: Some(Export {
+            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::exported(
+                Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: Schema::Raw {
@@ -112,13 +102,9 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                }),
-
-                inline: InlineSchema::Ref {
-                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    args: &[]
-                }
-            };
+                },
+                &[]
+                );
         }
 
 

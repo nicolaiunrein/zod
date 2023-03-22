@@ -209,10 +209,7 @@ impl_generic!({
 });
 
 impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
-    const DEFINITION: Definition = Definition {
-        export: None,
-        inline: T::DEFINITION.inline,
-    };
+    const DEFINITION: Definition = Definition::inlined::<T>();
 }
 
 impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
@@ -225,8 +222,8 @@ impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
 }
 
 impl<const N: usize, T: Node> Node for [T; N] {
-    const DEFINITION: Definition = Definition {
-        export: Some(Export {
+    const DEFINITION: Definition = Definition::exported(
+        Export {
             docs: None,
             path: Path::new::<crate::types::Rs>("Array"),
             schema: Schema::Raw {
@@ -234,7 +231,7 @@ impl<const N: usize, T: Node> Node for [T; N] {
                     GenericArgument::Type("T"),
                     GenericArgument::Const {
                         name: "N",
-                        schema: Usize::DEFINITION.inline,
+                        schema: Usize::DEFINITION.inline(),
                     },
                     GenericArgument::Assign {
                         name: "TObj",
@@ -244,13 +241,9 @@ impl<const N: usize, T: Node> Node for [T; N] {
                 zod: "z.array(T).length(N)",
                 ts: ARRAY_SCHEMA,
             },
-        }),
-
-        inline: InlineSchema::Ref {
-            path: Path::new::<crate::types::Rs>("Array"),
-            args: &[],
         },
-    };
+        &[],
+    );
 }
 
 impl<const N: usize, T: Node> Register for [T; N] {
