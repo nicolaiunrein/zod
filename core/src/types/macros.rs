@@ -103,7 +103,7 @@ macro_rules! impl_generic {
                         ts: $ts
                     },
                 },
-                &[]
+                &[$($generics::DEFINITION.inline()),*]
                 );
         }
 

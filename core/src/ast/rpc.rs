@@ -1,22 +1,36 @@
+use std::fmt::Display;
+
 use crate::{ast::*, Register};
 
 pub trait ClientCodegen {
     fn get() -> String;
 }
 
-type RuntimeValue<T> = &'static (dyn Fn() -> T + Sync);
-
 pub trait RpcNamespace: crate::Namespace + Register {
     type Req: serde::de::DeserializeOwned;
 }
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct RpcArgument {
     name: &'static str,
     schema: crate::ast::InlineSchema,
 }
 
+impl Formatter for RpcArgument {
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.schema.fmt_zod(f)
+    }
+
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name)?;
+        f.write_str(": ")?;
+        self.schema.fmt_ts(f)?;
+        Ok(())
+    }
+}
+
 impl RpcArgument {
-    pub fn new<T: crate::ast::Node>(name: &'static str) -> Self {
+    pub const fn new<T: crate::ast::Node>(name: &'static str) -> Self {
         Self {
             name,
             schema: <T>::DEFINITION.inline(),
@@ -24,120 +38,153 @@ impl RpcArgument {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum RpcMember {
-    Method {
-        ns_name: &'static str,
-        name: &'static str,
-        args: RuntimeValue<Vec<RpcArgument>>,
-        res: RuntimeValue<&'static str>,
-    },
-    Stream {
-        ns_name: &'static str,
-        name: &'static str,
-        args: RuntimeValue<Vec<RpcArgument>>,
-        res: RuntimeValue<&'static str>,
-    },
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum RpcRequestKind {
+    Method,
+    Stream,
 }
 
-impl RpcMember {
-    pub fn decl(&self) -> String {
-        match self {
-            RpcMember::Method {
-                name,
-                args,
-                res,
-                ns_name,
-                ..
-            } => {
-                let args = (args)();
-                let res = (res)();
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct RpcRequest {
+    path: Path,
+    args: &'static [RpcArgument],
+    res: InlineSchema,
+    kind: RpcRequestKind,
+}
 
-                let arg_fields = args
-                    .iter()
-                    .map(|arg| format!("{}: {}", arg.name, arg.schema.to_ts_string()))
-                    .collect::<Vec<_>>()
-                    .join(",");
-
-                let phantom_arg_names = create_phantom_arg_names(&args);
-
-                let arg_zod = args
-                    .iter()
-                    .map(|arg| arg.schema.to_zod_string())
-                    .collect::<Vec<_>>()
-                    .join(",");
-
-                format!(
-                    "
-// @ts-ignore
-export async function {name}({arg_fields}): Promise<{res}> {{
-    {phantom_arg_names}
-    z.lazy(() => z.tuple([{arg_zod}])).parse([...arguments]);
-    return request(\"{ns_name}\", \"{name}\", arguments);
-}};"
-                )
-            }
-            RpcMember::Stream {
-                name,
-                args,
-                res,
-                ns_name,
-                ..
-            } => {
-                let args = (args)();
-                let res = (res)();
-
-                let arg_fields = args
-                    .iter()
-                    .map(|arg| format!("{}: {}", arg.name, arg.schema.to_ts_string()))
-                    .collect::<Vec<_>>()
-                    .join(",");
-
-                let phantom_arg_names = create_phantom_arg_names(&args);
-
-                let arg_zod = args
-                    .iter()
-                    .map(|arg| arg.schema.to_zod_string())
-                    .collect::<Vec<_>>()
-                    .join(",");
-
-                format!(
-                    "
-// @ts-ignore
-export function {name}({arg_fields}): Store<{res}> {{
-    {phantom_arg_names}
-    z.lazy(() => z.tuple([{arg_zod}])).parse([...arguments]);
-    return subscribe(\"{ns_name}\", \"{name}\", arguments);
-}};"
-                )
-            }
-        }
-    }
-
-    pub fn ns_name(&self) -> &'static str {
-        match self {
-            RpcMember::Method { ns_name, .. } => ns_name,
-            RpcMember::Stream { ns_name, .. } => ns_name,
-        }
-    }
-    pub fn name(&self) -> &'static str {
-        match self {
-            RpcMember::Method { name, .. } => name,
-            RpcMember::Stream { name, .. } => name,
-        }
+impl RpcRequest {
+    pub fn path(self) -> Path {
+        self.path
     }
 }
 
-fn create_phantom_arg_names(args: &[RpcArgument]) -> String {
-    if args.is_empty() {
-        String::new()
-    } else {
-        let mut out = String::from("// phantom usage\n");
-        for arg in args {
-            out.push_str(arg.name);
-            out.push(';');
-            out.push('\n');
+impl Display for RpcRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ts_args = self
+            .args
+            .iter()
+            .map(|arg| arg.to_ts_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let zod_args = self
+            .args
+            .iter()
+            .map(|arg| arg.to_zod_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let name = self.path.name();
+        let ns = self.path.ns();
+
+        let asyncness = match self.kind {
+            RpcRequestKind::Method => "async ",
+            RpcRequestKind::Stream => "",
+        };
+
+        let res = match self.kind {
+            RpcRequestKind::Method => format!("Promise<{}>", self.res.to_ts_string()),
+            RpcRequestKind::Stream => format!("Store<{}>", self.res.to_ts_string()),
+        };
+
+        let req = match self.kind {
+            RpcRequestKind::Method => "request",
+            RpcRequestKind::Stream => "stream",
+        };
+
+        f.write_str("// @ts-ignore\n")?;
+
+        f.write_fmt(format_args!(
+            "export {asyncness}function {name}({ts_args}): {res} {{\n"
+        ))?;
+
+        f.write_str("    // phantom usage\n")?;
+
+        for arg in self.args {
+            f.write_fmt(format_args!("    {};\n", arg.name))?;
         }
-        out
+
+        f.write_fmt(format_args!(
+            "    z.lazy(() => z.tuple([{zod_args}])).parse([...arguments]);\n"
+        ))?;
+
+        f.write_fmt(format_args!(
+            "    return {req}(\"{ns}\", \"{name}\", arguments);\n"
+        ))?;
+
+        f.write_str("};\n")?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::Namespace;
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn method_ok() {
+        let expected = "\
+// @ts-ignore
+export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
+    // phantom usage
+    name;
+    age;
+    z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([...arguments]);
+    return request(\"Ns\", \"test\", arguments);
+};
+";
+
+        struct Ns;
+        impl Namespace for Ns {
+            const NAME: &'static str = "Ns";
+            const DOCS: Option<&'static str> = None;
+            type UniqueMembers = ();
+        }
+        const REQ: RpcRequest = RpcRequest {
+            path: Path::new::<Ns>("test"),
+            kind: RpcRequestKind::Method,
+            args: &[
+                RpcArgument::new::<String>("name"),
+                RpcArgument::new::<u16>("age"),
+            ],
+            res: <Option<bool>>::DEFINITION.inline(),
+        };
+
+        assert_eq!(REQ.to_string(), expected);
+    }
+
+    #[test]
+    fn stream_ok() {
+        let expected = "\
+// @ts-ignore
+export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
+    // phantom usage
+    name;
+    age;
+    z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([...arguments]);
+    return stream(\"Ns\", \"test\", arguments);
+};
+";
+
+        struct Ns;
+        impl Namespace for Ns {
+            const NAME: &'static str = "Ns";
+            const DOCS: Option<&'static str> = None;
+            type UniqueMembers = ();
+        }
+        const REQ: RpcRequest = RpcRequest {
+            path: Path::new::<Ns>("test"),
+            kind: RpcRequestKind::Stream,
+            args: &[
+                RpcArgument::new::<String>("name"),
+                RpcArgument::new::<u16>("age"),
+            ],
+            res: <Option<bool>>::DEFINITION.inline(),
+        };
+
+        assert_eq!(REQ.to_string(), expected);
     }
 }
