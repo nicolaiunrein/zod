@@ -11,4 +11,5 @@ pub struct Rs;
 impl Namespace for Rs {
     const NAME: &'static str = "Rs";
     const DOCS: Option<&'static str> = Some("Rust types");
+    type UniqueMembers = ();
 }

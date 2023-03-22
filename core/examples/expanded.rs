@@ -1,4 +1,11 @@
 // #![allow(dead_code)]
+//
+
+// impl UniqueMember<crate::types::Rs> {
+// #[allow(non_upper_case_globals)]
+// #[allow(dead_code)]
+// const MyType: () = {};
+// }
 
 // use phf::phf_map;
 // use pretty_assertions::assert_eq;

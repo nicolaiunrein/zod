@@ -74,4 +74,7 @@ macro_rules! register_dependency {
 pub trait Namespace {
     const NAME: &'static str;
     const DOCS: Option<&'static str>;
+
+    #[doc(hidden)]
+    type UniqueMembers;
 }
