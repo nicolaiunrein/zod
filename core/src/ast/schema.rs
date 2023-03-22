@@ -14,7 +14,6 @@ pub enum Schema {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum InlineSchema {
-    Ref(Path),
     Generic {
         path: Path,
         args: &'static [InlineSchema],
@@ -25,7 +24,6 @@ pub enum InlineSchema {
 impl InlineSchema {
     pub const fn path(&self) -> Option<Path> {
         match self {
-            InlineSchema::Ref(path) => Some(*path),
             InlineSchema::Generic { path, .. } => Some(*path),
             InlineSchema::Object(_) => None,
         }
@@ -35,15 +33,14 @@ impl InlineSchema {
 impl Formatter for InlineSchema {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InlineSchema::Ref(path) => {
-                path.fmt(f)?;
-            }
             InlineSchema::Generic { path, args } => {
                 path.fmt(f)?;
-                f.write_str("(")?;
-                args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
+                if !args.is_empty() {
+                    f.write_str("(")?;
+                    args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
 
-                f.write_str(")")?;
+                    f.write_str(")")?;
+                }
             }
             InlineSchema::Object(fields) => {
                 f.write_str("z.object({ ")?;
@@ -59,7 +56,6 @@ impl Formatter for InlineSchema {
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InlineSchema::Ref(path) => path.fmt(f)?,
             InlineSchema::Generic { path, args } => {
                 path.fmt(f)?;
                 if !args.is_empty() {

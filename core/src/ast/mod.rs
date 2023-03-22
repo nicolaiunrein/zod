@@ -110,7 +110,10 @@ mod test {
                 schema: Schema::Object(&[NamedField::new::<Partial<Usize>>("my_type_inner")]),
             }),
 
-            inline: InlineSchema::Ref(Path::new::<Ns>("MyType")),
+            inline: InlineSchema::Generic {
+                path: Path::new::<Ns>("MyType"),
+                args: &[],
+            },
         };
     }
 

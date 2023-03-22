@@ -12,9 +12,10 @@ macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::ast::Node for $T {
             const DEFINITION: $crate::ast::Definition = $crate::ast::Definition {
-                inline: $crate::ast::InlineSchema::Ref(
-                    $crate::ast::Path::new::<$crate::types::Rs>($name),
-                ),
+                inline: $crate::ast::InlineSchema::Generic {
+                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
+                    args: &[],
+                },
                 export: Some($crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
@@ -113,7 +114,10 @@ macro_rules! impl_generic {
                     },
                 }),
 
-                inline: InlineSchema::Ref($crate::ast::Path::new::<$crate::types::Rs>($name))
+                inline: InlineSchema::Generic{
+                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
+                    args: &[]
+                }
             };
         }
 
