@@ -18,6 +18,15 @@ pub enum InlineSchema {
     Generic { path: Path, args: Vec<InlineSchema> },
     Object(Vec<NamedField>),
 }
+impl InlineSchema {
+    pub const fn path(&self) -> Option<Path> {
+        match self {
+            InlineSchema::Ref(path) => Some(*path),
+            InlineSchema::Generic { path, .. } => Some(*path),
+            InlineSchema::Object(_) => None,
+        }
+    }
+}
 
 impl Formatter for InlineSchema {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

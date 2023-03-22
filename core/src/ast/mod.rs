@@ -35,6 +35,7 @@ mod export;
 mod fields;
 mod formatter;
 mod generics;
+mod node;
 mod path;
 mod schema;
 mod utils;
@@ -43,20 +44,10 @@ pub use export::*;
 pub use fields::*;
 pub use formatter::*;
 pub use generics::*;
+pub use node::*;
 pub use path::*;
 pub use schema::*;
 pub use utils::*;
-
-use crate::Register;
-
-pub trait Node: Register {
-    const PATH: Path;
-    fn export() -> Option<Export> {
-        None
-    }
-
-    fn inline() -> InlineSchema;
-}
 
 #[cfg(test)]
 mod test {
@@ -64,7 +55,7 @@ mod test {
     use std::collections::HashSet;
 
     use crate::types::Usize;
-    use crate::Namespace;
+    use crate::{Namespace, Register};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -84,10 +75,9 @@ mod test {
     }
 
     impl<T1: Node, T2: Node> Node for MyGeneric<T1, T2> {
-        const PATH: Path = Path::new::<Ns>("MyGeneric");
         fn inline() -> InlineSchema {
             InlineSchema::Generic {
-                path: Self::PATH,
+                path: Path::new::<Ns>("MyGeneric"),
                 args: vec![T1::inline(), T2::inline()],
             }
         }
@@ -95,7 +85,7 @@ mod test {
         fn export() -> Option<Export> {
             Some(Export {
                 docs: None,
-                path: Self::PATH,
+                path: Self::inline().path().unwrap(),
                 schema: Schema::Object(vec![
                     NamedField::new::<T1>("t1"),
                     NamedField::new::<T2>("t2"),
@@ -118,12 +108,10 @@ mod test {
     }
 
     impl Node for MyType {
-        const PATH: Path = Path::new::<Ns>("MyType");
-
         fn export() -> Option<Export> {
             Some(Export {
                 docs: None,
-                path: Self::PATH,
+                path: Self::inline().path().unwrap(),
                 schema: Schema::Object(vec![NamedField::new::<Partial<Usize>>("my_type_inner")]),
             })
         }
@@ -147,8 +135,6 @@ mod test {
     }
 
     impl<T: Node> Node for Partial<T> {
-        const PATH: Path = Path::new::<Ns>("Partial");
-
         fn inline() -> InlineSchema {
             InlineSchema::Object(vec![NamedField::new::<MyGeneric<String, T>>(
                 "partial_inner",

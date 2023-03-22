@@ -1,13 +1,11 @@
-use std::fmt::Display;
+use super::{Formatter, InlineSchema};
 
-use super::{Formatter, Path};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GenericArgument {
     Type(&'static str),
     Const {
         name: &'static str,
-        path: Path,
+        schema: InlineSchema,
     },
     Assign {
         name: &'static str,
@@ -24,10 +22,10 @@ impl Formatter for GenericArgument {
                 f.write_str("z.ZodTypeAny")?;
             }
 
-            GenericArgument::Const { name, path } => {
+            GenericArgument::Const { name, schema } => {
                 f.write_str(name)?;
                 f.write_str(": ")?;
-                path.fmt(f)?;
+                schema.fmt_zod(f)?;
             }
             GenericArgument::Assign { .. } => {}
         }
@@ -43,10 +41,10 @@ impl Formatter for GenericArgument {
                 f.write_str(value)?;
                 Ok(())
             }
-            GenericArgument::Const { name, path } => {
+            GenericArgument::Const { name, schema } => {
                 f.write_str(name)?;
                 f.write_str(" extends ")?;
-                path.fmt(f)?;
+                schema.fmt_ts(f)?;
                 Ok(())
             }
         }

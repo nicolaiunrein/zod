@@ -11,12 +11,10 @@ macro_rules! join {
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::ast::Node for $T {
-            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>($name);
-
             fn export() -> Option<$crate::ast::Export> {
                 Some($crate::ast::Export {
                     docs: None,
-                    path: Self::PATH,
+                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: $crate::ast::Schema::Raw {
                         args: &[],
                         zod: $zod,
@@ -26,7 +24,7 @@ macro_rules! impl_primitive {
             }
 
             fn inline() -> $crate::ast::InlineSchema {
-                $crate::ast::InlineSchema::Ref(Self::PATH)
+                $crate::ast::InlineSchema::Ref(Self::export().unwrap().path)
             }
         }
 
@@ -45,7 +43,7 @@ macro_rules! tuple {
     ( $N: literal, $($i:ident),* ) => {
         Export {
             docs: None,
-            path: Self::PATH,
+            path: $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N)),
             schema: Schema::Raw {
                 args: &[$(GenericArgument::Type(stringify!($i))),*],
                 zod: concat!("z.tuple([", $crate::types::macros::join!(", ", $($i),*),"])"),
@@ -58,7 +56,6 @@ macro_rules! tuple {
 macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
         impl<$($i: Node),*> Node for ($($i,)*) {
-            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N));
 
             fn export() -> Option<Export> {
                 Some($crate::types::macros::tuple!($N, $($i),*))
@@ -66,7 +63,7 @@ macro_rules! impl_tuple {
 
             fn inline() -> InlineSchema {
                 InlineSchema::Generic {
-                    path: Self::PATH,
+                    path: Self::export().unwrap().path,
                     args: vec![$(<$i>::inline()),*],
                 }
             }
@@ -87,8 +84,6 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: Node> Node for $type {
-            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>($name);
-
             fn inline() -> InlineSchema {
                 T::inline()
             }
@@ -108,12 +103,11 @@ macro_rules! impl_wrapper {
 macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: Node),*> Node for $ty {
-            const PATH: $crate::ast::Path = $crate::ast::Path::new::<$crate::types::Rs>($name);
 
             fn export() -> Option<Export> {
                 Some(Export {
                     docs: None,
-                    path: Self::PATH,
+                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: Schema::Raw {
                         args: &[$(GenericArgument::Type(stringify!($generics))),+],
                         zod: $zod,
@@ -123,7 +117,7 @@ macro_rules! impl_generic {
             }
 
             fn inline() -> InlineSchema {
-                InlineSchema::Ref(Self::PATH)
+                InlineSchema::Ref(Self::export().unwrap().path)
             }
         }
 
