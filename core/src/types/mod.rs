@@ -1,3 +1,4 @@
+//! Implementations of [Node](crate::ast::Node) for foreign types
 mod external;
 mod macros;
 
@@ -6,6 +7,7 @@ pub use num::*;
 
 use crate::Namespace;
 
+/// A special Namespace which defines all build in types
 pub struct Rs;
 
 impl Namespace for Rs {

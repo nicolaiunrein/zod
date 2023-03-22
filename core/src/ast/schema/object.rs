@@ -1,5 +1,6 @@
 use crate::ast::{Delimited, Formatter, NamedField};
 
+/// Representation of a `z.object({ ... })`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ObjectSchema {
     fields: &'static [NamedField],

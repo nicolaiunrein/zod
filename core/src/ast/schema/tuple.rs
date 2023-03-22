@@ -2,6 +2,7 @@ use crate::ast::{Delimited, Formatter};
 
 use super::InlineSchema;
 
+/// Representation of a `z.tuple([ ... ])`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TupleSchema {
     fields: &'static [InlineSchema],

@@ -1,5 +1,6 @@
 use super::{Formatter, InlineSchema};
 
+/// Representation of a generic argument in typescript/zod
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GenericArgument {
     /// Example: the `T` in `Vec<T>`

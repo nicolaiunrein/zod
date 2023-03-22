@@ -1,32 +1,4 @@
 //! # Core building blocks of this library
-//!
-//! ## Resolving generic types
-//!
-//! We cannot inline partially resolved types.
-//! ## Example
-//! ```rust
-//! struct Generic<T1, T2> {
-//!   t1: T1,
-//!   t2: T2,
-//! }
-//!
-//!
-//! type Flipped<T1, T2> = Generic<T2, T1>;
-//!
-//! struct MyType<T> {
-//!     inner: Flipped<String, T>
-//! }
-//!
-//! ```
-//! Deriving [Node] on `MyType` would generate an export like:
-//! ```ts
-//! export const MyType = (T: z.ZodTypeAny) => z.object({ inner: Ns.Generic(z.String, T) })
-//! ```
-//!
-//! which would be wrong because the generic parameters are flipped!
-//!
-//!
-//!
 
 #[cfg(feature = "rpc")]
 pub mod rpc;
@@ -43,14 +15,23 @@ mod utils;
 pub use docs::*;
 pub use export::*;
 pub use fields::*;
-pub use formatter::*;
 pub use generics::*;
 pub use path::*;
 pub use schema::*;
-pub use utils::*;
+
+pub(crate) use formatter::*;
+pub(crate) use utils::*;
 
 use crate::Register;
 
+/// ## The core trait of zod
+///
+/// Each and every element to be accessible for the client needs to
+/// implement it.
+/// This crate implements this trait for most of the relevant standard library types as well as
+/// types from some third party crates. If you find yourself in need for a specific type to
+/// implement this trait and you cannot implement it yourself because of the orphan rule please
+/// file an issue or submit a PR. Contribution is more than welcome!
 pub trait Node: Register {
     const DEFINITION: Definition;
 
@@ -63,7 +44,34 @@ pub trait Node: Register {
     }
 }
 
-#[derive(Clone, Copy)]
+/// This type is the union of exported and inlined types.
+///
+/// **NOTE**:
+/// Some types cannot be exported because their generics are only partially resolved. Therefore
+/// they can only provide an InlineSchema.
+///
+/// # Example:
+/// consider the following code:
+/// ```rust
+/// struct Generic<T1, T2> {
+///   t1: T1,
+///   t2: T2,
+/// }
+///
+/// type Flipped<T1, T2> = Generic<T2, T1>;
+///
+/// // Deriving [Node] on `MyType` would generate an export like:
+/// // export const MyType = (T: z.ZodTypeAny) => z.object({
+/// //     ok: Ns.Generic(Rs.String, T),
+/// //     flipped: Ns.Generic(T, Rs.String) // <-- oops, does not equal Flipped<T, String>
+/// // })
+/// struct MyType<T> {
+///     ok: Generic<String, T>,
+///     flipped: Flipped<T, String> // <-- equals MyGeneric<String, T>
+/// }
+///
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Definition {
     Exported {
         export: Export,
@@ -147,7 +155,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register_dependency!(ctx, T1, T2);
+            crate::register_dependencies!(ctx, T1, T2);
         }
     }
 
@@ -173,7 +181,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register_dependency!(ctx, Partial<Usize>);
+            crate::register_dependencies!(ctx, Partial<Usize>);
         }
     }
 
@@ -193,7 +201,7 @@ mod test {
         where
             Self: 'static,
         {
-            crate::register_dependency!(ctx, MyGeneric<String, T>);
+            crate::register_dependencies!(ctx, MyGeneric<String, T>);
         }
     }
 

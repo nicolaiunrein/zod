@@ -2,6 +2,7 @@ use crate::ast::{Delimited, Formatter};
 
 use super::ObjectSchema;
 
+/// Representation of a `z.discriminatedUnion("key", [ ... ])`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct DiscriminatedUnionSchema {
     key: &'static str,

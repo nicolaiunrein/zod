@@ -1,61 +1,32 @@
+//! Types needed to generate RPC server/client code
 use std::fmt::Display;
 
 use crate::{ast::*, Register};
 
+/// TODO
 pub trait ClientCodegen {
     fn get() -> String;
 }
 
+/// The trait represents a Namespace with rpc methods
 pub trait RpcNamespace: crate::Namespace + Register {
     type Req: serde::de::DeserializeOwned;
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct RpcArgument {
-    name: &'static str,
-    schema: crate::ast::InlineSchema,
-}
-
-impl Formatter for RpcArgument {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.schema.fmt_zod(f)
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.name)?;
-        f.write_str(": ")?;
-        self.schema.fmt_ts(f)?;
-        Ok(())
-    }
-}
-
-impl RpcArgument {
-    pub const fn new<T: crate::ast::Node>(name: &'static str) -> Self {
-        Self {
-            name,
-            schema: <T>::DEFINITION.inline(),
-        }
-    }
-}
-
+/// The Kind of RpcRequest
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum RpcRequestKind {
     Method,
     Stream,
 }
 
+/// This type represents either a remote stream subscription or method call
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct RpcRequest {
-    path: Path,
-    args: &'static [RpcArgument],
-    res: InlineSchema,
-    kind: RpcRequestKind,
-}
-
-impl RpcRequest {
-    pub fn path(self) -> Path {
-        self.path
-    }
+    pub path: Path,
+    pub args: &'static [NamedField],
+    pub res: InlineSchema,
+    pub kind: RpcRequestKind,
 }
 
 impl Display for RpcRequest {
@@ -70,7 +41,7 @@ impl Display for RpcRequest {
         let zod_args = self
             .args
             .iter()
-            .map(|arg| arg.to_zod_string())
+            .map(|arg| arg.value().to_zod_string())
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -101,7 +72,7 @@ impl Display for RpcRequest {
         f.write_str("    // phantom usage\n")?;
 
         for arg in self.args {
-            f.write_fmt(format_args!("    {};\n", arg.name))?;
+            f.write_fmt(format_args!("    {};\n", arg.name()))?;
         }
 
         f.write_fmt(format_args!(
@@ -147,8 +118,8 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
             path: Path::new::<Ns>("test"),
             kind: RpcRequestKind::Method,
             args: &[
-                RpcArgument::new::<String>("name"),
-                RpcArgument::new::<u16>("age"),
+                NamedField::new::<String>("name"),
+                NamedField::new::<u16>("age"),
             ],
             res: <Option<bool>>::DEFINITION.inline(),
         };
@@ -179,8 +150,8 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
             path: Path::new::<Ns>("test"),
             kind: RpcRequestKind::Stream,
             args: &[
-                RpcArgument::new::<String>("name"),
-                RpcArgument::new::<u16>("age"),
+                NamedField::new::<String>("name"),
+                NamedField::new::<u16>("age"),
             ],
             res: <Option<bool>>::DEFINITION.inline(),
         };

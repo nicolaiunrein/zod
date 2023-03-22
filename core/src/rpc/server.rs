@@ -1,40 +1,33 @@
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::Display;
 
+use crate::ast::Export;
 use crate::{ast::rpc, rpc::Request, rpc::ResponseSender, Namespace, Register};
 
 use crate::types::Rs;
 
-pub type StreamHandle = tokio::task::JoinHandle<()>;
+/// a [JoinHandle](tokio::task::JoinHandle) to cancel a stream when it is dropped.
+pub struct StreamHandle(tokio::task::JoinHandle<()>);
 
-#[derive(Debug, Default)]
-pub struct SubscriberMap {
-    inner: HashMap<usize, StreamHandle>,
-}
+/// A map of active subscriber ids to the [JoinHandle](tokio::task::JoinHandle) for stream abortion
+pub type SubscriberMap = HashMap<usize, StreamHandle>;
 
-impl std::ops::Deref for SubscriberMap {
-    type Target = HashMap<usize, StreamHandle>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl std::ops::DerefMut for SubscriberMap {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-impl Drop for SubscriberMap {
+impl Drop for StreamHandle {
     fn drop(&mut self) {
-        for (_, jh) in self.inner.drain() {
-            jh.abort();
-        }
+        self.0.abort();
     }
 }
 
+/// This trait represents a collection of Namespaces
 #[async_trait::async_trait]
 pub trait Backend: Register {
+    async fn handle_request(
+        &mut self,
+        req: Request,
+        res: ResponseSender,
+        subscribers: &mut SubscriberMap,
+    );
+
     fn generate<T>() -> String
     where
         T: rpc::ClientCodegen,
@@ -46,33 +39,40 @@ pub trait Backend: Register {
             exports.entry(export.path.ns()).or_default().push(export);
         }
 
-        if let Some(rs) = exports.remove(Rs::NAME) {
-            out.push_str("export namepace ");
-            out.push_str(Rs::NAME);
-            out.push_str(" {\n");
-            for node in rs.into_iter() {
-                out.push_str(&node.to_string());
-            }
-            out.push_str("\n}\n")
+        if let Some(exports) = exports.remove(Rs::NAME) {
+            out.push_str(&NamespaceExporter::new(Rs::NAME, exports).to_string());
         }
 
-        for (ns, nodes) in exports.into_iter() {
-            out.push_str("export namepace ");
-            out.push_str(ns);
-            out.push_str(" {\n");
-            for node in nodes.into_iter() {
-                out.push_str(&node.to_string());
-            }
-            out.push_str("\n}\n")
+        for (name, exports) in exports.into_iter() {
+            out.push_str(&NamespaceExporter::new(name, exports).to_string());
         }
 
         out
     }
+}
 
-    async fn handle_request(
-        &mut self,
-        req: Request,
-        res: ResponseSender,
-        subscribers: &mut SubscriberMap,
-    );
+struct NamespaceExporter {
+    name: &'static str,
+    exports: Vec<Export>,
+}
+
+impl NamespaceExporter {
+    pub fn new(name: &'static str, mut exports: Vec<Export>) -> Self {
+        exports.sort_by_key(|export| export.path.name());
+        Self { name, exports }
+    }
+}
+
+impl Display for NamespaceExporter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("export namepace ")?;
+        f.write_str(self.name)?;
+        f.write_str(" {\n")?;
+        for export in self.exports.iter() {
+            export.fmt(f)?;
+            f.write_str("\n")?;
+        }
+        f.write_str("\n}\n")?;
+        Ok(())
+    }
 }

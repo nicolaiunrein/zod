@@ -2,6 +2,7 @@ use crate::ast::{Delimited, Formatter};
 
 use super::InlineSchema;
 
+/// Representation of a `z.union([ ... ])`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnionSchema {
     variants: &'static [InlineSchema],

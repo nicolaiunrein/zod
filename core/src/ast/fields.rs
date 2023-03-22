@@ -1,5 +1,6 @@
 use super::{Formatter, InlineSchema, Node};
 
+/// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedField {
     name: &'static str,
@@ -12,6 +13,13 @@ impl NamedField {
             name,
             value: T::DEFINITION.inline(),
         }
+    }
+    pub const fn name(&self) -> &'static str {
+        self.name
+    }
+
+    pub const fn value(&self) -> InlineSchema {
+        self.value
     }
 }
 

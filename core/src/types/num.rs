@@ -1,6 +1,7 @@
-//! # Number types
+//! NewType numbers above 32-bits
+//!
 //! This module adds wrapper types for integers which are too big to be numbers in
-//! javascript/typescript
+//! javascript/typescript and instead exposes them as BigInts
 
 use super::macros::impl_primitive;
 

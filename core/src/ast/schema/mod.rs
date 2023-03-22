@@ -12,6 +12,7 @@ use std::fmt::Display;
 
 use super::{Delimited, Formatter, GenericArgument, Path};
 
+/// Definition of a zod/typescript schema to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ExportSchema {
     Raw {
@@ -25,6 +26,7 @@ pub enum ExportSchema {
     DiscriminatedUnion(DiscriminatedUnionSchema),
 }
 
+/// Definition of a zod/typescript schema to be inlined into other definitions
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum InlineSchema {
     Ref {

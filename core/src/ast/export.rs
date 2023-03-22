@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use super::{Delimited, Docs, ExportSchema, Formatter, GenericArgument, Path};
 
+/// The struct containing all the info about a [Node](crate::ast::Node) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
     pub docs: Option<Docs>,

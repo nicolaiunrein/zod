@@ -1,3 +1,4 @@
+/// Represent RPC Server Errors to be sent to the client
 #[derive(thiserror::Error, Debug, serde::Serialize)]
 pub enum Error {
     #[error("JsonError: {0}")]

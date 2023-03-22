@@ -30,7 +30,7 @@ macro_rules! impl_primitive {
             where
                 Self: 'static,
             {
-                $crate::register_dependency!(ctx);
+                $crate::register_dependencies!(ctx);
             }
         }
     };
@@ -65,7 +65,7 @@ macro_rules! impl_tuple {
             where
                 Self: 'static,
             {
-                $crate::register_dependency!(ctx, $($i),*);
+                $crate::register_dependencies!(ctx, $($i),*);
 
             }
         }
@@ -83,7 +83,7 @@ macro_rules! impl_wrapper {
             where
                 Self: 'static,
             {
-                $crate::register_dependency!(ctx, T);
+                $crate::register_dependencies!(ctx, T);
             }
         }
     };
@@ -113,7 +113,7 @@ macro_rules! impl_generic {
             where
                 Self: 'static,
             {
-                $crate::register_dependency!(ctx, $($generics),*);
+                $crate::register_dependencies!(ctx, $($generics),*);
             }
         }
     }

@@ -217,7 +217,7 @@ impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
     where
         Self: 'static,
     {
-        crate::register_dependency!(ctx, T);
+        crate::register_dependencies!(ctx, T);
     }
 }
 
@@ -251,7 +251,7 @@ impl<const N: usize, T: Node> Register for [T; N] {
     where
         Self: 'static,
     {
-        crate::register_dependency!(ctx, T);
+        crate::register_dependencies!(ctx, T);
     }
 }
 

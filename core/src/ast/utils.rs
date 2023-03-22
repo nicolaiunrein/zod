@@ -1,4 +1,4 @@
-pub trait Delimited<F> {
+pub(crate) trait Delimited<F> {
     type Item;
     fn fmt_delimited(
         self,

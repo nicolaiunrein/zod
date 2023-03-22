@@ -1,10 +1,15 @@
+//! Types used to build the RPC server/client and messages
 #![deny(unsafe_code)]
 
-pub mod error;
+mod error;
 pub mod server;
 
+pub use error::*;
+
+/// The sending half of a Response channel
 pub type ResponseSender = futures::channel::mpsc::UnboundedSender<Response>;
 
+/// The json representation of a RPC Request
 #[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum Request {
@@ -18,6 +23,7 @@ pub enum Request {
     },
 }
 
+/// The json representation of a RPC Response
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum Response {

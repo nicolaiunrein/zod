@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use crate::Namespace;
 
+/// Qualified name of an exported [Node](crate::ast::Node)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Path {
     ns: &'static str,

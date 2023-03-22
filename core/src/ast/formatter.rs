@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub trait Formatter {
+pub(crate) trait Formatter {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
 
