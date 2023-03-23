@@ -3,6 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Lit, Meta};
 
+#[derive(Default)]
 pub struct RustDocs {
     inner: Option<String>,
 }
