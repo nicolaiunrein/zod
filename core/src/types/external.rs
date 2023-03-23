@@ -209,7 +209,7 @@ impl_generic!({
 });
 
 impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
-    const DEFINITION: Definition = Definition::inlined::<T>();
+    const DEFINITION: Definition = Definition::inlined(T::DEFINITION.inline());
 }
 
 impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {

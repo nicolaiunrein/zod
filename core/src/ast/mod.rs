@@ -86,11 +86,7 @@ impl Definition {
         Self::Exported { export, args }
     }
 
-    pub const fn inlined<T: Node>() -> Self {
-        Self::Inlined(T::DEFINITION.inline())
-    }
-
-    pub const fn partially_inlined(schema: InlineSchema) -> Self {
+    pub const fn inlined(schema: InlineSchema) -> Self {
         Self::Inlined(schema)
     }
 
@@ -191,7 +187,7 @@ mod test {
 
     impl<T: Node> Node for Partial<T> {
         const DEFINITION: Definition =
-            Definition::partially_inlined(InlineSchema::Object(ObjectSchema::new(&[
+            Definition::inlined(InlineSchema::Object(ObjectSchema::new(&[
                 NamedField::new::<MyGeneric<String, T>>("partial_inner"),
             ])));
     }

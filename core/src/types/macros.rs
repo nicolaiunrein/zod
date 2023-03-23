@@ -75,7 +75,8 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: Node> Node for $type {
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::inlined::<T>();
+            const DEFINITION: $crate::ast::Definition =
+                $crate::ast::Definition::inlined(T::DEFINITION.inline());
         }
 
         impl<T: Node> Register for $type {
