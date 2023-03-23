@@ -1,4 +1,4 @@
-use zod_core::rpc::codegen::ClientCodegen;
+use zod_core::ast::rpc::ClientCodegen;
 
 pub struct WebsocketClient;
 
