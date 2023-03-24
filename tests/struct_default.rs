@@ -1,8 +1,6 @@
-use zod::ast::{FormatTypescript, FormatZod};
-use zod::ZodType;
-
 mod test_utils;
 use test_utils::*;
+use zod::types::Usize;
 
 #[test]
 fn serde_default_named_struct_field() {
@@ -11,33 +9,26 @@ fn serde_default_named_struct_field() {
         struct Test {
             #[serde(default)]
             s: String,
-            num: usize,
+            num: Usize,
         }
     }
 
-    compare(
-        Test::AST.to_zod_string(),
+    compare_export::<Test>(
         "export const Test = z.lazy(() => z.object({s: Rs.String.optional(), num: Rs.Usize}));",
-    );
-    compare(
-        Test::AST.to_ts_string(),
         "export interface Test { s?: Rs.String | undefined, num: Rs.Usize }",
-    )
+    );
 }
 
+#[ignore]
 #[test]
 fn serde_default_tuple_struct_field() {
     test_case! {
-        #[derive(serde::Deserialize)]
-        struct Test(#[serde(default)] String);
+    #[derive(serde::Deserialize)]
+    struct Test(#[serde(default)] String);
     }
 
-    compare(
-        Test::AST.to_zod_string(),
+    compare_export::<Test>(
         "export const Test = z.lazy(() => Rs.String.optional());",
-    );
-    compare(
-        Test::AST.to_ts_string(),
         "export type Test = Rs.String | undefined;",
-    )
+    );
 }

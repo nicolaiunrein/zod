@@ -1,12 +1,12 @@
-use zod::{Namespace, Zod};
+use zod::{types::Usize, Namespace, Node};
 
-#[derive(serde::Serialize, serde::Deserialize, Zod, Default, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Node, Default, Debug)]
 #[zod(namespace = "Ns")]
 pub struct MyType {
-    value2: usize,
+    value2: Usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Node, Debug)]
 #[zod(namespace = "Ns")]
 pub struct MyType2 {
     value: u16,
@@ -14,9 +14,9 @@ pub struct MyType2 {
     nested: MyType,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Zod, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Node, Debug)]
 #[zod(namespace = "Ns")]
-pub struct MyType3(usize, usize);
+pub struct MyType3(Usize, Usize);
 
 #[derive(Namespace)]
 pub struct Ns;

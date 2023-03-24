@@ -1,304 +1,122 @@
 import * as z from "zod";
 
-const WS_ADDR = "ws://localhost:8000/ws";
+export namespace Rs {
+  export type String = string;
+  export type Usize = number;
+  export const String = z.string();
+  export const Usize = z.number();
 
-const reopenTimeouts = [100, 200, 1000, 3000];
+  export type Store<T> = {
+    subscribe(subscriber: (value: T) => void): () => void;
+    close(): void;
+  };
 
-function websocketStore(url: string) {
-  let initialValue: unknown = undefined;
-  let socket: WebSocket | undefined;
-  let openPromise: Promise<undefined> | undefined;
-  let reopenTimeoutHandler: any;
-  let reopenCount = 0;
+  export interface Client {
+    request: (ns: string, name: string, args: IArguments) => any;
+    subscribe: (ns: string, name: string, args: IArguments) => Store<any>;
+  }
+}
 
-  const subscriptions = new Set<([id, data]: [number, unknown]) => void>();
+export namespace Watchout {
+  export const Generic = (T: z.ZodTypeAny, V: z.ZodTypeAny) =>
+    z.lazy(() => z.object({ value: Rs.String, t: T, v: V }));
 
-  function reopenTimeout() {
-    const n = reopenCount;
-    reopenCount++;
-    return reopenTimeouts[
-      n >= reopenTimeouts.length - 1 ? reopenTimeouts.length - 1 : n
-    ];
+  export interface Generic<T, V> {
+    value: Rs.String;
+    t: T;
+    v: V;
   }
 
-  function close() {
-    if (reopenTimeoutHandler) {
-      clearTimeout(reopenTimeoutHandler);
-    }
-
-    if (socket) {
-      socket.close();
-      socket = undefined;
-    }
+  export const MyEntity = z.lazy(() => z.object({ value: Pixera.MyEntity2 }));
+  export interface MyEntity {
+    value: Pixera.MyEntity2;
   }
 
-  function reopen() {
-    close();
-    if (subscriptions.size > 0) {
-      reopenTimeoutHandler = setTimeout(() => open(), reopenTimeout());
-    }
+  export const MyEntity3 = z.lazy(() => z.object({ value: Pixera.MyEntity2 }));
+  export interface MyEntity3 {
+    value: Pixera.MyEntity2;
   }
 
-  async function open(): Promise<undefined> {
-    if (reopenTimeoutHandler) {
-      clearTimeout(reopenTimeoutHandler);
-      reopenTimeoutHandler = undefined;
-    }
+  export const T = z.lazy(() => Rs.Usize);
+  export type T = Rs.Usize;
 
-    // we are still in the opening phase
-    if (openPromise) {
-      return openPromise;
-    }
-
-    console.debug("creating a new socket");
-    socket = new WebSocket(url);
-
-    socket.onmessage = (event) => {
-      const res = JSON.parse(event.data);
-      console.trace({ response: res });
-
-      // TODO
-      if ("method" in res) {
-        initialValue = [res.method.id, res.method.data];
-        subscriptions.forEach((subscription) =>
-          subscription(initialValue as any)
-        );
-      } else if ("stream" in res) {
-        initialValue = [res.stream.id, res.stream.data];
-        subscriptions.forEach((subscription) =>
-          subscription(initialValue as any)
-        );
-      }
-    };
-
-    socket.onclose = (event: Event) => {
-      if (subscriptions.size > 0) {
-        console.warn(event);
-      }
-      reopen();
-    };
-
-    openPromise = new Promise((resolve, reject) => {
-      if (!socket) {
-        openPromise = undefined;
-        return;
-      }
-
-      socket.onerror = (error) => {
-        reject(error);
-        openPromise = undefined;
-      };
-      socket.onopen = (_: Event) => {
-        reopenCount = 0;
-        resolve(undefined);
-        openPromise = undefined;
-      };
-    });
-    return openPromise;
+  export const User = z.lazy(() =>
+    z.object({ value: Watchout.Generic(Rs.Usize, Rs.Usize) })
+  );
+  export interface User {
+    value: Watchout.Generic<Rs.Usize, Rs.Usize>;
   }
 
-  const open_and_send = (value: string) => {
-    if (!socket || socket.readyState !== WebSocket.OPEN)
-      open().then(() => open_and_send(value));
-    else {
-      socket.send(value);
-    }
-  };
+  // @ts-ignore
+  export async function hello(
+    client: Rs.Client,
+    _s: Rs.String,
+    _n: Rs.Usize
+  ): Promise<Rs.Usize> {
+    // phantom usage
+    Rs.String;
+    Rs.Usize;
 
-  return {
-    send(value: string) {
-      open_and_send(value);
-    },
-    subscribe(subscription: (value: [number, unknown]) => void) {
-      subscriptions.add(subscription);
-      return () => {
-        subscriptions.delete(subscription);
-        if (subscriptions.size === 0) {
-          close();
-        }
-      };
-    },
-  };
+    z.lazy(() => z.tuple([Rs.String, Rs.Usize])).parse([...arguments]);
+    return client.request("Watchout", "hello", arguments);
+  }
+
+  // @ts-ignore
+  export async function hello1(client: Client, _s: Rs.String): Promise<Usize> {
+    // phantom usage
+    Rs.String;
+
+    z.lazy(() => z.tuple([Rs.String])).parse([...arguments]);
+    return client.request("Watchout", "hello1", arguments);
+  }
+
+  // @ts-ignore
+  export function hello_stream(
+    client: Rs.Client,
+    _num: Rs.Usize
+  ): Rs.Store<Rs.Usize> {
+    // phantom usage
+    Rs.Usize;
+
+    z.lazy(() => z.tuple([Rs.Usize])).parse([...arguments]);
+    return client.subscribe("Watchout", "hello_stream", arguments);
+  }
+
+  // @ts-ignore
+  export async function hello_user(
+    client: Rs.Client,
+    _user: Watchout.User,
+    _n: Rs.Usize
+  ): Promise<Rs.Usize> {
+    // phantom usage
+    Watchout.User;
+    Rs.Usize;
+
+    z.lazy(() => z.tuple([Watchout.User, Rs.Usize])).parse([...arguments]);
+    return client.request("Watchout", "hello_user", arguments);
+  }
+
+  // @ts-ignore
+  export async function nested(
+    client: Rs.Client,
+    _value: Watchout.MyEntity
+  ): Promise<Rs.Usize> {
+    // phantom usage
+    Watchout.MyEntity;
+
+    z.lazy(() => z.tuple([Watchout.MyEntity])).parse([...arguments]);
+    return client.request("Watchout", "nested", arguments);
+  }
 }
+export namespace Pixera {
+  export const MyEntity2 = z.lazy(() => z.object({ value: Rs.Usize }));
+  export interface MyEntity2 {
+    value: Rs.Usize;
+  }
 
-type Store<T> = {
-  subscribe(subscriber: (value: T) => void): () => void;
-  close(): void;
-};
-
-const CONNECTION = websocketStore(WS_ADDR);
-let req_id = 0;
-
-function execute({
-  req_id,
-  method,
-  namespace,
-  args,
-}: {
-  req_id: number;
-  namespace: string;
-  method: string;
-  args: any[];
-}): string {
-  return JSON.stringify({ exec: { id: req_id, method, namespace, args } });
-}
-
-export function subscribe<T>(
-  namespace: string,
-  method: string,
-  args: IArguments
-): Store<T> {
-  req_id += 1;
-  let id = req_id;
-  let req = { req_id, namespace, method, args: [...args] };
-
-  let store = {
-    subscribe(cb: (value: T) => void) {
-      return CONNECTION.subscribe(([res_id, data]) => {
-        if (res_id == id) {
-          cb(data as T);
-        }
-      });
-    },
-    close() {},
-  };
-
-  CONNECTION.send(execute(req));
-
-  return store;
-}
-
-export async function request<T>(
-  namespace: string,
-  method: string,
-  args: IArguments
-): Promise<T> {
-  let unsubscribe: () => void | undefined;
-  let promise = new Promise((resolve: (_: T) => void, _) => {
-    req_id += 1;
-    let id = req_id;
-    let request = { req_id, namespace, method, args: [...args] };
-    let start = performance.now();
-
-    unsubscribe = CONNECTION.subscribe(([res_id, data]: [number, any]) => {
-      if (res_id == id) {
-        console.log("Exec Response", {
-          req_id,
-          request,
-          response: data,
-          exec_duration_ms: performance.now() - start,
-        });
-        resolve(data);
-      }
-    });
-
-    CONNECTION.send(execute(request));
-  });
-
-  return promise
-    .then((value: T) => {
-      return value;
-    })
-    .finally(() => unsubscribe && unsubscribe());
-}
-
-
-export namespace Rs { 
-}
-export namespace Watchout { 
-export const Generic = (T: z.ZodTypeAny, V: z.ZodTypeAny) => z.lazy(() => z.object({value: Rs.String, t: T, v: V}));
-export interface Generic<T, V> { value: Rs.String, t: T, v: V }
-
-export const MyEntity = z.lazy(() => z.object({value: Pixera.MyEntity2}));
-export interface MyEntity { value: Pixera.MyEntity2 }
-
-export const MyEntity3 = z.lazy(() => z.object({value: Pixera.MyEntity2}));
-export interface MyEntity3 { value: Pixera.MyEntity2 }
-
-export const T = z.lazy(() => Rs.Usize);
-export type T = Rs.Usize;
-
-export const User = z.lazy(() => z.object({value: Watchout.Generic(Rs.Usize, Rs.Usize)}));
-export interface User { value: Watchout.Generic<Rs.Usize, Rs.Usize> }
-
-  
   // @ts-ignore
-  export async function hello(_s: Rs.String,_n: Rs.Usize): Promise<Usize> {
-      // phantom usage
-      Rs.String;
-      Rs.Usize;
-  
-      z.lazy(() => z.tuple([Rs.String,Rs.Usize])).parse([...arguments]);
-      return request("Watchout", "hello", arguments);
-  };
-
-
-  
-  // @ts-ignore
-  export async function hello1(_s: Rs.String): Promise<Usize> {
-      // phantom usage
-      Rs.String;
-  
-      z.lazy(() => z.tuple([Rs.String])).parse([...arguments]);
-      return request("Watchout", "hello1", arguments);
-  };
-
-
-  
-  // @ts-ignore
-  export function hello_stream(num: Rs.Usize): Store<Usize> {
-      // phantom usage
-      Rs.Usize;
-  
-      z.lazy(() => z.tuple([Rs.Usize])).parse([...arguments]);
-      return subscribe("Watchout", "hello_stream", arguments);
-  };
-
-
-  
-  // @ts-ignore
-  export async function hello_user(_user: Watchout.User,_n: Rs.Usize): Promise<Usize> {
-      // phantom usage
-      Watchout.User;
-      Rs.Usize;
-  
-      z.lazy(() => z.tuple([Watchout.User,Rs.Usize])).parse([...arguments]);
-      return request("Watchout", "hello_user", arguments);
-  };
-
-
-  
-  // @ts-ignore
-  export async function nested(_value: Watchout.MyEntity): Promise<Usize> {
-      // phantom usage
-      Watchout.MyEntity;
-  
-      z.lazy(() => z.tuple([Watchout.MyEntity])).parse([...arguments]);
-      return request("Watchout", "nested", arguments);
-  };
-
-
-}
-export namespace Pixera { 
-export const MyEntity2 = z.lazy(() => z.object({value: Rs.Usize}));
-export interface MyEntity2 { value: Rs.Usize }
-
-  
-  // @ts-ignore
-  export function x(): Store<String> {
-      
-      z.lazy(() => z.tuple([])).parse([...arguments]);
-      return subscribe("Pixera", "x", arguments);
-  };
-
-
-  
-  // @ts-ignore
-  export function y(): Store<String> {
-      
-      z.lazy(() => z.tuple([])).parse([...arguments]);
-      return subscribe("Pixera", "y", arguments);
-  };
-
-
+  export function x(client: Rs.Client): Store<String> {
+    z.lazy(() => z.tuple([])).parse([...arguments]);
+    return client.subscribe("Pixera", "x", arguments);
+  }
 }

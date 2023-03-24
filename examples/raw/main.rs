@@ -5,30 +5,30 @@ use futures::{
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use zod::{
     rpc::{self, clients::WebsocketClient, Backend, Request, Response, SubscriberMap},
-    Zod,
+    Node,
 };
 
-#[derive(serde::Serialize, serde::Deserialize, Zod)]
+#[derive(serde::Serialize, serde::Deserialize, Node)]
 #[zod(namespace = "Watchout")]
 pub struct MyEntity {
     value: MyEntity2,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Zod)]
+#[derive(serde::Serialize, serde::Deserialize, Node)]
 #[zod(namespace = "Pixera")]
 pub struct MyEntity2 {
-    value: usize,
+    value: Usize,
 }
 
 #[derive(zod::Namespace)]
 pub struct Watchout {
-    shared_data: usize,
+    shared_data: Usize,
 }
 
 #[derive(zod::Namespace)]
 pub struct Pixera;
 
-#[rpc::namespace]
+#[zod::rpc]
 impl Watchout {
     pub async fn hello(&mut self, _s: String, _n: usize) -> usize {
         self.shared_data += 1;
@@ -43,10 +43,10 @@ impl Watchout {
     }
 }
 
-#[rpc::namespace]
+#[zod::rpc]
 impl Pixera {}
 
-#[derive(Backend)]
+#[derive(zod::Backend)]
 struct MyBackend(Watchout, Pixera);
 
 struct Server {
@@ -61,6 +61,37 @@ impl Server {
             .handle_request(req, self.tx.clone(), &mut self.subscribers)
             .await;
     }
+}
+
+async fn method() {
+    let (tx, mut rx) = unbounded();
+    let backend = MyBackend(Watchout { shared_data: 0 }, Pixera);
+    let mut server = Server {
+        tx,
+        backend,
+        subscribers: Default::default(),
+    };
+
+    let json = serde_json::json!({"exec": {"id": 1, "namespace": "Watchout", "method": "hello", "args": ["abc", 123]}});
+    let req = serde_json::from_value(json).unwrap();
+
+    server.handle_request(req).await;
+
+    let res = rx.next().await.unwrap();
+
+    println!("{res:?}")
+}
+
+async fn stream(server: &mut Server, id: usize) {
+    let json = serde_json::json!({"exec": {"id": id, "namespace": "Watchout", "method": "hello_stream", "args": [123]}});
+
+    let req = serde_json::from_value(json).unwrap();
+    server.handle_request(req).await;
+}
+
+fn generate() {
+    let content = MyBackend::generate::<WebsocketClient>();
+    println!("{content}");
 }
 
 #[tokio::main]
@@ -97,35 +128,4 @@ async fn main() {
         }
         _ => eprintln!("Call with method, stream or generate"),
     }
-}
-
-async fn method() {
-    let (tx, mut rx) = unbounded();
-    let backend = MyBackend(Watchout { shared_data: 0 }, Pixera);
-    let mut server = Server {
-        tx,
-        backend,
-        subscribers: Default::default(),
-    };
-
-    let json = serde_json::json!({"exec": {"id": 1, "namespace": "Watchout", "method": "hello", "args": ["abc", 123]}});
-    let req = serde_json::from_value(json).unwrap();
-
-    server.handle_request(req).await;
-
-    let res = rx.next().await.unwrap();
-
-    println!("{res:?}")
-}
-
-async fn stream(server: &mut Server, id: usize) {
-    let json = serde_json::json!({"exec": {"id": id, "namespace": "Watchout", "method": "hello_stream", "args": [123]}});
-
-    let req = serde_json::from_value(json).unwrap();
-    server.handle_request(req).await;
-}
-
-fn generate() {
-    let content = MyBackend::generate::<WebsocketClient>();
-    println!("{content}");
 }
