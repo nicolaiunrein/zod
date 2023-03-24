@@ -29,11 +29,11 @@ impl<'a> ToTokens for ObjectSchema<'a> {
         let zod = get_zod();
         let fields = self.fields.iter().map(|(name, ty)| {
             quote! {
-                #zod::core::NamedField::new<#ty>(#name)
+                #zod::core::ast::NamedField::new::<#ty>(#name)
             }
         });
         tokens.extend(quote! {
-            #zod::core::ObjectSchema::new(&[#(#fields),*])
+            #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
         })
     }
 }
@@ -48,14 +48,14 @@ impl<'a> ToTokens for TupleSchema<'a> {
         let fields = &self.fields;
 
         tokens.extend(quote! {
-            #zod::core::TupleSchema::new(&[#(#fields),*])
+            #zod::core::ast::TupleSchema::new(&[#(<#fields as #zod::core::ast::Node>::DEFINITION.inline()),*])
         })
     }
 }
 /// ```rust,ignore
-/// Definition::inlined(InlineSchema::Object(ObjectSchema::new(&[
-///     NamedField::new::<MyGeneric<String, T>>("field1"),
-///     NamedField::new::<MyGeneric<String, T>>("field2"),
+/// ast::Definition::inlined(ast::InlineSchema::Object(ast::ObjectSchema::new(&[
+///     ast::NamedField::new::<MyGeneric<String, T>>("field1"),
+///     ast::NamedField::new::<MyGeneric<String, T>>("field2"),
 /// ])));
 /// ```
 struct Inlined<'a> {
@@ -68,12 +68,12 @@ impl<'a> ToTokens for Inlined<'a> {
         let definition = match &self.schema {
             Schema::Object(schema) => {
                 quote! {
-                    #zod::core::Definition::inlined(#zod::core::InlineSchema::Object(#schema))
+                    #zod::core::ast::Definition::inlined(#zod::core::ast::InlineSchema::Object(#schema))
                 }
             }
             Schema::Tuple(schema) => {
                 quote! {
-                    #zod::core::Definition::inlined(#zod::core::InlineSchema::Tuple(#schema))
+                    #zod::core::ast::Definition::inlined(#zod::core::ast::InlineSchema::Tuple(#schema))
                 }
             }
         };
@@ -83,13 +83,13 @@ impl<'a> ToTokens for Inlined<'a> {
 }
 
 /// ```rust,ignore
-/// Definition::exported(
-///     Export {
+/// ast::Definition::exported(
+///     ast::Export {
 ///         docs: None,
-///         path: Path::new::<Ns>("MyType"),
-///         schema: ExportSchema::Object(ObjectSchema::new(&[
-///             NamedField::new::<Usize>("field1"),
-///             NamedField::new::<MyType<String>>("field2")
+///         path: ast::Path::new::<Ns>("MyType"),
+///         schema: ast::ExportSchema::Object(ast::ObjectSchema::new(&[
+///             ast::NamedField::new::<Usize>("field1"),
+///             ast::NamedField::new::<MyType<String>>("field2")
 ///         ])),
 ///     },
 ///     &[],
@@ -112,19 +112,25 @@ impl<'a> ToTokens for Export<'a> {
         let definition = match &self.schema {
             Schema::Object(schema) => {
                 quote! {
-                    #zod::core::Definition::exported(#zod::core::Export {
+                    #zod::core::ast::Definition::exported(#zod::core::ast::Export {
                         docs: #docs,
-                        path: #zod::core::Path::new<#ns>(#name),
-                        schema: #zod::core::ExportSchema::Object(#schema)
-                    })
+                        path: #zod::core::ast::Path::new::<#ns>(#name),
+                        schema: #zod::core::ast::ExportSchema::Object(#schema)
+                    },
+                    //todo
+                    &[]
+                    )
                 }
             }
             Schema::Tuple(schema) => quote! {
-                #zod::core::Definition::exported(#zod::core::Export {
+                #zod::core::ast::Definition::exported(#zod::core::ast::Export {
                         docs: #docs,
-                        path: #zod::core::Path::new<#ns>(#name),
-                        schema: #zod::core::ExportSchema::Tuple(#schema)
-                })
+                        path: #zod::core::ast::Path::new::<#ns>(#name),
+                        schema: #zod::core::ast::ExportSchema::Tuple(#schema)
+                },
+                //todo
+                &[]
+                )
             },
         };
 
@@ -183,11 +189,16 @@ mod test {
 
         compare(
             quote!(#input),
-            quote!(::zod::core::Definition::exported(::zod::core::Export {
-                docs: None,
-                path: ::zod::core::Path::new<Ns>("MyStruct"),
-                schema: ::zod::core::ExportSchema::Object(::zod::core::ObjectSchema::new(&[]))
-            })),
+            quote!(::zod::core::ast::Definition::exported(
+                ::zod::core::ast::Export {
+                    docs: None,
+                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    schema: ::zod::core::ast::ExportSchema::Object(
+                        ::zod::core::ast::ObjectSchema::new(&[])
+                    )
+                },
+                &[]
+            )),
         );
     }
 
@@ -203,10 +214,12 @@ mod test {
                     Field {
                         ident: parse_quote!(field1),
                         ty: parse_quote!(Vec<String>),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field2),
                         ty: parse_quote!(Option<bool>),
+                        doc: Default::default(),
                     },
                 ],
             ),
@@ -215,14 +228,19 @@ mod test {
 
         compare(
             quote!(#input),
-            quote!(::zod::core::Definition::exported(::zod::core::Export {
-                docs: None,
-                path: ::zod::core::Path::new<Ns>("MyStruct"),
-                schema: ::zod::core::ExportSchema::Object(::zod::core::ObjectSchema::new(&[
-                     ::zod::core::NamedField::new<Vec<String>>("field1"),
-                     ::zod::core::NamedField::new<Option<bool>>("field2")
-                ]))
-            })),
+            quote!(::zod::core::ast::Definition::exported(
+                ::zod::core::ast::Export {
+                    docs: None,
+                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    schema: ::zod::core::ast::ExportSchema::Object(
+                        ::zod::core::ast::ObjectSchema::new(&[
+                            ::zod::core::ast::NamedField::new::<Vec<String>>("field1"),
+                            ::zod::core::ast::NamedField::new::<Option<bool>>("field2")
+                        ])
+                    )
+                },
+                &[]
+            )),
         );
     }
 
@@ -239,11 +257,11 @@ mod test {
         compare(
             quote!(#input),
             quote! {
-                ::zod::core::Definition::exported(::zod::core::Export {
+                ::zod::core::ast::Definition::exported(::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::Path::new<Ns>("MyStruct"),
-                    schema: ::zod::core::ExportSchema::Tuple(::zod::core::TupleSchema::new(&[]))
-                })
+                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[]))
+                }, &[])
             },
         )
     }
@@ -260,10 +278,12 @@ mod test {
                     Field {
                         ident: None,
                         ty: parse_quote!(Vec<String>),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: None,
                         ty: parse_quote!(Option<bool>),
+                        doc: Default::default(),
                     },
                 ],
             ),
@@ -273,14 +293,15 @@ mod test {
         compare(
             quote!(#input),
             quote! {
-                ::zod::core::Definition::exported(::zod::core::Export {
+                ::zod::core::ast::Definition::exported(::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::Path::new<Ns>("MyStruct"),
-                    schema: ::zod::core::ExportSchema::Tuple(::zod::core::TupleSchema::new(&[
+                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
                        Vec<String>,
                        Option<bool>
                     ]))
-                })
+                }
+                ,&[])
             },
         )
     }
@@ -297,18 +318,22 @@ mod test {
                     Field {
                         ident: parse_quote!(field1),
                         ty: parse_quote!(Vec<String>),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field2),
                         ty: parse_quote!(Option<bool>),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field3),
                         ty: parse_quote!(T1),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field4),
                         ty: parse_quote!(T2),
+                        doc: Default::default(),
                     },
                 ],
             ),
@@ -317,16 +342,21 @@ mod test {
 
         compare(
             quote!(#input),
-            quote!(::zod::core::Definition::exported(::zod::core::Export {
-                docs: None,
-                path: ::zod::core::Path::new<Ns>("MyStruct"),
-                schema: ::zod::core::ExportSchema::Object(::zod::core::ObjectSchema::new(&[
-                     ::zod::core::NamedField::new<Vec<String>>("field1"),
-                     ::zod::core::NamedField::new<Option<bool>>("field2"),
-                     ::zod::core::NamedField::new<T1>("field3"),
-                     ::zod::core::NamedField::new<T2>("field4")
-                ]))
-            })),
+            quote!(::zod::core::ast::Definition::exported(
+                ::zod::core::ast::Export {
+                    docs: None,
+                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    schema: ::zod::core::ast::ExportSchema::Object(
+                        ::zod::core::ast::ObjectSchema::new(&[
+                            ::zod::core::ast::NamedField::new::<Vec<String>>("field1"),
+                            ::zod::core::ast::NamedField::new::<Option<bool>>("field2"),
+                            ::zod::core::ast::NamedField::new::<T1>("field3"),
+                            ::zod::core::ast::NamedField::new::<T2>("field4")
+                        ])
+                    )
+                },
+                &[]
+            )),
         );
     }
 
@@ -342,18 +372,22 @@ mod test {
                     Field {
                         ident: parse_quote!(field1),
                         ty: parse_quote!(Vec<String>),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field2),
                         ty: parse_quote!(Option<T1>),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field3),
                         ty: parse_quote!(T1),
+                        doc: Default::default(),
                     },
                     Field {
                         ident: parse_quote!(field4),
                         ty: parse_quote!(T2),
+                        doc: Default::default(),
                     },
                 ],
             ),
@@ -362,12 +396,14 @@ mod test {
 
         compare(
             quote!(#input),
-            quote!(::zod::core::Definition::inlined(::zod::core::InlineSchema::Object(::zod::core::ObjectSchema::new(&[
-                     ::zod::core::NamedField::new<Vec<String>>("field1"),
-                     ::zod::core::NamedField::new<Option<T1>>("field2"),
-                     ::zod::core::NamedField::new<T1>("field3"),
-                     ::zod::core::NamedField::new<T2>("field4")
-                ])))),
+            quote!(::zod::core::ast::Definition::inlined(
+                ::zod::core::ast::InlineSchema::Object(::zod::core::ast::ObjectSchema::new(&[
+                    ::zod::core::ast::NamedField::new::<Vec<String>>("field1"),
+                    ::zod::core::ast::NamedField::new::<Option<T1>>("field2"),
+                    ::zod::core::ast::NamedField::new::<T1>("field3"),
+                    ::zod::core::ast::NamedField::new::<T2>("field4")
+                ]))
+            )),
         );
     }
 }

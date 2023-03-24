@@ -1,3 +1,4 @@
+use darling::FromAttributes;
 use darling::{ast::Data, FromDeriveInput};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -26,7 +27,7 @@ pub struct ZodNode {
 }
 
 impl ZodNode {
-    pub fn expand(self, container: &Container, docs: &RustDocs) -> TokenStream {
+    pub fn expand(self, container: &Container) -> TokenStream {
         let zod = get_zod();
         let ident = self.ident.clone();
 
@@ -40,11 +41,13 @@ impl ZodNode {
             Data::Struct(ref fields) => fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>(),
         };
 
+        let docs = RustDocs::from_attributes(&self.attrs).unwrap();
+
         let definition = match self.data {
             Data::Enum(variants) => Enum {
                 variants,
                 container,
-                docs,
+                docs: &docs,
             }
             .expand(),
 
@@ -54,7 +57,7 @@ impl ZodNode {
                     ns: self.namespace,
                     generics: self.generics.clone(),
                     fields,
-                    docs,
+                    docs: &docs,
                 };
 
                 quote!(#s)
@@ -64,8 +67,8 @@ impl ZodNode {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         quote! {
-            impl #impl_generics #zod::core::Node for #ident #ty_generics #where_clause {
-                const DEFINITION: #zod::core::Definition = #definition;
+            impl #impl_generics #zod::core::ast::Node for #ident #ty_generics #where_clause {
+                const DEFINITION: #zod::core::ast::Definition = #definition;
             }
 
             impl #impl_generics #zod::core::Register for #ident #ty_generics #where_clause {

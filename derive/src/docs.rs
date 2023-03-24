@@ -1,15 +1,17 @@
-use darling::ToTokens;
+use darling::{FromAttributes, ToTokens};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Lit, Meta};
 
-#[derive(Default)]
+use crate::utils::get_zod;
+
+#[derive(Default, Clone, Debug)]
 pub struct RustDocs {
     inner: Option<String>,
 }
 
-impl RustDocs {
-    pub fn from_attrs(attrs: &[syn::Attribute]) -> Result<Self, syn::Error> {
+impl FromAttributes for RustDocs {
+    fn from_attributes(attrs: &[syn::Attribute]) -> darling::Result<Self> {
         let mut full_docs = String::new();
         for attr in attrs {
             match attr.parse_meta()? {
@@ -38,8 +40,9 @@ impl RustDocs {
 
 impl ToTokens for RustDocs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
         let inner = if let Some(docs) = &self.inner {
-            quote!(Some(#docs))
+            quote!(Some(#zod::core::ast::Docs(#docs)))
         } else {
             quote!(None)
         };

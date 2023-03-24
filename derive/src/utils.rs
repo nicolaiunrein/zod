@@ -34,6 +34,10 @@ pub(crate) fn get_private_spanned(span: Span) -> Path {
     syn::parse_quote_spanned!(span => #zod::__private)
 }
 
+pub fn format_ident_for_registration(orig: &Ident) -> Ident {
+    quote::format_ident!("todo")
+}
+
 /// visit all idents and remove them from the unseen list.
 /// The unseen list is the list of the possible
 pub(crate) fn generics_of_ty<'generics>(
@@ -159,10 +163,12 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(Vec<T>),
+                    doc: Default::default(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(Option<bool>),
+                    doc: Default::default(),
                 },
             ],
         );
@@ -179,10 +185,12 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(T),
+                    doc: Default::default(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(Option<bool>),
+                    doc: Default::default(),
                 },
             ],
         );
@@ -199,10 +207,12 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(T),
+                    doc: Default::default(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(Result<String, T>),
+                    doc: Default::default(),
                 },
             ],
         );
@@ -219,14 +229,17 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(T1),
+                    doc: Default::default(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(T2),
+                    doc: Default::default(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(HashMap<T2, bool>),
+                    doc: Default::default(),
                 },
             ],
         );

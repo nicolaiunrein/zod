@@ -6,7 +6,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use serde_derive_internals::ast::Container;
 
-#[derive(FromVariant, Clone)]
+#[derive(FromVariant)]
 pub struct EnumVariant {
     pub ident: syn::Ident,
     pub fields: Fields<Field>,
