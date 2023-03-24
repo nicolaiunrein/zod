@@ -18,26 +18,6 @@ pub(crate) fn get_zod() -> Path {
     syn::parse_quote!(::#ident)
 }
 
-pub(crate) fn get_zod_spanned(span: Span) -> Path {
-    let name = get_crate_name();
-    let ident = Ident::new(&name, Span::call_site());
-    syn::parse_quote_spanned!(span => ::#ident)
-}
-
-pub(crate) fn get_private() -> Path {
-    let zod = get_zod();
-    syn::parse_quote!(#zod::__private)
-}
-
-pub(crate) fn get_private_spanned(span: Span) -> Path {
-    let zod = get_zod_spanned(span);
-    syn::parse_quote_spanned!(span => #zod::__private)
-}
-
-pub fn format_ident_for_registration(orig: &Ident) -> Ident {
-    quote::format_ident!("todo")
-}
-
 /// visit all idents and remove them from the unseen list.
 /// The unseen list is the list of the possible
 pub(crate) fn generics_of_ty<'generics>(
@@ -108,7 +88,6 @@ mod test {
     use syn::parse_quote;
 
     use crate::field::Field;
-    use crate::r#struct::Struct;
 
     use super::*;
 
@@ -163,12 +142,12 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(Vec<T>),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(Option<bool>),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
             ],
         );
@@ -185,12 +164,12 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(T),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(Option<bool>),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
             ],
         );
@@ -207,12 +186,12 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(T),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(Result<String, T>),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
             ],
         );
@@ -229,17 +208,17 @@ mod test {
                 Field {
                     ident: None,
                     ty: parse_quote!(T1),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(T2),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
                 Field {
                     ident: None,
                     ty: parse_quote!(HashMap<T2, bool>),
-                    doc: Default::default(),
+                    attrs: Vec::new(),
                 },
             ],
         );

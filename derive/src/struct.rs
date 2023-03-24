@@ -39,16 +39,16 @@ impl<'a> ToTokens for ObjectSchema<'a> {
 }
 
 struct TupleSchema<'a> {
-    fields: Vec<&'a Type>,
+    fields: &'a Fields<Field>,
 }
 
 impl<'a> ToTokens for TupleSchema<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
-        let fields = &self.fields;
+        let fields = self.fields.iter();
 
         tokens.extend(quote! {
-            #zod::core::ast::TupleSchema::new(&[#(<#fields as #zod::core::Node>::AST.inline()),*])
+            #zod::core::ast::TupleSchema::new(&[#(#fields),*])
         })
     }
 }
@@ -142,7 +142,7 @@ impl<'a> ToTokens for Struct<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let schema = match self.fields.style {
             darling::ast::Style::Tuple => Schema::Tuple(TupleSchema {
-                fields: self.fields.iter().map(|f| &f.ty).collect(),
+                fields: &self.fields,
             }),
 
             darling::ast::Style::Struct => Schema::Object(ObjectSchema {
@@ -214,12 +214,12 @@ mod test {
                     Field {
                         ident: parse_quote!(field1),
                         ty: parse_quote!(Vec<String>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field2),
                         ty: parse_quote!(Option<bool>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                 ],
             ),
@@ -278,12 +278,12 @@ mod test {
                     Field {
                         ident: None,
                         ty: parse_quote!(Vec<String>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: None,
                         ty: parse_quote!(Option<bool>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                 ],
             ),
@@ -297,8 +297,8 @@ mod test {
                     docs: None,
                     path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
-                       <Vec<String> as ::zod::core::Node>::AST.inline(),
-                       <Option<bool> as ::zod::core::Node>::AST.inline()
+                       ::zod::core::ast::TupleField::new::<Vec<String>>(),
+                       ::zod::core::ast::TupleField::new::<Option<bool>>()
                     ]))
                 }
                 ,&[])
@@ -318,22 +318,22 @@ mod test {
                     Field {
                         ident: parse_quote!(field1),
                         ty: parse_quote!(Vec<String>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field2),
                         ty: parse_quote!(Option<bool>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field3),
                         ty: parse_quote!(T1),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field4),
                         ty: parse_quote!(T2),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                 ],
             ),
@@ -372,22 +372,22 @@ mod test {
                     Field {
                         ident: parse_quote!(field1),
                         ty: parse_quote!(Vec<String>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field2),
                         ty: parse_quote!(Option<T1>),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field3),
                         ty: parse_quote!(T1),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                     Field {
                         ident: parse_quote!(field4),
                         ty: parse_quote!(T2),
-                        doc: Default::default(),
+                        attrs: Vec::new(),
                     },
                 ],
             ),
