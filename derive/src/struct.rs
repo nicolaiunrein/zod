@@ -1,4 +1,4 @@
-use crate::docs::RustDocs;
+use crate::config::Config;
 use crate::field::Field;
 use crate::utils::{get_zod, is_export};
 use darling::ast::Fields;
@@ -8,11 +8,10 @@ use quote::quote;
 use syn::{Ident, Type};
 
 pub struct Struct<'a> {
-    pub(crate) ident: Ident,
-    pub(crate) generics: syn::Generics,
-    pub(crate) fields: Fields<Field>,
-    pub(crate) docs: &'a RustDocs,
-    pub(crate) ns: syn::Path,
+    pub(crate) ident: &'a Ident,
+    pub(crate) generics: &'a syn::Generics,
+    pub(crate) fields: &'a Fields<Field>,
+    pub(crate) config: &'a Config,
 }
 
 enum Schema<'a> {
@@ -96,18 +95,16 @@ impl<'a> ToTokens for Inlined<'a> {
 /// );
 /// ```
 struct Export<'a> {
-    docs: &'a RustDocs,
-    ns: &'a syn::Path,
-    name: String,
+    config: &'a Config,
     schema: Schema<'a>,
 }
 
 impl<'a> ToTokens for Export<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
-        let docs = self.docs;
-        let name = &self.name;
-        let ns = &self.ns;
+        let docs = &self.config.docs;
+        let name = &self.config.name;
+        let ns = &self.config.namespace;
 
         let definition = match &self.schema {
             Schema::Object(schema) => {
@@ -158,9 +155,7 @@ impl<'a> ToTokens for Struct<'a> {
 
         if is_export(&self.fields, &self.generics) {
             Export {
-                docs: self.docs,
-                ns: &self.ns,
-                name: self.ident.to_string(),
+                config: &self.config,
                 schema,
             }
             .to_tokens(tokens);
@@ -180,11 +175,10 @@ mod test {
     #[test]
     fn empty_named_ok() {
         let input = Struct {
-            ident: parse_quote!(MyStruct),
-            ns: parse_quote!(Ns),
-            generics: Default::default(),
-            fields: Fields::new(Style::Struct, Vec::new()),
-            docs: &Default::default(),
+            config: &Default::default(),
+            ident: &parse_quote!(MyType),
+            generics: &Default::default(),
+            fields: &Fields::new(Style::Struct, Vec::new()),
         };
 
         compare(
@@ -192,7 +186,7 @@ mod test {
             quote!(::zod::core::ast::Definition::exported(
                 ::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Object(
                         ::zod::core::ast::ObjectSchema::new(&[])
                     )
@@ -205,10 +199,9 @@ mod test {
     #[test]
     fn named_with_fields_ok() {
         let input = Struct {
-            ident: parse_quote!(MyStruct),
-            ns: parse_quote!(Ns),
-            generics: Default::default(),
-            fields: Fields::new(
+            ident: &parse_quote!(MyType),
+            generics: &Default::default(),
+            fields: &Fields::new(
                 Style::Struct,
                 vec![
                     Field {
@@ -223,7 +216,7 @@ mod test {
                     },
                 ],
             ),
-            docs: &Default::default(),
+            config: &Default::default(),
         };
 
         compare(
@@ -231,7 +224,7 @@ mod test {
             quote!(::zod::core::ast::Definition::exported(
                 ::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Object(
                         ::zod::core::ast::ObjectSchema::new(&[
                             ::zod::core::ast::NamedField::new::<Vec<String>>("field1"),
@@ -247,11 +240,10 @@ mod test {
     #[test]
     fn empty_tuple_ok() {
         let input = Struct {
-            ident: parse_quote!(MyStruct),
-            ns: parse_quote!(Ns),
-            generics: Default::default(),
-            fields: Fields::new(Style::Tuple, Vec::new()),
-            docs: &Default::default(),
+            ident: &parse_quote!(MyType),
+            generics: &Default::default(),
+            fields: &Fields::new(Style::Tuple, Vec::new()),
+            config: &Default::default(),
         };
 
         compare(
@@ -259,7 +251,7 @@ mod test {
             quote! {
                 ::zod::core::ast::Definition::exported(::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[]))
                 }, &[])
             },
@@ -269,10 +261,9 @@ mod test {
     #[test]
     fn tuple_with_fields_ok() {
         let input = Struct {
-            ident: parse_quote!(MyStruct),
-            ns: parse_quote!(Ns),
-            generics: Default::default(),
-            fields: Fields::new(
+            ident: &parse_quote!(MyType),
+            generics: &Default::default(),
+            fields: &Fields::new(
                 Style::Tuple,
                 vec![
                     Field {
@@ -287,7 +278,7 @@ mod test {
                     },
                 ],
             ),
-            docs: &Default::default(),
+            config: &Default::default(),
         };
 
         compare(
@@ -295,7 +286,7 @@ mod test {
             quote! {
                 ::zod::core::ast::Definition::exported(::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
                        ::zod::core::ast::TupleField::new::<Vec<String>>(),
                        ::zod::core::ast::TupleField::new::<Option<bool>>()
@@ -309,10 +300,9 @@ mod test {
     #[test]
     fn named_with_generic_fields_export_ok() {
         let input = Struct {
-            ident: parse_quote!(MyStruct),
-            ns: parse_quote!(Ns),
-            generics: parse_quote!(<T1, T2>),
-            fields: Fields::new(
+            ident: &parse_quote!(MyType),
+            generics: &parse_quote!(<T1, T2>),
+            fields: &Fields::new(
                 Style::Struct,
                 vec![
                     Field {
@@ -337,7 +327,7 @@ mod test {
                     },
                 ],
             ),
-            docs: &Default::default(),
+            config: &Default::default(),
         };
 
         compare(
@@ -345,7 +335,7 @@ mod test {
             quote!(::zod::core::ast::Definition::exported(
                 ::zod::core::ast::Export {
                     docs: None,
-                    path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
+                    path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Object(
                         ::zod::core::ast::ObjectSchema::new(&[
                             ::zod::core::ast::NamedField::new::<Vec<String>>("field1"),
@@ -363,10 +353,9 @@ mod test {
     #[test]
     fn named_with_generic_fields_inline_ok() {
         let input = Struct {
-            ident: parse_quote!(MyStruct),
-            ns: parse_quote!(Ns),
-            generics: parse_quote!(<T1, T2>),
-            fields: Fields::new(
+            ident: &parse_quote!(MyType),
+            generics: &parse_quote!(<T1, T2>),
+            fields: &Fields::new(
                 Style::Struct,
                 vec![
                     Field {
@@ -391,7 +380,7 @@ mod test {
                     },
                 ],
             ),
-            docs: &Default::default(),
+            config: &Default::default(),
         };
 
         compare(

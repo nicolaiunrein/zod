@@ -1,10 +1,9 @@
-use crate::docs::RustDocs;
+use crate::config::Config;
 use crate::field::Field;
 use darling::ast::Fields;
 use darling::FromVariant;
 use proc_macro2::TokenStream;
 use quote::quote;
-use serde_derive_internals::ast::Container;
 
 #[derive(FromVariant)]
 pub struct EnumVariant {
@@ -13,9 +12,8 @@ pub struct EnumVariant {
 }
 
 pub struct Enum<'a> {
-    pub(crate) variants: Vec<EnumVariant>,
-    pub(crate) container: &'a Container<'a>,
-    pub(crate) docs: &'a RustDocs,
+    pub(crate) variants: &'a [EnumVariant],
+    pub(crate) config: &'a Config,
 }
 
 impl<'a> Enum<'a> {

@@ -1,15 +1,13 @@
-use darling::FromAttributes;
-use darling::{ast::Data, FromDeriveInput};
-use proc_macro2::TokenStream;
-use quote::quote;
-use serde_derive_internals::ast::Container;
-use syn::{Attribute, Generics};
-
-use crate::docs::RustDocs;
+use crate::config::Config;
 use crate::r#enum::Enum;
 use crate::r#struct::Struct;
 use crate::utils::get_zod;
 use crate::{field::Field, r#enum::EnumVariant};
+use darling::ToTokens;
+use darling::{ast::Data, FromDeriveInput};
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{Attribute, Generics};
 
 #[derive(FromDeriveInput)]
 #[darling(
@@ -18,7 +16,7 @@ use crate::{field::Field, r#enum::EnumVariant};
     supports(struct_named, struct_newtype, struct_tuple, enum_any)
 )]
 
-pub struct ZodNode {
+pub struct ZodNodeInput {
     pub ident: syn::Ident,
     pub data: Data<EnumVariant, Field>,
     pub namespace: syn::Path,
@@ -26,8 +24,32 @@ pub struct ZodNode {
     pub generics: Generics,
 }
 
-impl ZodNode {
-    pub fn expand(self, container: &Container) -> TokenStream {
+pub struct ZodNode {
+    pub ident: syn::Ident,
+    pub data: Data<EnumVariant, Field>,
+    pub generics: Generics,
+    pub config: Config,
+}
+
+impl FromDeriveInput for ZodNode {
+    fn from_derive_input(orig: &syn::DeriveInput) -> darling::Result<Self> {
+        let cx = serde_derive_internals::Ctxt::new();
+
+        let input = ZodNodeInput::from_derive_input(orig)?;
+
+        let config = Config::new(&orig, input.namespace)?;
+
+        Ok(Self {
+            ident: input.ident,
+            data: input.data,
+            generics: input.generics,
+            config,
+        })
+    }
+}
+
+impl ToTokens for ZodNode {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ident = self.ident.clone();
 
@@ -41,23 +63,19 @@ impl ZodNode {
             Data::Struct(ref fields) => fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>(),
         };
 
-        let docs = RustDocs::from_attributes(&self.attrs).unwrap();
-
-        let definition = match self.data {
+        let definition = match &self.data {
             Data::Enum(variants) => Enum {
                 variants,
-                container,
-                docs: &docs,
+                config: &self.config,
             }
             .expand(),
 
             Data::Struct(fields) => {
                 let s = Struct {
-                    ident: self.ident,
-                    ns: self.namespace,
-                    generics: self.generics.clone(),
+                    ident: &self.ident,
+                    generics: &self.generics,
                     fields,
-                    docs: &docs,
+                    config: &self.config,
                 };
 
                 quote!(#s)
@@ -66,7 +84,7 @@ impl ZodNode {
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
-        quote! {
+        tokens.extend(quote! {
             impl #impl_generics #zod::core::Node for #ident #ty_generics #where_clause {
                 const AST: #zod::core::ast::Definition = #definition;
             }
@@ -79,7 +97,6 @@ impl ZodNode {
                     #zod::core::register_dependencies!(ctx, #(#deps),*);
                 }
             }
-
-        }
+        })
     }
 }
