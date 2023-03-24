@@ -89,7 +89,8 @@ impl Formatter for InlineSchema {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, Node};
+    use crate::ast::NamedField;
+    use crate::Node;
 
     use super::*;
     use pretty_assertions::assert_eq;

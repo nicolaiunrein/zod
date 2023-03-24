@@ -1,4 +1,4 @@
-//! Implementations of [Node](crate::ast::Node) for foreign types
+//! Implementations of [Node](crate::Node) for foreign types
 mod external;
 mod macros;
 

@@ -1,9 +1,8 @@
 mod test_utils;
 use test_utils::*;
-use zod::types::Usize;
 
 #[test]
-fn serde_default_named_struct_field() {
+fn struct_default_named() {
     test_case! {
         #[derive(serde::Deserialize)]
         struct Test {
@@ -19,12 +18,11 @@ fn serde_default_named_struct_field() {
     );
 }
 
-#[ignore]
 #[test]
-fn serde_default_tuple_struct_field() {
+fn struct_default_tuple() {
     test_case! {
-    #[derive(serde::Deserialize)]
-    struct Test(#[serde(default)] String);
+        #[derive(serde::Deserialize)]
+        struct Test(#[serde(default)] String);
     }
 
     compare_export::<Test>(

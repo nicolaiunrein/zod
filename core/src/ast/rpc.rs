@@ -90,10 +90,10 @@ impl Display for RpcRequest {
 
 #[cfg(test)]
 mod test {
-    use crate::Namespace;
-    use pretty_assertions::assert_eq;
-
     use super::*;
+    use crate::Namespace;
+    use crate::Node;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn method_ok() {

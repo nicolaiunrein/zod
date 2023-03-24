@@ -1,11 +1,7 @@
-use zod::{
-    ast::{FormatTypescript, FormatZod},
-    Zod, ZodType,
-};
-
 mod test_utils;
-use pretty_assertions::assert_eq;
 use test_utils::*;
+
+use pretty_assertions::assert_eq;
 
 #[test]
 fn serde_flatten_struct() {
@@ -17,13 +13,13 @@ fn serde_flatten_struct() {
             false_value: bool
         }
 
-        #[derive(serde::Deserialize, serde::Serialize, Zod)]
+        #[derive(serde::Deserialize, serde::Serialize, Node)]
         #[zod(namespace = "Ns")]
         struct Nested {
             true_value: bool
         }
 
-        #[derive(serde::Deserialize, serde::Serialize, Zod)]
+        #[derive(serde::Deserialize, serde::Serialize, Node)]
         #[zod(namespace = "Ns")]
         struct Base{
             false_value: bool
@@ -31,22 +27,19 @@ fn serde_flatten_struct() {
 
     }
 
-    let s = serde_json::to_value(Test {
+    let json = serde_json::to_value(Test {
         nested: Nested { true_value: true },
         false_value: false,
     })
     .unwrap();
 
     assert_eq!(
-        s,
+        json,
         serde_json::json!({"true_value": true, "false_value": false}),
     );
-    compare(
-        Test::AST.to_zod_string(),
+
+    compare_export::<Test>(
         "export const Test = z.lazy(() => z.object({false_value: Rs.Bool})).extend(z.lazy(() => Ns.Nested));",
-    );
-    compare(
-        Test::AST.to_ts_string(),
         "export interface Test extends Ns.Nested { false_value: Rs.Bool }",
     );
 }

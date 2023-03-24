@@ -10,7 +10,7 @@ macro_rules! join {
 
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
-        impl $crate::ast::Node for $T {
+        impl $crate::Node for $T {
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::ast::Export {
                     docs: None,

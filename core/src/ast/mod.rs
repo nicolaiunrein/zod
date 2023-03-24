@@ -22,28 +22,6 @@ pub use schema::*;
 pub use formatter::*;
 pub(crate) use utils::*;
 
-use crate::Register;
-
-/// ## The core trait of zod
-///
-/// Each and every element to be accessible for the client needs to
-/// implement it.
-/// This crate implements this trait for most of the relevant standard library types as well as
-/// types from some third party crates. If you find yourself in need for a specific type to
-/// implement this trait and you cannot implement it yourself because of the orphan rule please
-/// file an issue or submit a PR. Contribution is more than welcome!
-pub trait Node: Register {
-    const AST: Definition;
-
-    fn export() -> Option<Export> {
-        Self::AST.export()
-    }
-
-    fn inline() -> InlineSchema {
-        Self::AST.inline()
-    }
-}
-
 /// This type is the union of exported and inlined types.
 ///
 /// **NOTE**:
@@ -90,6 +68,13 @@ impl Definition {
         Self::Inlined(schema)
     }
 
+    pub const fn docs(self) -> Option<Docs> {
+        match self {
+            Definition::Exported { export, args } => export.docs,
+            Definition::Inlined(_) => None,
+        }
+    }
+
     pub const fn export(self) -> Option<Export> {
         match self {
             Definition::Exported { export, .. } => Some(export),
@@ -113,7 +98,7 @@ mod test {
     use std::collections::HashSet;
 
     use crate::types::Usize;
-    use crate::{Namespace, Register};
+    use crate::{Namespace, Node, Register};
 
     use super::*;
     use pretty_assertions::assert_eq;

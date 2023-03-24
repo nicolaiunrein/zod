@@ -67,8 +67,8 @@ impl ZodNode {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         quote! {
-            impl #impl_generics #zod::core::ast::Node for #ident #ty_generics #where_clause {
-                const DEFINITION: #zod::core::ast::Definition = #definition;
+            impl #impl_generics #zod::core::Node for #ident #ty_generics #where_clause {
+                const AST: #zod::core::ast::Definition = #definition;
             }
 
             impl #impl_generics #zod::core::Register for #ident #ty_generics #where_clause {

@@ -25,7 +25,7 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-use ast::Docs;
+use ast::{Definition, Docs, Export, InlineSchema};
 
 /// Trait for dependency registration
 /// Each implementor should recursively call register on all its dependencies (ie. fields in a
@@ -34,7 +34,7 @@ use ast::Docs;
 /// # Example
 /// ## using the helper macro
 /// ```
-/// # use zod_core::{ast::Node, ast::InlineSchema, Register, ast::Definition, types, ast,
+/// # use zod_core::{Node, ast::InlineSchema, Register, ast::Definition, types, ast,
 /// DependencyMap, register_dependencies};
 /// #
 /// # struct MyType<T: Node> {
@@ -63,7 +63,7 @@ use ast::Docs;
 /// incorrectly. In the commented case only direct dependencies would get registered breaking the
 /// recursion.
 /// ```
-/// # use zod_core::{ast::Node, ast::InlineSchema, Register, ast::Definition, types, ast,
+/// # use zod_core::{Node, ast::InlineSchema, Register, ast::Definition, types, ast,
 /// DependencyMap};
 /// #
 /// # struct MyType<T: Node> {
@@ -100,6 +100,30 @@ use ast::Docs;
 /// ```
 ///
 
+/// ## The core trait of zod
+///
+/// Each and every element to be accessible for the client needs to
+/// implement it.
+/// This crate implements this trait for most of the relevant standard library types as well as
+/// types from some third party crates. If you find yourself in need for a specific type to
+/// implement this trait and you cannot implement it yourself because of the orphan rule please
+/// file an issue or submit a PR. Contribution is more than welcome!
+pub trait Node: Register {
+    const AST: Definition;
+
+    fn export() -> Option<Export> {
+        Self::AST.export()
+    }
+
+    fn inline() -> InlineSchema {
+        Self::AST.inline()
+    }
+
+    fn docs() -> Option<Docs> {
+        Self::AST.docs()
+    }
+}
+
 pub trait Register {
     fn register(_: &mut DependencyMap)
     where
@@ -121,7 +145,7 @@ pub struct DependencyMap(BTreeMap<TypeId, Option<ast::Export>>);
 impl DependencyMap {
     pub fn add_self<T>(&mut self) -> bool
     where
-        T: ast::Node + 'static,
+        T: Node + 'static,
     {
         let id = TypeId::of::<T>();
         self.0.insert(id, T::AST.export()).is_none()

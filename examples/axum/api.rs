@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use futures::Stream;
 use futures::StreamExt;
-use zod::{core::ast::Node, core::types::Usize, rpc, Namespace, Node};
+use zod::{core::types::Usize, rpc, Namespace, Node};
 
 #[derive(serde::Serialize, serde::Deserialize, Node, Debug)]
 #[zod(namespace = "Watchout")]

@@ -1,6 +1,3 @@
-use zod::ast::{FormatTypescript, FormatZod};
-use zod::ZodType;
-
 mod test_utils;
 use test_utils::*;
 
@@ -14,51 +11,32 @@ fn generic_structs() {
             v: T2,
         }
 
-        #[derive(serde::Serialize, serde::Deserialize, Debug, zod::Zod)]
+        #[derive(serde::Serialize, serde::Deserialize, Debug, Node)]
         #[zod(namespace = "Ns")]
         pub struct User {
             value: Generic<String, usize>,
         }
 
-        #[derive(serde::Serialize, serde::Deserialize, Debug, zod::Zod)]
+        #[derive(serde::Serialize, serde::Deserialize, Debug, Node)]
         #[zod(namespace = "Ns")]
         pub struct UserMixed<New> {
             value: Generic<New, usize>,
         }
 
-        #[derive(serde::Serialize, serde::Deserialize, Debug, zod::Zod)]
+        #[derive(serde::Serialize, serde::Deserialize, Debug, Node)]
         #[zod(namespace = "Ns")]
         pub struct UserTransparent<T2, T1> {
             value: Generic<T1, T2>,
         }
     }
 
-    compare(
-        Generic::<(), ()>::AST.to_zod_string(),
+    compare_export::<Generic<(), ()>>(
         "export const Generic = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.lazy(() => z.object({value: Rs.String, t: T1, v: T2}));",
-    );
-
-    compare(
-        Generic::<(), ()>::AST.to_ts_string(),
         "export interface Generic<T1, T2> { value: Rs.String, t: T1, v: T2 }",
     );
 
-    compare(
-        User::AST.to_zod_string(),
+    compare_export::<User>(
         "export const User = z.lazy(() => z.object({value: Ns.Generic(Rs.String, Rs.Usize)}));",
-    );
-
-    compare(
-        User::AST.to_ts_string(),
         "export interface User { value: Ns.Generic<Rs.String, Rs.Usize> }",
     );
-}
-
-#[test]
-fn array_as_field() {
-    test_case! {
-        pub struct MyArray {
-            value: [String; 3],
-        }
-    }
 }

@@ -1,4 +1,6 @@
-use super::{Formatter, InlineSchema, Node};
+use crate::Node;
+
+use super::{Formatter, InlineSchema};
 
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

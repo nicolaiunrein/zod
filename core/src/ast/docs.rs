@@ -1,8 +1,14 @@
 use super::Formatter;
 
-/// Docs to be formatted and placed above the exported [Node](crate::ast::Node)
+/// Docs to be formatted and placed above the exported [Node](crate::Node)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Docs(pub &'static str);
+
+impl AsRef<str> for Docs {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
 
 impl Formatter for Docs {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

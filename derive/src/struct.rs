@@ -48,7 +48,7 @@ impl<'a> ToTokens for TupleSchema<'a> {
         let fields = &self.fields;
 
         tokens.extend(quote! {
-            #zod::core::ast::TupleSchema::new(&[#(<#fields as #zod::core::ast::Node>::DEFINITION.inline()),*])
+            #zod::core::ast::TupleSchema::new(&[#(<#fields as #zod::core::Node>::AST.inline()),*])
         })
     }
 }
@@ -297,8 +297,8 @@ mod test {
                     docs: None,
                     path: ::zod::core::ast::Path::new::<Ns>("MyStruct"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
-                       Vec<String>,
-                       Option<bool>
+                       <Vec<String> as ::zod::core::Node>::AST.inline(),
+                       <Option<bool> as ::zod::core::Node>::AST.inline()
                     ]))
                 }
                 ,&[])

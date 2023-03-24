@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::{Delimited, Docs, ExportSchema, Formatter, GenericArgument, Path};
 
-/// The struct containing all the info about a [Node](crate::ast::Node) to be exported
+/// The struct containing all the info about a [Node](crate::Node) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
     pub docs: Option<Docs>,
@@ -100,8 +100,8 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, Node, ObjectSchema, TupleSchema};
-    use crate::Namespace;
+    use crate::ast::{NamedField, ObjectSchema, TupleSchema};
+    use crate::{Namespace, Node};
 
     use super::*;
     use pretty_assertions::assert_eq;
