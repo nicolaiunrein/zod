@@ -111,8 +111,7 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
         struct Ns;
         impl Namespace for Ns {
             const NAME: &'static str = "Ns";
-            const DOCS: Option<&'static str> = None;
-            type UniqueMembers = ();
+            const DOCS: Option<Docs> = None;
         }
         const REQ: RpcRequest = RpcRequest {
             path: Path::new::<Ns>("test"),
@@ -143,8 +142,7 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
         struct Ns;
         impl Namespace for Ns {
             const NAME: &'static str = "Ns";
-            const DOCS: Option<&'static str> = None;
-            type UniqueMembers = ();
+            const DOCS: Option<Docs> = None;
         }
         const REQ: RpcRequest = RpcRequest {
             path: Path::new::<Ns>("test"),

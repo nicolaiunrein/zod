@@ -25,6 +25,8 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
+use ast::Docs;
+
 /// Trait for dependency registration
 /// Each implementor should recursively call register on all its dependencies (ie. fields in a
 /// struct).
@@ -146,8 +148,5 @@ macro_rules! register_dependencies {
 
 pub trait Namespace {
     const NAME: &'static str;
-    const DOCS: Option<&'static str>;
-
-    #[doc(hidden)]
-    type UniqueMembers;
+    const DOCS: Option<Docs>;
 }

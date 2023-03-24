@@ -109,8 +109,7 @@ mod test {
     struct Ns;
     impl Namespace for Ns {
         const NAME: &'static str = "Ns";
-        const DOCS: Option<&'static str> = None;
-        type UniqueMembers = ();
+        const DOCS: Option<Docs> = None;
     }
 
     #[test]

@@ -19,7 +19,7 @@ pub use generics::*;
 pub use path::*;
 pub use schema::*;
 
-pub(crate) use formatter::*;
+pub use formatter::*;
 pub(crate) use utils::*;
 
 use crate::Register;
@@ -121,10 +121,7 @@ mod test {
     struct Ns;
     impl Namespace for Ns {
         const NAME: &'static str = "Ns";
-
-        const DOCS: Option<&'static str> = None;
-
-        type UniqueMembers = ();
+        const DOCS: Option<Docs> = None;
     }
 
     struct MyGeneric<T1, T2> {
