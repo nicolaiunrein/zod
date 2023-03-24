@@ -30,3 +30,18 @@ fn struct_default_tuple() {
         "export type Test = [Rs.String | undefined, Rs.Usize];",
     );
 }
+
+#[test]
+fn struct_default_newtype() {
+    test_case! {
+        struct Test(#[serde(default)]Usize);
+    }
+
+    let json = serde_json::to_string(&Test(Usize(123))).unwrap();
+    assert_eq!(json, "\"123\"");
+
+    compare_export::<Test>(
+        "export const Test = z.lazy(() => Rs.Usize.optional());",
+        "export type Test = Rs.Usize | undefined;",
+    );
+}

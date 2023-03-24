@@ -1,5 +1,3 @@
-use pretty_assertions::assert_eq;
-
 mod test_utils;
 use test_utils::*;
 

@@ -130,7 +130,7 @@ mod test {
     #[test]
     fn union_ok() {
         const DEF: UnionSchema =
-            UnionSchema::new(&[String::AST.inline(), crate::types::Usize::AST.inline()]);
+            UnionSchema::new(&[*String::AST.inline(), *crate::types::Usize::AST.inline()]);
 
         assert_eq!(DEF.to_zod_string(), "z.union([Rs.String, Rs.Usize])");
         assert_eq!(DEF.to_ts_string(), "Rs.String | Rs.Usize");

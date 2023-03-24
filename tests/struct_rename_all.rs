@@ -22,7 +22,7 @@ fn rename_all_struct() {
     .unwrap();
     assert_eq!(
         json,
-        serde_json::json!({"STRING_VALUE": "abc", "USIZE_VALUE": 123})
+        serde_json::json!({"STRING_VALUE": "abc", "USIZE_VALUE": "123"})
     );
 
     assert!(Test::export()

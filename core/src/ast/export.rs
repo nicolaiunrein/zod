@@ -106,7 +106,7 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, ObjectSchema, TupleField, TupleSchema};
+    use crate::ast::{NamedField, NewtypeSchema, ObjectSchema, TupleField, TupleSchema};
     use crate::Namespace;
 
     use super::*;
@@ -150,6 +150,29 @@ mod test {
             TupleField::new::<String>(),
             TupleField::new::<crate::types::Usize>(),
         ]);
+
+        const EXPORT_TUPLE: Export = Export {
+            docs: None,
+            path: Path::new::<Ns>("test"),
+            schema: ExportSchema::Tuple(TUPLE),
+        };
+
+        assert_eq!(
+            EXPORT_TUPLE.to_zod_string(),
+            format!(
+                "export const test = z.lazy(() => {});",
+                TUPLE.to_zod_string()
+            )
+        );
+        assert_eq!(
+            EXPORT_TUPLE.to_ts_string(),
+            format!("export type test = {};", TUPLE.to_ts_string())
+        );
+    }
+
+    #[test]
+    fn newtype_ok() {
+        const NEWTYPE: NewtypeSchema = NewtypeSchema::new::<String>();
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,

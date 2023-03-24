@@ -27,12 +27,6 @@ struct ObjectSchema {
 impl ToTokens for ObjectSchema {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
-        // let fields = self.fields.iter().map(|(name, ty)| {
-        // quote! {
-        // #zod::core::ast::NamedField::new::<#ty>(#name)
-        // }
-        // });
-
         let fields = &self.fields;
         tokens.extend(quote! {
             #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
@@ -42,15 +36,17 @@ impl ToTokens for ObjectSchema {
 
 struct NewtypeSchema {
     inner: Type,
+    optional: bool,
 }
 
 impl<'a> ToTokens for NewtypeSchema {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ty = &self.inner;
+        let optional = self.optional;
 
         tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new::<#ty>()
+            #zod::core::ast::NewtypeSchema::new(&<#ty as #zod::core::Node>::AST.inline(), #optional)
         })
     }
 }
@@ -163,12 +159,12 @@ impl<'a> ToTokens for Struct<'a> {
 
             Style::Unit => unreachable!(),
             Style::Newtype => {
-                let zod = get_zod();
-                let ty = &self.fields.first().unwrap().ty;
-                tokens.extend(
-                    quote!(#zod::core::ast::Definition::inlined(<#ty as #zod::core::Node>::AST.inline())),
-                );
-                return;
+                let field = self.fields.first().unwrap();
+
+                Schema::Newtype(NewtypeSchema {
+                    inner: field.ty.clone(),
+                    optional: field.config.default,
+                })
             }
         };
 

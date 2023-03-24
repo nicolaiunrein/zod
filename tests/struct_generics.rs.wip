@@ -5,7 +5,7 @@ use test_utils::*;
 fn generic_structs() {
     test_case! {
         #[derive(serde::Deserialize, Debug)]
-        pub struct Generic<T1, T2> {
+        pub struct Generic<T1: zod::Node, T2: zod::Node> {
             value: String,
             t: T1,
             v: T2,
@@ -14,18 +14,18 @@ fn generic_structs() {
         #[derive(serde::Serialize, serde::Deserialize, Debug, Node)]
         #[zod(namespace = "Ns")]
         pub struct User {
-            value: Generic<String, usize>,
+            value: Generic<String, Usize>,
         }
 
         #[derive(serde::Serialize, serde::Deserialize, Debug, Node)]
         #[zod(namespace = "Ns")]
-        pub struct UserMixed<New> {
-            value: Generic<New, usize>,
+        pub struct UserMixed<New: zod::Node> {
+            value: Generic<New, Usize>,
         }
 
         #[derive(serde::Serialize, serde::Deserialize, Debug, Node)]
         #[zod(namespace = "Ns")]
-        pub struct UserTransparent<T2, T1> {
+        pub struct UserTransparent<T2: zod::Node, T1: zod::Node> {
             value: Generic<T1, T2>,
         }
     }

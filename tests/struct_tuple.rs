@@ -10,7 +10,7 @@ fn one_tuple() {
     }
 
     let json = serde_json::to_value(Test(Usize(123))).unwrap();
-    assert_eq!(json, serde_json::json!(123));
+    assert_eq!(json, serde_json::json!("123"));
 
     compare_export::<Test>(
         "export const Test = z.lazy(() => Rs.Usize);",
@@ -25,7 +25,7 @@ fn ok() {
     }
 
     let json = serde_json::to_value(Test(Usize(123), Usize(42), String::from("abc"))).unwrap();
-    assert_eq!(json, serde_json::json!([123, 42, "abc"]));
+    assert_eq!(json, serde_json::json!(["123", "42", "abc"]));
 
     compare_export::<Test>(
         "export const Test = z.lazy(() => z.tuple([Rs.Usize, Rs.Usize, Rs.String]));",
@@ -42,7 +42,7 @@ fn with_default_fields() {
 
     let test = Test(Usize(42), Usize(0));
 
-    let res: Test = serde_json::from_value(serde_json::json!([42])).unwrap();
+    let res: Test = serde_json::from_value(serde_json::json!(["42"])).unwrap();
 
     assert_eq!(test, res);
 

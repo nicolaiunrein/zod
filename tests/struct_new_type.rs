@@ -10,7 +10,7 @@ fn ok() {
     }
 
     let json = serde_json::to_string(&Test(Usize(123))).unwrap();
-    assert_eq!(json, "123");
+    assert_eq!(json, "\"123\"");
 
     compare_export::<Test>(
         "export const Test = z.lazy(() => Rs.Usize);",

@@ -2,7 +2,7 @@ use crate::ast::Formatter;
 
 use super::InlineSchema;
 
-/// Representation of a `z.tuple([ ... ])`
+/// An type alias
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct NewtypeSchema {
     inner: &'static InlineSchema,
@@ -27,7 +27,7 @@ impl Formatter for NewtypeSchema {
         self.inner.fmt_ts(f)?;
 
         if self.optional {
-            f.write_str(" | undefind")?;
+            f.write_str(" | undefined")?;
         }
         Ok(())
     }
