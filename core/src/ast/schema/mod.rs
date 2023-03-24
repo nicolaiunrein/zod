@@ -1,9 +1,11 @@
 mod discriminated_union;
+mod fields;
 mod object;
 mod tuple;
 mod union;
 
 pub use discriminated_union::*;
+pub use fields::*;
 pub use object::*;
 pub use r#union::*;
 pub use tuple::*;
@@ -89,7 +91,7 @@ impl Formatter for InlineSchema {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::NamedField;
+    use super::NamedField;
     use crate::Node;
 
     use super::*;
@@ -97,8 +99,10 @@ mod test {
 
     #[test]
     fn tuple_ok() {
-        const DEF: TupleSchema =
-            TupleSchema::new(&[String::AST.inline(), crate::types::Usize::AST.inline()]);
+        const DEF: TupleSchema = TupleSchema::new(&[
+            TupleField::new::<String>(),
+            TupleField::new::<crate::types::Usize>(),
+        ]);
         assert_eq!(DEF.to_zod_string(), "z.tuple([Rs.String, Rs.Usize])");
         assert_eq!(DEF.to_ts_string(), "[Rs.String, Rs.Usize]");
     }

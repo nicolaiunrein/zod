@@ -1,14 +1,14 @@
 use crate::ast::{Delimited, Formatter};
 
-use super::InlineSchema;
+use super::TupleField;
 
 /// Representation of a `z.tuple([ ... ])`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TupleSchema {
-    fields: &'static [InlineSchema],
+    fields: &'static [TupleField],
 }
 impl TupleSchema {
-    pub const fn new(fields: &'static [InlineSchema]) -> TupleSchema {
+    pub const fn new(fields: &'static [TupleField]) -> TupleSchema {
         Self { fields }
     }
 }

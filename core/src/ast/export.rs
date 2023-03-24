@@ -100,8 +100,8 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, ObjectSchema, TupleSchema};
-    use crate::{Namespace, Node};
+    use crate::ast::{NamedField, ObjectSchema, TupleField, TupleSchema};
+    use crate::Namespace;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -140,8 +140,10 @@ mod test {
 
     #[test]
     fn tuple_ok() {
-        const TUPLE: TupleSchema =
-            TupleSchema::new(&[String::AST.inline(), crate::types::Usize::AST.inline()]);
+        const TUPLE: TupleSchema = TupleSchema::new(&[
+            TupleField::new::<String>(),
+            TupleField::new::<crate::types::Usize>(),
+        ]);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,

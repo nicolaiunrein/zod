@@ -1,4 +1,5 @@
-use crate::ast::{Delimited, Formatter, NamedField};
+use super::NamedField;
+use crate::ast::{Delimited, Formatter};
 
 /// Representation of a `z.object({ ... })`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

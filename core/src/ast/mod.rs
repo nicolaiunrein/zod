@@ -5,7 +5,6 @@ pub mod rpc;
 
 mod docs;
 mod export;
-mod fields;
 mod formatter;
 mod generics;
 mod path;
@@ -14,7 +13,6 @@ mod utils;
 
 pub use docs::*;
 pub use export::*;
-pub use fields::*;
 pub use generics::*;
 pub use path::*;
 pub use schema::*;
@@ -70,7 +68,7 @@ impl Definition {
 
     pub const fn docs(self) -> Option<Docs> {
         match self {
-            Definition::Exported { export, args } => export.docs,
+            Definition::Exported { export, .. } => export.docs,
             Definition::Inlined(_) => None,
         }
     }
