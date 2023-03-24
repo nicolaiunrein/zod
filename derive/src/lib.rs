@@ -65,3 +65,17 @@ pub fn ns(input: TokenStream) -> TokenStream {
 
     quote!(#ns).into()
 }
+
+#[proc_macro_error]
+#[proc_macro_derive(Backend, attributes(zod))]
+pub fn backend(input: TokenStream) -> TokenStream {
+    todo!();
+    quote!().into()
+}
+
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn rpc(input: TokenStream, args: TokenStream) -> TokenStream {
+    todo!();
+    quote!().into()
+}
