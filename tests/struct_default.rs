@@ -21,12 +21,12 @@ fn struct_default_named() {
 #[test]
 fn struct_default_tuple() {
     test_case! {
-    #[derive(serde::Deserialize)]
-    struct Test(#[serde(default)] String);
+        #[derive(serde::Deserialize)]
+        struct Test(#[serde(default)] String, Usize);
     }
 
-    compare_inlined::<Test>(
-        "export const Test = z.lazy(() => Rs.String.optional());",
-        "export type Test = Rs.String | undefined;",
+    compare_export::<Test>(
+        "export const Test = z.lazy(() => z.tuple([Rs.String.optional(), Rs.Usize]));",
+        "export type Test = [Rs.String | undefined, Rs.Usize];",
     );
 }

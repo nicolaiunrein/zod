@@ -5,6 +5,7 @@ use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
 use serde_derive_internals::ast::Style;
+use syn::Type;
 
 pub struct Struct<'a> {
     pub(crate) generics: &'a syn::Generics,
@@ -16,6 +17,7 @@ pub struct Struct<'a> {
 enum Schema<'a> {
     Object(ObjectSchema),
     Tuple(TupleSchema<'a>),
+    Newtype(NewtypeSchema),
 }
 
 struct ObjectSchema {
@@ -34,6 +36,21 @@ impl ToTokens for ObjectSchema {
         let fields = &self.fields;
         tokens.extend(quote! {
             #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
+        })
+    }
+}
+
+struct NewtypeSchema {
+    inner: Type,
+}
+
+impl<'a> ToTokens for NewtypeSchema {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+        let ty = &self.inner;
+
+        tokens.extend(quote! {
+            #zod::core::ast::NewtypeSchema::new::<#ty>()
         })
     }
 }
@@ -75,12 +92,12 @@ impl<'a> ToTokens for Inlined<'a> {
                 quote! {
                     #zod::core::ast::Definition::inlined(#zod::core::ast::InlineSchema::Tuple(#schema))
                 }
-            } // Schema::Newtype(field) => {
-              // let ty = &field.ty;
-              // quote! {
-              // #zod::core::ast::Definition::inlined(<#ty as #zod::core::Node>::inline())
-              // }
-              // }
+            }
+            Schema::Newtype(schema) => {
+                quote! {
+                    #zod::core::ast::Definition::inlined(#zod::core::asst::InlineSchema::Newtype(#schema))
+                }
+            }
         };
 
         tokens.extend(definition)
@@ -112,29 +129,21 @@ impl<'a> ToTokens for Export<'a> {
         let name = &self.config.name;
         let ns = &self.config.namespace;
 
-        let definition = match &self.schema {
-            Schema::Object(schema) => {
-                quote! {
-                    #zod::core::ast::Definition::exported(#zod::core::ast::Export {
-                        docs: #docs,
-                        path: #zod::core::ast::Path::new::<#ns>(#name),
-                        schema: #zod::core::ast::ExportSchema::Object(#schema)
-                    },
-                    //todo
-                    &[]
-                    )
-                }
-            }
-            Schema::Tuple(schema) => quote! {
-                #zod::core::ast::Definition::exported(#zod::core::ast::Export {
-                        docs: #docs,
-                        path: #zod::core::ast::Path::new::<#ns>(#name),
-                        schema: #zod::core::ast::ExportSchema::Tuple(#schema)
-                },
-                //todo
-                &[]
-                )
+        let schema = match &self.schema {
+            Schema::Object(schema) => quote!(#zod::core::ast::ExportSchema::Object(#schema)),
+            Schema::Tuple(schema) => quote!( #zod::core::ast::ExportSchema::Tuple(#schema)),
+            Schema::Newtype(schema) => quote!(#zod::core::ast::ExportSchema::Newtype(#schema)),
+        };
+
+        let definition = quote! {
+            #zod::core::ast::Definition::exported(#zod::core::ast::Export {
+                docs: #docs,
+                path: #zod::core::ast::Path::new::<#ns>(#name),
+                schema: #schema
             },
+            //todo
+            &[]
+            )
         };
 
         tokens.extend(definition)

@@ -40,6 +40,7 @@ impl Formatter for Export {
                 f.write_str(zod)?;
             }
             ExportSchema::Object(inner) => inner.fmt_zod(f)?,
+            ExportSchema::Newtype(inner) => inner.fmt_zod(f)?,
             ExportSchema::Tuple(inner) => inner.fmt_zod(f)?,
             ExportSchema::Union(inner) => inner.fmt_zod(f)?,
             ExportSchema::DiscriminatedUnion(inner) => inner.fmt_zod(f)?,
@@ -87,6 +88,11 @@ impl Formatter for Export {
             ExportSchema::Tuple(inner) => {
                 fmt_type(&inner)?;
             }
+
+            ExportSchema::Newtype(inner) => {
+                fmt_type(&inner)?;
+            }
+
             ExportSchema::Union(inner) => {
                 fmt_type(&inner)?;
             }

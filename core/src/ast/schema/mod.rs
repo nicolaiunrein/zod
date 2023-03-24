@@ -1,11 +1,13 @@
 mod discriminated_union;
 mod fields;
+mod newtype;
 mod object;
 mod tuple;
 mod union;
 
 pub use discriminated_union::*;
 pub use fields::*;
+pub use newtype::*;
 pub use object::*;
 pub use r#union::*;
 pub use tuple::*;
@@ -23,6 +25,7 @@ pub enum ExportSchema {
         zod: &'static str,
     },
     Object(ObjectSchema),
+    Newtype(NewtypeSchema),
     Tuple(TupleSchema),
     Union(UnionSchema),
     DiscriminatedUnion(DiscriminatedUnionSchema),
@@ -36,6 +39,7 @@ pub enum InlineSchema {
         args: &'static [InlineSchema],
     },
     Object(ObjectSchema),
+    Newtype(NewtypeSchema),
     Tuple(TupleSchema),
     Union(UnionSchema),
     DiscriminatedUnion(DiscriminatedUnionSchema),
@@ -63,6 +67,7 @@ impl Formatter for InlineSchema {
                 }
             }
             InlineSchema::Object(typed) => typed.fmt_zod(f)?,
+            InlineSchema::Newtype(typed) => typed.fmt_zod(f)?,
             InlineSchema::Tuple(typed) => typed.fmt_zod(f)?,
             InlineSchema::Union(typed) => typed.fmt_zod(f)?,
             InlineSchema::DiscriminatedUnion(typed) => typed.fmt_zod(f)?,
@@ -81,6 +86,7 @@ impl Formatter for InlineSchema {
                 }
             }
             InlineSchema::Object(typed) => typed.fmt_ts(f)?,
+            InlineSchema::Newtype(typed) => typed.fmt_ts(f)?,
             InlineSchema::Tuple(typed) => typed.fmt_ts(f)?,
             InlineSchema::Union(typed) => typed.fmt_ts(f)?,
             InlineSchema::DiscriminatedUnion(typed) => typed.fmt_ts(f)?,
