@@ -1,12 +1,15 @@
-use crate::config::Config;
+use crate::config::ContainerConfig;
+use crate::error::Error;
+use crate::field::Field;
 use crate::r#enum::Enum;
 use crate::r#struct::Struct;
 use crate::utils::get_zod;
-use crate::{field::Field, r#enum::EnumVariant};
+use darling::FromDeriveInput;
 use darling::ToTokens;
-use darling::{ast::Data, FromDeriveInput};
 use proc_macro2::TokenStream;
 use quote::quote;
+use serde_derive_internals::ast::Data;
+use syn::Type;
 use syn::{Attribute, Generics};
 
 #[derive(FromDeriveInput)]
@@ -18,7 +21,6 @@ use syn::{Attribute, Generics};
 
 pub struct ZodNodeInput {
     pub ident: syn::Ident,
-    pub data: Data<EnumVariant, Field>,
     pub namespace: syn::Path,
     pub attrs: Vec<Attribute>,
     pub generics: Generics,
@@ -26,61 +28,87 @@ pub struct ZodNodeInput {
 
 pub struct ZodNode {
     pub ident: syn::Ident,
-    pub data: Data<EnumVariant, Field>,
     pub generics: Generics,
-    pub config: Config,
+    pub config: ContainerConfig,
+    pub definition: TokenStream,
+    pub dependencies: Vec<Type>,
 }
 
-impl FromDeriveInput for ZodNode {
-    fn from_derive_input(orig: &syn::DeriveInput) -> darling::Result<Self> {
-        let cx = serde_derive_internals::Ctxt::new();
-
+impl ZodNode {
+    pub fn from_derive_input(orig: &syn::DeriveInput) -> darling::Result<Self> {
         let input = ZodNodeInput::from_derive_input(orig)?;
 
-        let config = Config::new(&orig, input.namespace)?;
+        let cx = serde_derive_internals::Ctxt::new();
 
-        Ok(Self {
-            ident: input.ident,
-            data: input.data,
-            generics: input.generics,
-            config,
-        })
-    }
-}
+        let serde_ast = serde_derive_internals::ast::Container::from_ast(
+            &cx,
+            &orig,
+            serde_derive_internals::Derive::Deserialize,
+        )
+        .ok_or_else(|| Error::NoSerde)?;
 
-impl ToTokens for ZodNode {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        let ident = self.ident.clone();
+        let serde_attrs = serde_ast.attrs;
 
-        let deps = match self.data {
+        let config = ContainerConfig::new(&serde_attrs, &input.attrs, input.namespace)?;
+
+        if let Err(errors) = cx.check() {
+            let mut darling_errors = darling::Error::accumulator();
+            for err in errors.into_iter() {
+                darling_errors.push(err.into())
+            }
+
+            darling_errors.finish()?;
+        }
+
+        let definition = match &serde_ast.data {
+            Data::Enum(variants) => Enum {
+                variants,
+                config: &config,
+            }
+            .expand(),
+
+            Data::Struct(style, fields) => {
+                let s = Struct {
+                    generics: &input.generics,
+                    style,
+                    fields: fields
+                        .into_iter()
+                        .map(Field::new)
+                        .collect::<Result<Vec<_>, _>>()?,
+                    config: &config,
+                };
+
+                quote!(#s)
+            }
+        };
+
+        let dependencies = match serde_ast.data {
             Data::Enum(ref variants) => variants
                 .iter()
                 .map(|v| v.fields.iter().map(|f| f.ty.clone()))
                 .flatten()
                 .collect::<Vec<_>>(),
 
-            Data::Struct(ref fields) => fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>(),
+            Data::Struct(_, ref fields) => fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>(),
         };
 
-        let definition = match &self.data {
-            Data::Enum(variants) => Enum {
-                variants,
-                config: &self.config,
-            }
-            .expand(),
+        Ok(Self {
+            ident: input.ident,
+            generics: input.generics,
+            dependencies,
+            definition,
+            config,
+        })
+    }
+}
 
-            Data::Struct(fields) => {
-                let s = Struct {
-                    ident: &self.ident,
-                    generics: &self.generics,
-                    fields,
-                    config: &self.config,
-                };
+impl<'a> ToTokens for ZodNode {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+        let ident = self.ident.clone();
 
-                quote!(#s)
-            }
-        };
+        let definition = &self.definition;
+        let dependencies = &self.dependencies;
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
@@ -94,7 +122,7 @@ impl ToTokens for ZodNode {
                 where
                     Self: 'static,
                 {
-                    #zod::core::register_dependencies!(ctx, #(#deps),*);
+                    #zod::core::register_dependencies!(ctx, #(#dependencies),*);
                 }
             }
         })

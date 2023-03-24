@@ -16,6 +16,13 @@ pub fn compare_export<T: zod::Node>(expected_zod: &str, expected_ts: &str) {
     compare(&export.to_ts_string(), expected_ts);
 }
 
+pub fn compare_inlined<T: zod::Node>(expected_zod: &str, expected_ts: &str) {
+    let inlined = <T as zod::Node>::inline();
+
+    compare(&inlined.to_zod_string(), expected_zod);
+    compare(&inlined.to_ts_string(), expected_ts);
+}
+
 fn expand(input: String) -> String {
     let mut out = String::new();
 
@@ -149,8 +156,9 @@ pub fn optional(inner: impl AsRef<str>) -> String {
 macro_rules! test_case {
 ($($decl: tt)+) => {
 
-#[derive(zod::Namespace)]
-struct Ns;
+    #[derive(zod::Namespace)]
+    struct Ns;
+
     #[derive(zod::Node, serde::Serialize)]
     #[zod(namespace = "Ns")]
     #[allow(dead_code)]

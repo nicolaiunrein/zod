@@ -1,24 +1,40 @@
-use darling::{FromField, ToTokens};
+use crate::config::FieldConfig;
+use crate::error::Error;
+use darling::ToTokens;
 use quote::quote;
-use syn::{Attribute, Type};
+use serde_derive_internals::ast::Field as SerdeField;
+use syn::Type;
 
 use crate::utils::get_zod;
 
-#[derive(FromField)]
-#[darling(attributes(zod), forward_attrs(allow, doc, cfg, serde))]
+#[derive(Clone)]
 pub struct Field {
-    pub ident: Option<syn::Ident>,
     pub ty: Type,
-    pub attrs: Vec<Attribute>,
+    pub config: FieldConfig,
+}
+
+impl Field {
+    pub fn new<'a>(value: &'a SerdeField) -> Result<Self, Error> {
+        Ok(Self {
+            ty: value.original.ty.clone(),
+            config: FieldConfig::new(&value.attrs)?,
+        })
+    }
 }
 
 impl ToTokens for Field {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ty = &self.ty;
-        let optional = quote!();
+
+        let optional = if self.config.default {
+            quote!(.optional())
+        } else {
+            quote!()
+        };
+
         let zod = get_zod();
 
-        match self.ident {
+        match self.config.name {
             Some(ref name) => tokens.extend(quote! {
                 #zod::core::ast::NamedField::new::<#ty>(#name) #optional
             }),

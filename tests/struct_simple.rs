@@ -21,11 +21,11 @@ fn simple_named_struct() {
 fn simple_tuple_struct() {
     test_case! {
         #[derive(serde::Deserialize)]
-        struct Test(String);
+        struct Test(String, Usize);
     }
 
     compare_export::<Test>(
-        "export const Test = z.lazy(() => z.tuple([Rs.String]));",
-        "export type Test = [Rs.String];",
+        "export const Test = z.lazy(() => z.tuple([Rs.String, Rs.Usize]));",
+        "export type Test = [Rs.String, Rs.Usize];",
     );
 }

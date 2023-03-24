@@ -1,5 +1,6 @@
 use darling::FromAttributes;
-use syn::Type;
+use serde_derive_internals::attr::Container;
+use syn::{Attribute, Type};
 
 use crate::docs::RustDocs;
 use crate::error::{Error, SerdeConflict};
@@ -34,7 +35,7 @@ impl From<serde_derive_internals::attr::TagType> for TagType {
     }
 }
 
-pub struct Config {
+pub struct ContainerConfig {
     pub docs: RustDocs,
     pub name: String,
     pub transparent: bool,
@@ -44,7 +45,7 @@ pub struct Config {
 }
 
 #[cfg(test)]
-impl Default for Config {
+impl Default for ContainerConfig {
     fn default() -> Self {
         Self {
             docs: Default::default(),
@@ -57,28 +58,13 @@ impl Default for Config {
     }
 }
 
-impl Config {
-    pub fn new(orig: &syn::DeriveInput, namespace: syn::Path) -> Result<Self, darling::Error> {
-        let cx = serde_derive_internals::Ctxt::new();
-
-        let serde_attrs = serde_derive_internals::ast::Container::from_ast(
-            &cx,
-            &orig,
-            serde_derive_internals::Derive::Deserialize,
-        )
-        .ok_or_else(|| Error::NoSerde)?
-        .attrs;
-
-        if let Err(errors) = cx.check() {
-            let mut darling_errors = darling::Error::accumulator();
-            for err in errors.into_iter() {
-                darling_errors.push(err.into())
-            }
-
-            darling_errors.finish()?;
-        }
-
-        let docs = RustDocs::from_attributes(&orig.attrs).unwrap();
+impl ContainerConfig {
+    pub fn new(
+        serde_attrs: &Container,
+        orig: &[Attribute],
+        namespace: syn::Path,
+    ) -> Result<Self, darling::Error> {
+        let docs = RustDocs::from_attributes(&orig).unwrap();
 
         let name = {
             let name = serde_attrs.name();

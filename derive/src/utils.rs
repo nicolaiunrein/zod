@@ -66,10 +66,7 @@ pub(crate) fn generics_of_ty<'generics>(
 /// }
 /// ```
 ///
-pub fn is_export(
-    fields: &darling::ast::Fields<crate::field::Field>,
-    generics: &syn::Generics,
-) -> bool {
+pub fn is_export(fields: &[crate::field::Field], generics: &syn::Generics) -> bool {
     fields.iter().all(|f| {
         // the type does not have generics buy may be a generic param itself, which is ok
         if let Type::Path(TypePath { qself: None, path }) = &f.ty {
@@ -84,7 +81,6 @@ pub fn is_export(
 
 #[cfg(test)]
 mod test {
-    use darling::ast::{Fields, Style};
     use syn::parse_quote;
 
     use crate::field::Field;
@@ -129,28 +125,22 @@ mod test {
 
     #[test]
     fn is_export_no_generics_no_fields_ok() {
-        let fields = Fields::new(Style::Tuple, Vec::new());
         let generics = Default::default();
-        assert!(is_export(&fields, &generics));
+        assert!(is_export(&[], &generics));
     }
 
     #[test]
     fn is_export_no_generics_fields_ok() {
-        let fields = Fields::new(
-            Style::Tuple,
-            vec![
-                Field {
-                    ident: None,
-                    ty: parse_quote!(Vec<T>),
-                    attrs: Vec::new(),
-                },
-                Field {
-                    ident: None,
-                    ty: parse_quote!(Option<bool>),
-                    attrs: Vec::new(),
-                },
-            ],
-        );
+        let fields = vec![
+            Field {
+                ty: parse_quote!(Vec<T>),
+                config: Default::default(),
+            },
+            Field {
+                ty: parse_quote!(Option<bool>),
+                config: Default::default(),
+            },
+        ];
 
         let generics = Default::default();
         assert!(is_export(&fields, &generics));
@@ -158,21 +148,16 @@ mod test {
 
     #[test]
     fn is_export_generics_and_fields_ok() {
-        let fields = Fields::new(
-            Style::Tuple,
-            vec![
-                Field {
-                    ident: None,
-                    ty: parse_quote!(T),
-                    attrs: Vec::new(),
-                },
-                Field {
-                    ident: None,
-                    ty: parse_quote!(Option<bool>),
-                    attrs: Vec::new(),
-                },
-            ],
-        );
+        let fields = vec![
+            Field {
+                ty: parse_quote!(T),
+                config: Default::default(),
+            },
+            Field {
+                ty: parse_quote!(Option<bool>),
+                config: Default::default(),
+            },
+        ];
         let generics = parse_quote!(<T>);
         assert!(is_export(&fields, &generics));
     }
@@ -180,21 +165,10 @@ mod test {
     #[test]
     fn is_not_export_generics_and_fields_ok2() {
         let generics = parse_quote!(<T>);
-        let fields = Fields::new(
-            Style::Tuple,
-            vec![
-                Field {
-                    ident: None,
-                    ty: parse_quote!(T),
-                    attrs: Vec::new(),
-                },
-                Field {
-                    ident: None,
-                    ty: parse_quote!(Result<String, T>),
-                    attrs: Vec::new(),
-                },
-            ],
-        );
+        let fields = vec![Field {
+            ty: parse_quote!(Result<String, T>),
+            config: Default::default(),
+        }];
 
         assert!(!is_export(&fields, &generics))
     }
@@ -202,26 +176,20 @@ mod test {
     #[test]
     fn is_not_export_generics_and_fields_ok3() {
         let generics = parse_quote!(<T1, T2>);
-        let fields = Fields::new(
-            Style::Tuple,
-            vec![
-                Field {
-                    ident: None,
-                    ty: parse_quote!(T1),
-                    attrs: Vec::new(),
-                },
-                Field {
-                    ident: None,
-                    ty: parse_quote!(T2),
-                    attrs: Vec::new(),
-                },
-                Field {
-                    ident: None,
-                    ty: parse_quote!(HashMap<T2, bool>),
-                    attrs: Vec::new(),
-                },
-            ],
-        );
+        let fields = vec![
+            Field {
+                ty: parse_quote!(T1),
+                config: Default::default(),
+            },
+            Field {
+                ty: parse_quote!(T2),
+                config: Default::default(),
+            },
+            Field {
+                ty: parse_quote!(HashMap<T2, bool>),
+                config: Default::default(),
+            },
+        ];
 
         assert!(!is_export(&fields, &generics))
     }

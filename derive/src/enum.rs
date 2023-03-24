@@ -1,19 +1,14 @@
-use crate::config::Config;
+use crate::config::ContainerConfig;
 use crate::field::Field;
 use darling::ast::Fields;
 use darling::FromVariant;
 use proc_macro2::TokenStream;
 use quote::quote;
-
-#[derive(FromVariant)]
-pub struct EnumVariant {
-    pub ident: syn::Ident,
-    pub fields: Fields<Field>,
-}
+use serde_derive_internals::ast::Variant;
 
 pub struct Enum<'a> {
-    pub(crate) variants: &'a [EnumVariant],
-    pub(crate) config: &'a Config,
+    pub(crate) variants: &'a [Variant<'a>],
+    pub(crate) config: &'a ContainerConfig,
 }
 
 impl<'a> Enum<'a> {
