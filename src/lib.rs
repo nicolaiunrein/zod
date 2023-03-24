@@ -140,6 +140,8 @@ pub mod __private {
     pub use zod_core::rpc::*;
 }
 
+pub use zod_core as core;
+
 #[test]
 fn ui() {
     let t = trybuild::TestCases::new();
