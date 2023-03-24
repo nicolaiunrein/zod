@@ -11,7 +11,7 @@ impl NamedField {
     pub const fn new<T: Node>(name: &'static str) -> Self {
         Self {
             name,
-            value: T::DEFINITION.inline(),
+            value: T::AST.inline(),
         }
     }
     pub const fn name(&self) -> &'static str {

@@ -140,10 +140,8 @@ mod test {
 
     #[test]
     fn tuple_ok() {
-        const TUPLE: TupleSchema = TupleSchema::new(&[
-            String::DEFINITION.inline(),
-            crate::types::Usize::DEFINITION.inline(),
-        ]);
+        const TUPLE: TupleSchema =
+            TupleSchema::new(&[String::AST.inline(), crate::types::Usize::AST.inline()]);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,

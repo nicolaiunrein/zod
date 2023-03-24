@@ -33,14 +33,14 @@ use crate::Register;
 /// implement this trait and you cannot implement it yourself because of the orphan rule please
 /// file an issue or submit a PR. Contribution is more than welcome!
 pub trait Node: Register {
-    const DEFINITION: Definition;
+    const AST: Definition;
 
     fn export() -> Option<Export> {
-        Self::DEFINITION.export()
+        Self::AST.export()
     }
 
     fn inline() -> InlineSchema {
-        Self::DEFINITION.inline()
+        Self::AST.inline()
     }
 }
 
@@ -130,7 +130,7 @@ mod test {
     }
 
     impl<T1: Node, T2: Node> Node for MyGeneric<T1, T2> {
-        const DEFINITION: Definition = Definition::exported(
+        const AST: Definition = Definition::exported(
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyGeneric"),
@@ -139,7 +139,7 @@ mod test {
                     NamedField::new::<T2>("t2"),
                 ])),
             },
-            &[T1::DEFINITION.inline(), T2::DEFINITION.inline()],
+            &[T1::AST.inline(), T2::AST.inline()],
         );
     }
 
@@ -157,7 +157,7 @@ mod test {
     }
 
     impl Node for MyType {
-        const DEFINITION: Definition = Definition::exported(
+        const AST: Definition = Definition::exported(
             Export {
                 docs: None,
                 path: Path::new::<Ns>("MyType"),
@@ -183,10 +183,9 @@ mod test {
     }
 
     impl<T: Node> Node for Partial<T> {
-        const DEFINITION: Definition =
-            Definition::inlined(InlineSchema::Object(ObjectSchema::new(&[
-                NamedField::new::<MyGeneric<String, T>>("partial_inner"),
-            ])));
+        const AST: Definition = Definition::inlined(InlineSchema::Object(ObjectSchema::new(&[
+            NamedField::new::<MyGeneric<String, T>>("partial_inner"),
+        ])));
     }
 
     impl<T: Node> Register for Partial<T> {
@@ -200,7 +199,7 @@ mod test {
 
     #[test]
     fn nested_ok() {
-        let export = <MyType>::DEFINITION.export();
+        let export = <MyType>::AST.export();
         let expected_zod_export= "export const MyType = z.lazy(() => z.object({ my_type_inner: z.object({ partial_inner: Ns.MyGeneric(Rs.String, Rs.Usize) }) }));";
         let expected_ts_export = "export interface MyType { my_type_inner: { partial_inner: Ns.MyGeneric<Rs.String, Rs.Usize> } }";
         assert_eq!(

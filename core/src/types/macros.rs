@@ -11,7 +11,7 @@ macro_rules! join {
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::ast::Node for $T {
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::exported(
+            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
@@ -54,9 +54,9 @@ macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
         impl<$($i: Node),*> Node for ($($i,)*) {
 
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::exported(
+            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::types::macros::tuple!($N, $($i),*),
-                &[$(<$i>::DEFINITION.inline()),*]
+                &[$(<$i>::AST.inline()),*]
             );
         }
 
@@ -75,8 +75,7 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: Node> Node for $type {
-            const DEFINITION: $crate::ast::Definition =
-                $crate::ast::Definition::inlined(T::DEFINITION.inline());
+            const AST: $crate::ast::Definition = $crate::ast::Definition::inlined(T::AST.inline());
         }
 
         impl<T: Node> Register for $type {
@@ -94,7 +93,7 @@ macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: Node),*> Node for $ty {
 
-            const DEFINITION: $crate::ast::Definition = $crate::ast::Definition::exported(
+            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
@@ -104,7 +103,7 @@ macro_rules! impl_generic {
                         ts: $ts
                     },
                 },
-                &[$($generics::DEFINITION.inline()),*]
+                &[$($generics::AST.inline()),*]
                 );
         }
 

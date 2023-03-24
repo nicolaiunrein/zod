@@ -120,7 +120,7 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            res: <Option<bool>>::DEFINITION.inline(),
+            res: <Option<bool>>::AST.inline(),
         };
 
         assert_eq!(REQ.to_string(), expected);
@@ -151,7 +151,7 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            res: <Option<bool>>::DEFINITION.inline(),
+            res: <Option<bool>>::AST.inline(),
         };
 
         assert_eq!(REQ.to_string(), expected);
