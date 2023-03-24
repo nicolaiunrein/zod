@@ -17,6 +17,7 @@ macro_rules! impl_conversion {
             Eq,
             Hash,
             PartialOrd,
+            Default,
             Ord,
         )]
         #[serde(transparent)]
