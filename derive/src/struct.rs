@@ -95,7 +95,7 @@ impl<'a> ToTokens for Inlined<'a> {
             }
             Schema::Newtype(schema) => {
                 quote! {
-                    #zod::core::ast::Definition::inlined(#zod::core::asst::InlineSchema::Newtype(#schema))
+                    #zod::core::ast::Definition::inlined(#zod::core::ast::InlineSchema::Newtype(#schema))
                 }
             }
         };
@@ -157,10 +157,19 @@ impl<'a> ToTokens for Struct<'a> {
                 fields: &self.fields,
             }),
 
-            Style::Struct => Schema::Object(ObjectSchema {
-                fields: self.fields.clone(),
-            }),
-
+            Style::Struct => {
+                if self.config.transparent {
+                    let field = self.fields.iter().next().expect("todo");
+                    Schema::Newtype(NewtypeSchema {
+                        inner: field.ty.clone(),
+                        optional: field.config.default,
+                    })
+                } else {
+                    Schema::Object(ObjectSchema {
+                        fields: self.fields.clone(),
+                    })
+                }
+            }
             Style::Unit => unreachable!(),
             Style::Newtype => {
                 let field = self.fields.iter().next().expect("todo");
