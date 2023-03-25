@@ -7,6 +7,7 @@ use crate::error::{Error, SerdeConflict};
 pub struct FieldConfig {
     pub default: bool,
     pub name: Option<String>,
+    pub ignored: bool,
 }
 
 impl FieldConfig {
@@ -23,11 +24,23 @@ impl FieldConfig {
             }
         };
 
+        if let Some(_expr) = input.skip_serializing_if() {
+            return Err(SerdeConflict::Skip.into());
+        }
+
+        let ignored = match (input.skip_serializing(), input.skip_deserializing()) {
+            (true, true) => true,
+            (false, false) => false,
+            _ => return Err(SerdeConflict::Skip.into()),
+        };
+
         Ok(Self {
+            ignored,
             default: match input.default() {
                 attr::Default::None => false,
                 _ => true,
             },
+            // todo
             name: if name.chars().all(|c| c.is_numeric()) {
                 None
             } else {

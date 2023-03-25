@@ -1,6 +1,7 @@
 use crate::config::ContainerConfig;
 use crate::error::Error;
 use crate::field::Field;
+use crate::field::FilteredFields;
 use crate::r#enum::Enum;
 use crate::r#struct::Struct;
 use crate::utils::get_zod;
@@ -60,45 +61,53 @@ impl ZodNode {
             darling_errors.finish()?;
         }
 
-        let definition = match &serde_ast.data {
-            Data::Enum(variants) => Enum {
-                variants,
-                config: &config,
-            }
-            .expand(),
+        match serde_ast.data {
+            Data::Enum(ref variants) => {
+                let dependencies = variants
+                    .iter()
+                    .map(|v| v.fields.iter().map(|f| f.ty.clone()))
+                    .flatten()
+                    .collect::<Vec<_>>();
 
-            Data::Struct(style, fields) => {
+                let definition = Enum {
+                    variants,
+                    config: &config,
+                }
+                .expand();
+
+                Ok(Self {
+                    ident: input.ident,
+                    generics: input.generics,
+                    dependencies,
+                    definition,
+                    config,
+                })
+            }
+            Data::Struct(ref style, ref fields) => {
                 let s = Struct {
                     generics: &input.generics,
                     style,
-                    fields: fields
-                        .into_iter()
-                        .map(Field::new)
-                        .collect::<Result<Vec<_>, _>>()?,
+                    fields: FilteredFields::new(
+                        fields
+                            .into_iter()
+                            .map(Field::new)
+                            .collect::<Result<Vec<_>, _>>()?,
+                    ),
                     config: &config,
                 };
 
-                quote!(#s)
+                let dependencies = s.dependencies();
+                let definition = quote!(#s);
+
+                Ok(Self {
+                    ident: input.ident,
+                    generics: input.generics,
+                    dependencies,
+                    definition,
+                    config,
+                })
             }
-        };
-
-        let dependencies = match serde_ast.data {
-            Data::Enum(ref variants) => variants
-                .iter()
-                .map(|v| v.fields.iter().map(|f| f.ty.clone()))
-                .flatten()
-                .collect::<Vec<_>>(),
-
-            Data::Struct(_, ref fields) => fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>(),
-        };
-
-        Ok(Self {
-            ident: input.ident,
-            generics: input.generics,
-            dependencies,
-            definition,
-            config,
-        })
+        }
     }
 }
 

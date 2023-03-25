@@ -66,8 +66,11 @@ pub(crate) fn generics_of_ty<'generics>(
 /// }
 /// ```
 ///
-pub fn is_export(fields: &[crate::field::Field], generics: &syn::Generics) -> bool {
-    fields.iter().all(|f| {
+pub fn is_export(
+    fields: impl IntoIterator<Item = crate::field::Field>,
+    generics: &syn::Generics,
+) -> bool {
+    fields.into_iter().all(|f| {
         // the type does not have generics buy may be a generic param itself, which is ok
         if let Type::Path(TypePath { qself: None, path }) = &f.ty {
             if path.get_ident().is_some() {
@@ -126,7 +129,7 @@ mod test {
     #[test]
     fn is_export_no_generics_no_fields_ok() {
         let generics = Default::default();
-        assert!(is_export(&[], &generics));
+        assert!(is_export(Vec::new(), &generics));
     }
 
     #[test]
@@ -143,7 +146,7 @@ mod test {
         ];
 
         let generics = Default::default();
-        assert!(is_export(&fields, &generics));
+        assert!(is_export(fields, &generics));
     }
 
     #[test]
@@ -159,7 +162,7 @@ mod test {
             },
         ];
         let generics = parse_quote!(<T>);
-        assert!(is_export(&fields, &generics));
+        assert!(is_export(fields, &generics));
     }
 
     #[test]
@@ -170,7 +173,7 @@ mod test {
             config: Default::default(),
         }];
 
-        assert!(!is_export(&fields, &generics))
+        assert!(!is_export(fields, &generics))
     }
 
     #[test]
@@ -191,6 +194,6 @@ mod test {
             },
         ];
 
-        assert!(!is_export(&fields, &generics))
+        assert!(!is_export(fields, &generics))
     }
 }

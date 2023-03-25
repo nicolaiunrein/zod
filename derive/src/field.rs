@@ -44,3 +44,23 @@ impl ToTokens for Field {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct FilteredFields(Vec<Field>);
+
+impl FilteredFields {
+    pub fn new(inner: Vec<Field>) -> Self {
+        let inner = inner.into_iter().filter(|f| !f.config.ignored).collect();
+        Self(inner)
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &Field> {
+        self.0.iter()
+    }
+}
+
+impl ToTokens for FilteredFields {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let inner = &self.0;
+        tokens.extend(quote!(#(#inner),*));
+    }
+}

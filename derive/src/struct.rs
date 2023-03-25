@@ -1,5 +1,5 @@
 use crate::config::ContainerConfig;
-use crate::field::Field;
+use crate::field::{Field, FilteredFields};
 use crate::utils::{get_zod, is_export};
 use darling::ToTokens;
 use proc_macro2::TokenStream;
@@ -9,9 +9,15 @@ use syn::Type;
 
 pub struct Struct<'a> {
     pub(crate) generics: &'a syn::Generics,
-    pub(crate) fields: Vec<Field>,
+    pub(crate) fields: FilteredFields,
     pub(crate) style: &'a Style,
     pub(crate) config: &'a ContainerConfig,
+}
+
+impl<'a> Struct<'a> {
+    pub fn dependencies(&self) -> Vec<Type> {
+        self.fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>()
+    }
 }
 
 enum Schema<'a> {
@@ -21,16 +27,14 @@ enum Schema<'a> {
 }
 
 struct ObjectSchema {
-    fields: Vec<Field>,
+    fields: FilteredFields,
 }
 
 impl ToTokens for ObjectSchema {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let fields = &self.fields;
-        tokens.extend(quote! {
-            #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
-        })
+        tokens.extend(quote!(#zod::core::ast::ObjectSchema::new(&[#fields])));
     }
 }
 
@@ -52,7 +56,7 @@ impl<'a> ToTokens for NewtypeSchema {
 }
 
 struct TupleSchema<'a> {
-    fields: &'a [Field],
+    fields: &'a FilteredFields,
 }
 
 impl<'a> ToTokens for TupleSchema<'a> {
@@ -159,7 +163,7 @@ impl<'a> ToTokens for Struct<'a> {
 
             Style::Unit => unreachable!(),
             Style::Newtype => {
-                let field = self.fields.first().unwrap();
+                let field = self.fields.iter().next().expect("todo");
 
                 Schema::Newtype(NewtypeSchema {
                     inner: field.ty.clone(),
@@ -168,7 +172,7 @@ impl<'a> ToTokens for Struct<'a> {
             }
         };
 
-        if is_export(&self.fields, &self.generics) {
+        if is_export(self.fields.iter().cloned(), &self.generics) {
             Export {
                 config: &self.config,
                 schema,
@@ -193,7 +197,7 @@ mod test {
             config: &Default::default(),
             generics: &Default::default(),
             style: &Style::Struct,
-            fields: Vec::new(),
+            fields: FilteredFields::new(Vec::new()),
         };
 
         compare(
@@ -216,7 +220,7 @@ mod test {
         let input = Struct {
             generics: &Default::default(),
             style: &Style::Struct,
-            fields: vec![
+            fields: FilteredFields::new(vec![
                 Field {
                     ty: parse_quote!(Vec<String>),
                     config: FieldConfig {
@@ -231,7 +235,7 @@ mod test {
                         ..Default::default()
                     },
                 },
-            ],
+            ]),
             config: &Default::default(),
         };
 
@@ -257,7 +261,7 @@ mod test {
     fn empty_tuple_ok() {
         let input = Struct {
             generics: &Default::default(),
-            fields: Vec::new(),
+            fields: FilteredFields::new(Vec::new()),
             style: &Style::Tuple,
             config: &Default::default(),
         };

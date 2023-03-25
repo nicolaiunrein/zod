@@ -22,6 +22,8 @@ pub enum SerdeConflict {
         from: Option<Type>,
         into: Option<Type>,
     },
+    #[error("todo")]
+    Skip,
 }
 
 impl From<Error> for darling::Error {
