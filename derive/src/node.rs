@@ -122,7 +122,7 @@ impl<'a> ToTokens for ZodNode {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         tokens.extend(quote! {
-            impl #impl_generics #zod::core::Node for #ident #ty_generics #where_clause {
+            impl #impl_generics #zod::core::InputType for #ident #ty_generics #where_clause {
                 const AST: #zod::core::ast::Definition = #definition;
             }
 

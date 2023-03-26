@@ -1,5 +1,5 @@
 use crate::config::ContainerConfig;
-use crate::field::{Field, FilteredFields};
+use crate::field::FilteredFields;
 use crate::utils::{get_zod, is_export};
 use darling::ToTokens;
 use proc_macro2::TokenStream;
@@ -50,7 +50,7 @@ impl<'a> ToTokens for NewtypeSchema {
         let optional = self.optional;
 
         tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new(&<#ty as #zod::core::Node>::AST.inline(), #optional)
+            #zod::core::ast::NewtypeSchema::new(&<#ty as #zod::core::InputType>::AST.inline(), #optional)
         })
     }
 }
@@ -197,6 +197,7 @@ impl<'a> ToTokens for Struct<'a> {
 mod test {
     use super::*;
     use crate::config::FieldConfig;
+    use crate::field::Field;
     use crate::test_utils::compare;
     use syn::parse_quote;
 
@@ -292,7 +293,7 @@ mod test {
         let input = Struct {
             generics: &Default::default(),
             style: &Style::Tuple,
-            fields: vec![
+            fields: FilteredFields::new(vec![
                 Field {
                     ty: parse_quote!(Vec<String>),
                     config: Default::default(),
@@ -301,7 +302,7 @@ mod test {
                     ty: parse_quote!(Option<bool>),
                     config: Default::default(),
                 },
-            ],
+            ]),
             config: &Default::default(),
         };
 
@@ -326,7 +327,7 @@ mod test {
         let input = Struct {
             generics: &parse_quote!(<T1, T2>),
             style: &Style::Struct,
-            fields: vec![
+            fields: FilteredFields::new(vec![
                 Field {
                     config: FieldConfig {
                         name: Some(String::from("field1")),
@@ -355,7 +356,7 @@ mod test {
                         ..Default::default()
                     },
                 },
-            ],
+            ]),
             config: &Default::default(),
         };
 
@@ -384,7 +385,7 @@ mod test {
         let input = Struct {
             generics: &parse_quote!(<T1, T2>),
             style: &Style::Struct,
-            fields: vec![
+            fields: FilteredFields::new(vec![
                 Field {
                     ty: parse_quote!(Vec<String>),
                     config: FieldConfig {
@@ -413,7 +414,7 @@ mod test {
                         ..Default::default()
                     },
                 },
-            ],
+            ]),
             config: &Default::default(),
         };
 

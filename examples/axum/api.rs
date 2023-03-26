@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use futures::Stream;
 use futures::StreamExt;
-use zod::{core::types::Usize, rpc, Namespace, Node};
+use zod::{core::types::Usize, rpc, Namespace, InputType};
 
 #[derive(serde::Serialize, serde::Deserialize, Node, Debug)]
 #[zod(namespace = "Watchout")]
@@ -12,7 +12,7 @@ pub struct MyEntity {
 
 #[derive(serde::Serialize, serde::Deserialize, Node, Debug)]
 #[zod(namespace = "Watchout")]
-pub struct Generic<'a, T: Node, V: Node> {
+pub struct Generic<'a, T: InputType, V: InputType> {
     value: String,
     t: T,
     v: V,

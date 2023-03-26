@@ -1,6 +1,6 @@
 use super::Formatter;
 
-/// Docs to be formatted and placed above the exported [Node](crate::Node)
+/// Docs to be formatted and placed above the exported type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Docs(pub &'static str);
 

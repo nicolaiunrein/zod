@@ -3,21 +3,21 @@ use pretty_assertions::assert_eq;
 pub use unindent::Unindent;
 pub use zod::ast::Formatter;
 pub use zod::types::Usize;
-pub use zod::Node;
+pub use zod::InputType;
 
 pub fn compare(input: impl AsRef<str>, expected: &str) {
     assert_eq!(normalize(input.as_ref()), normalize(expected))
 }
 
-pub fn compare_export<T: zod::Node>(expected_zod: &str, expected_ts: &str) {
-    let export = <T as zod::Node>::export().unwrap();
+pub fn compare_export<T: zod::InputType>(expected_zod: &str, expected_ts: &str) {
+    let export = <T as zod::InputType>::export().unwrap();
 
     compare(&export.to_zod_string(), expected_zod);
     compare(&export.to_ts_string(), expected_ts);
 }
 
-pub fn compare_inlined<T: zod::Node>(expected_zod: &str, expected_ts: &str) {
-    let inlined = <T as zod::Node>::inline();
+pub fn compare_inlined<T: zod::InputType>(expected_zod: &str, expected_ts: &str) {
+    let inlined = <T as zod::InputType>::inline();
 
     compare(&inlined.to_zod_string(), expected_zod);
     compare(&inlined.to_ts_string(), expected_ts);
@@ -159,7 +159,7 @@ macro_rules! test_case {
     #[derive(zod::Namespace)]
     struct Ns;
 
-    #[derive(zod::Node, serde::Serialize)]
+    #[derive(zod::InputType, serde::Serialize)]
     #[zod(namespace = "Ns")]
     #[allow(dead_code)]
     $($decl)+

@@ -1,4 +1,4 @@
-use crate::Node;
+use crate::InputType;
 
 use super::{Formatter, InlineSchema};
 
@@ -11,7 +11,7 @@ pub struct NamedField {
 }
 
 impl NamedField {
-    pub const fn new<T: Node>(name: &'static str) -> Self {
+    pub const fn new<T: InputType>(name: &'static str) -> Self {
         Self {
             name,
             value: T::AST.inline(),
@@ -67,7 +67,7 @@ pub struct TupleField {
 }
 
 impl TupleField {
-    pub const fn new<T: Node>() -> Self {
+    pub const fn new<T: InputType>() -> Self {
         Self {
             value: T::AST.inline(),
             optional: false,

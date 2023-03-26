@@ -34,21 +34,21 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// # Example
 /// ## using the helper macro
 /// ```
-/// # use zod_core::{Node, ast::InlineSchema, Register, ast::Definition, types, ast,
+/// # use zod_core::{InputType, ast::InlineSchema, Register, ast::Definition, types, ast,
 /// DependencyMap, register_dependencies};
 /// #
-/// # struct MyType<T: Node> {
+/// # struct MyType<T: InputType> {
 /// #     field1: Option<types::Usize>,
 /// #     field2: String,
 /// #     field3: T
 /// # }
 /// #
-/// # impl<T: Node> Node for MyType<T> {
+/// # impl<T: InputType> InputType for MyType<T> {
 /// #     const AST: ast::Definition =
 /// #         Definition::Inlined(InlineSchema::Tuple(ast::TupleSchema::new(&[])));
 /// # }
 /// #
-/// impl<T: Node> Register for MyType<T> {
+/// impl<T: InputType> Register for MyType<T> {
 ///     fn register(ctx: &mut DependencyMap)
 ///     where
 ///         Self: 'static,
@@ -63,21 +63,21 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// incorrectly. In the commented case only direct dependencies would get registered breaking the
 /// recursion.
 /// ```
-/// # use zod_core::{Node, ast::InlineSchema, Register, ast::Definition, types, ast,
+/// # use zod_core::{InputType, ast::InlineSchema, Register, ast::Definition, types, ast,
 /// DependencyMap};
 /// #
-/// # struct MyType<T: Node> {
+/// # struct MyType<T: InputType> {
 /// #     field1: Option<types::Usize>,
 /// #     field2: String,
 /// #     field3: T
 /// # }
 /// #
-/// # impl<T: Node> Node for MyType<T> {
+/// # impl<T: InputType> InputType for MyType<T> {
 /// #     const AST: ast::Definition =
 /// #         Definition::Inlined(InlineSchema::Tuple(ast::TupleSchema::new(&[])));
 /// # }
 /// #
-/// impl<T: Node> Register for MyType<T> {
+/// impl<T: InputType> Register for MyType<T> {
 ///     fn register(ctx: &mut DependencyMap)
 ///     where
 ///         Self: 'static,
@@ -108,7 +108,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// types from some third party crates. If you find yourself in need for a specific type to
 /// implement this trait and you cannot implement it yourself because of the orphan rule please
 /// file an issue or submit a PR. Contribution is more than welcome!
-pub trait Node: Register {
+pub trait InputType: Register {
     const AST: Definition;
 
     fn export() -> Option<Export> {
@@ -145,7 +145,7 @@ pub struct DependencyMap(BTreeMap<TypeId, Option<ast::Export>>);
 impl DependencyMap {
     pub fn add_self<T>(&mut self) -> bool
     where
-        T: Node + 'static,
+        T: InputType + 'static,
     {
         let id = TypeId::of::<T>();
         self.0.insert(id, T::AST.export()).is_none()

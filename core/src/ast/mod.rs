@@ -96,7 +96,7 @@ mod test {
     use std::collections::HashSet;
 
     use crate::types::Usize;
-    use crate::{Namespace, Node, Register};
+    use crate::{Namespace, InputType, Register};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -112,7 +112,7 @@ mod test {
         t2: T2,
     }
 
-    impl<T1: Node, T2: Node> Node for MyGeneric<T1, T2> {
+    impl<T1: InputType, T2: InputType> InputType for MyGeneric<T1, T2> {
         const AST: Definition = Definition::exported(
             Export {
                 docs: None,
@@ -126,7 +126,7 @@ mod test {
         );
     }
 
-    impl<T1: Node, T2: Node> Register for MyGeneric<T1, T2> {
+    impl<T1: InputType, T2: InputType> Register for MyGeneric<T1, T2> {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,
@@ -139,7 +139,7 @@ mod test {
         inner_my_type: Partial<usize>,
     }
 
-    impl Node for MyType {
+    impl InputType for MyType {
         const AST: Definition = Definition::exported(
             Export {
                 docs: None,
@@ -165,13 +165,13 @@ mod test {
         partial_inner: MyGeneric<String, T>,
     }
 
-    impl<T: Node> Node for Partial<T> {
+    impl<T: InputType> InputType for Partial<T> {
         const AST: Definition = Definition::inlined(InlineSchema::Object(ObjectSchema::new(&[
             NamedField::new::<MyGeneric<String, T>>("partial_inner"),
         ])));
     }
 
-    impl<T: Node> Register for Partial<T> {
+    impl<T: InputType> Register for Partial<T> {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,

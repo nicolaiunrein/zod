@@ -17,7 +17,7 @@ use proc_macro_error::proc_macro_error;
 use quote::quote;
 
 #[proc_macro_error]
-#[proc_macro_derive(Node, attributes(zod))]
+#[proc_macro_derive(InputType, attributes(zod))]
 pub fn node(input: TokenStream) -> TokenStream {
     let parsed = match syn::parse(input) {
         Ok(parsed) => parsed,

@@ -172,24 +172,25 @@ mod test {
 
     #[test]
     fn newtype_ok() {
-        const NEWTYPE: NewtypeSchema = NewtypeSchema::new::<String>();
+        const NEWTYPE: NewtypeSchema =
+            NewtypeSchema::new(&<String as crate::InputType>::AST.inline(), false);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,
             path: Path::new::<Ns>("test"),
-            schema: ExportSchema::Tuple(TUPLE),
+            schema: ExportSchema::Newtype(NEWTYPE),
         };
 
         assert_eq!(
             EXPORT_TUPLE.to_zod_string(),
             format!(
                 "export const test = z.lazy(() => {});",
-                TUPLE.to_zod_string()
+                NEWTYPE.to_zod_string()
             )
         );
         assert_eq!(
             EXPORT_TUPLE.to_ts_string(),
-            format!("export type test = {};", TUPLE.to_ts_string())
+            format!("export type test = {};", NEWTYPE.to_ts_string())
         );
     }
 }

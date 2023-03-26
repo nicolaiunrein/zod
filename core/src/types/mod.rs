@@ -1,4 +1,4 @@
-//! Implementations of [Node](crate::Node) for foreign types
+//! Implementations of [InputType](crate::InputType) as [ReturnType](crate::ReturnType) for foreign types
 mod external;
 mod macros;
 

@@ -1,6 +1,6 @@
 use crate::ast::Definition;
 use crate::types::Usize;
-use crate::Node;
+use crate::InputType;
 
 use super::macros::impl_generic;
 use super::macros::impl_primitive;
@@ -209,11 +209,11 @@ impl_generic!({
     zod: "T.optional()"
 });
 
-impl<T: Node + ToOwned> Node for std::borrow::Cow<'static, T> {
+impl<T: InputType + ToOwned> InputType for std::borrow::Cow<'static, T> {
     const AST: Definition = Definition::inlined(T::AST.inline());
 }
 
-impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
+impl<T: InputType + ToOwned> Register for std::borrow::Cow<'static, T> {
     fn register(ctx: &mut crate::DependencyMap)
     where
         Self: 'static,
@@ -222,7 +222,7 @@ impl<T: Node + ToOwned> Register for std::borrow::Cow<'static, T> {
     }
 }
 
-impl<const N: usize, T: Node> Node for [T; N] {
+impl<const N: usize, T: InputType> InputType for [T; N] {
     const AST: Definition = Definition::exported(
         Export {
             docs: None,
@@ -247,7 +247,7 @@ impl<const N: usize, T: Node> Node for [T; N] {
     );
 }
 
-impl<const N: usize, T: Node> Register for [T; N] {
+impl<const N: usize, T: InputType> Register for [T; N] {
     fn register(ctx: &mut crate::DependencyMap)
     where
         Self: 'static,

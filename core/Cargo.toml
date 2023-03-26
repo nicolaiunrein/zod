@@ -13,10 +13,10 @@ document-features = "0.2.7"
 
 #! ### Optional dependencies
 
-## Enable this feature to implement [Node](Node) for [NotNan](https://docs.rs/ordered-float/latest/ordered_float/struct.NotNan.html)
+## Enable this feature to implement [InputType](InputType) or [ReturnType](ReturnType) for [NotNan](https://docs.rs/ordered-float/latest/ordered_float/struct.NotNan.html)
 ordered-float = { version = "3.4", optional = true } 
 
-## Enable this feature to implement [Node](Node) for [SmolStr](https://docs.rs/smol_str/latest/smol_str/struct.SmolStr.html)
+## Enable this feature to implement [InputType](InputType) or [ReturnType](ReturnType) for [SmolStr](https://docs.rs/smol_str/latest/smol_str/struct.SmolStr.html)
 smol_str = { version = "0.1", optional = true }
 
 

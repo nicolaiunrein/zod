@@ -92,7 +92,7 @@ impl Display for RpcRequest {
 mod test {
     use super::*;
     use crate::Namespace;
-    use crate::Node;
+    use crate::InputType;
     use pretty_assertions::assert_eq;
 
     #[test]

@@ -10,7 +10,7 @@ macro_rules! join {
 
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
-        impl $crate::Node for $T {
+        impl $crate::InputType for $T {
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::ast::Export {
                     docs: None,
@@ -52,7 +52,7 @@ macro_rules! tuple {
 
 macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
-        impl<$($i: Node),*> Node for ($($i,)*) {
+        impl<$($i: InputType),*> InputType for ($($i,)*) {
 
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::types::macros::tuple!($N, $($i),*),
@@ -60,7 +60,7 @@ macro_rules! impl_tuple {
             );
         }
 
-        impl<$($i: Node),*> Register for ($($i,)*) {
+        impl<$($i: InputType),*> Register for ($($i,)*) {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -74,11 +74,11 @@ macro_rules! impl_tuple {
 
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
-        impl<T: Node> Node for $type {
+        impl<T: InputType> InputType for $type {
             const AST: $crate::ast::Definition = $crate::ast::Definition::inlined(T::AST.inline());
         }
 
-        impl<T: Node> Register for $type {
+        impl<T: InputType> Register for $type {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -91,7 +91,7 @@ macro_rules! impl_wrapper {
 
 macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
-        impl<$($generics: Node),*> Node for $ty {
+        impl<$($generics: InputType),*> InputType for $ty {
 
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 Export {
@@ -108,7 +108,7 @@ macro_rules! impl_generic {
         }
 
 
-        impl<$($generics: Node),*> Register for $ty {
+        impl<$($generics: InputType),*> Register for $ty {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
