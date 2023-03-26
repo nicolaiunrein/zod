@@ -1,7 +1,7 @@
 //! Types needed to generate RPC server/client code
 use std::fmt::Display;
 
-use crate::{ast::*, Register};
+use crate::{ast::*, InputTypeVisitor};
 
 /// TODO
 pub trait ClientCodegen {
@@ -9,7 +9,7 @@ pub trait ClientCodegen {
 }
 
 /// The trait represents a Namespace with rpc methods
-pub trait RpcNamespace: crate::Namespace + Register {
+pub trait RpcNamespace: crate::Namespace + InputTypeVisitor {
     type Req: serde::de::DeserializeOwned;
 }
 

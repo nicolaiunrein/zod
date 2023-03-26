@@ -5,7 +5,7 @@ use futures::{
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use zod::{
     rpc::{self, clients::WebsocketClient, Backend, Request, Response, SubscriberMap},
-    InputType,
+    Node,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Node)]

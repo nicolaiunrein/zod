@@ -96,7 +96,7 @@ mod test {
     use std::collections::HashSet;
 
     use crate::types::Usize;
-    use crate::{Namespace, InputType, Register};
+    use crate::{InputType, InputTypeVisitor, Namespace};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -126,7 +126,7 @@ mod test {
         );
     }
 
-    impl<T1: InputType, T2: InputType> Register for MyGeneric<T1, T2> {
+    impl<T1: InputType, T2: InputType> InputTypeVisitor for MyGeneric<T1, T2> {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,
@@ -152,7 +152,7 @@ mod test {
         );
     }
 
-    impl Register for MyType {
+    impl InputTypeVisitor for MyType {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,
@@ -171,7 +171,7 @@ mod test {
         ])));
     }
 
-    impl<T: InputType> Register for Partial<T> {
+    impl<T: InputType> InputTypeVisitor for Partial<T> {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,

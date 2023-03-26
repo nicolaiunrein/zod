@@ -8,7 +8,7 @@ use super::macros::impl_tuple;
 use super::macros::impl_wrapper;
 
 use crate::ast::{Export, ExportSchema, GenericArgument, Path};
-use crate::Register;
+use crate::InputTypeVisitor;
 
 const ARRAY_SCHEMA: &str = r#"
 Pick<
@@ -213,7 +213,7 @@ impl<T: InputType + ToOwned> InputType for std::borrow::Cow<'static, T> {
     const AST: Definition = Definition::inlined(T::AST.inline());
 }
 
-impl<T: InputType + ToOwned> Register for std::borrow::Cow<'static, T> {
+impl<T: InputType + ToOwned> InputTypeVisitor for std::borrow::Cow<'static, T> {
     fn register(ctx: &mut crate::DependencyMap)
     where
         Self: 'static,
@@ -247,7 +247,7 @@ impl<const N: usize, T: InputType> InputType for [T; N] {
     );
 }
 
-impl<const N: usize, T: InputType> Register for [T; N] {
+impl<const N: usize, T: InputType> InputTypeVisitor for [T; N] {
     fn register(ctx: &mut crate::DependencyMap)
     where
         Self: 'static,

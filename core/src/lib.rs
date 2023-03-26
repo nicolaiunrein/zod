@@ -34,7 +34,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// # Example
 /// ## using the helper macro
 /// ```
-/// # use zod_core::{InputType, ast::InlineSchema, Register, ast::Definition, types, ast,
+/// # use zod_core::{InputType, ast::InlineSchema, InputTypeVisitor, ast::Definition, types, ast,
 /// DependencyMap, register_dependencies};
 /// #
 /// # struct MyType<T: InputType> {
@@ -48,7 +48,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// #         Definition::Inlined(InlineSchema::Tuple(ast::TupleSchema::new(&[])));
 /// # }
 /// #
-/// impl<T: InputType> Register for MyType<T> {
+/// impl<T: InputType> InputTypeVisitor for MyType<T> {
 ///     fn register(ctx: &mut DependencyMap)
 ///     where
 ///         Self: 'static,
@@ -63,7 +63,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// incorrectly. In the commented case only direct dependencies would get registered breaking the
 /// recursion.
 /// ```
-/// # use zod_core::{InputType, ast::InlineSchema, Register, ast::Definition, types, ast,
+/// # use zod_core::{InputType, ast::InlineSchema, InputTypeVisitor, ast::Definition, types, ast,
 /// DependencyMap};
 /// #
 /// # struct MyType<T: InputType> {
@@ -77,7 +77,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// #         Definition::Inlined(InlineSchema::Tuple(ast::TupleSchema::new(&[])));
 /// # }
 /// #
-/// impl<T: InputType> Register for MyType<T> {
+/// impl<T: InputType> InputTypeVisitor for MyType<T> {
 ///     fn register(ctx: &mut DependencyMap)
 ///     where
 ///         Self: 'static,
@@ -108,7 +108,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// types from some third party crates. If you find yourself in need for a specific type to
 /// implement this trait and you cannot implement it yourself because of the orphan rule please
 /// file an issue or submit a PR. Contribution is more than welcome!
-pub trait InputType: Register {
+pub trait InputType: InputTypeVisitor {
     const AST: Definition;
 
     fn export() -> Option<Export> {
@@ -124,7 +124,23 @@ pub trait InputType: Register {
     }
 }
 
-pub trait Register {
+pub trait OutputType: InputTypeVisitor {
+    const AST: Definition;
+
+    fn export() -> Option<Export> {
+        Self::AST.export()
+    }
+
+    fn inline() -> InlineSchema {
+        Self::AST.inline()
+    }
+
+    fn docs() -> Option<Docs> {
+        Self::AST.docs()
+    }
+}
+
+pub trait InputTypeVisitor {
     fn register(_: &mut DependencyMap)
     where
         Self: 'static;
@@ -156,12 +172,12 @@ impl DependencyMap {
     }
 }
 
-/// helper macro to generate the implementation of the [Register::register] method
+/// helper macro to generate the implementation of the [InputTypeVisitor::register] method
 #[macro_export]
 macro_rules! register_dependencies {
     ($ctx: ident, $($ty: ty),*) => {
         if $ctx.add_self::<Self>() {
-            $(<$ty as $crate::Register>::register($ctx);)*
+            $(<$ty as $crate::InputTypeVisitor>::register($ctx);)*
         }
     };
 

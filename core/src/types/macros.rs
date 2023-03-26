@@ -25,7 +25,7 @@ macro_rules! impl_primitive {
             );
         }
 
-        impl $crate::Register for $T {
+        impl $crate::InputTypeVisitor for $T {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -60,7 +60,7 @@ macro_rules! impl_tuple {
             );
         }
 
-        impl<$($i: InputType),*> Register for ($($i,)*) {
+        impl<$($i: InputType),*> InputTypeVisitor for ($($i,)*) {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -78,7 +78,7 @@ macro_rules! impl_wrapper {
             const AST: $crate::ast::Definition = $crate::ast::Definition::inlined(T::AST.inline());
         }
 
-        impl<T: InputType> Register for $type {
+        impl<T: InputType> InputTypeVisitor for $type {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -108,7 +108,7 @@ macro_rules! impl_generic {
         }
 
 
-        impl<$($generics: InputType),*> Register for $ty {
+        impl<$($generics: InputType),*> InputTypeVisitor for $ty {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
