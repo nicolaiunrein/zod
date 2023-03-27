@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use crate::{
     ast::rpc, ast::Export, rpc::Request, rpc::ResponseSender, RequestTypeVisitor, Namespace,
-    OutputTypeVisitor,
+    ResponseTypeVisitor,
 };
 
 use crate::types::Rs;
@@ -22,7 +22,7 @@ impl Drop for StreamHandle {
 
 /// This trait represents a collection of Namespaces
 #[async_trait::async_trait]
-pub trait Backend: RequestTypeVisitor + OutputTypeVisitor {
+pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
     async fn handle_request(
         &mut self,
         req: Request,
@@ -45,7 +45,7 @@ pub trait Backend: RequestTypeVisitor + OutputTypeVisitor {
             exports.entry(export.path.ns()).or_default().push(export);
         }
 
-        for export in <Self as OutputTypeVisitor>::dependencies()
+        for export in <Self as ResponseTypeVisitor>::dependencies()
             .resolve()
             .into_iter()
         {

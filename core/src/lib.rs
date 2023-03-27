@@ -116,7 +116,7 @@ pub trait RequestType: RequestTypeVisitor {
     }
 }
 
-pub trait OutputType: OutputTypeVisitor {
+pub trait ResponseType: ResponseTypeVisitor {
     const AST: Definition;
 
     fn export() -> Option<Export> {
@@ -147,7 +147,7 @@ pub trait RequestTypeVisitor {
     }
 }
 
-pub trait OutputTypeVisitor {
+pub trait ResponseTypeVisitor {
     fn register(_: &mut DependencyMap)
     where
         Self: 'static;
