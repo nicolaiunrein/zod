@@ -397,7 +397,10 @@ mod test {
                         ])
                     )
                 },
-                &[]
+                &[
+                    <T1 as ::zod::core::RequestType>::AST.inline(),
+                    <T2 as ::zod::core::RequestType>::AST.inline()
+                ]
             )),
         );
     }

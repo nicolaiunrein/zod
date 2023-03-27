@@ -39,8 +39,8 @@ pub struct ZodType {
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(test, derive(Default))]
 pub enum Derive {
-    Request,
     #[cfg_attr(test, default)]
+    Request,
     Response,
 }
 
@@ -143,6 +143,15 @@ impl<'a> ToTokens for ZodType {
             Derive::Response => quote!(#zod::core::ResponseTypeVisitor),
         };
 
+        let register = match self.derive {
+            Derive::Request => {
+                quote!(#zod::core::visit_req_dependencies!(ctx, #(#dependencies),*);)
+            }
+            Derive::Response => {
+                quote!(#zod::core::visit_res_dependencies!(ctx, #(#dependencies),*);)
+            }
+        };
+
         tokens.extend(quote! {
             impl #impl_generics #impl_trait for #ident #ty_generics #where_clause {
                 const AST: #zod::core::ast::Definition = #definition;
@@ -153,7 +162,7 @@ impl<'a> ToTokens for ZodType {
                 where
                     Self: 'static,
                 {
-                    #zod::core::register_dependencies!(ctx, #(#dependencies),*);
+                    #register
                 }
             }
         })
