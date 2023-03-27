@@ -1,7 +1,7 @@
 //! Types needed to generate RPC server/client code
 use std::fmt::Display;
 
-use crate::{ast::*, InputTypeVisitor};
+use crate::{ast::*, RequestTypeVisitor};
 
 /// TODO
 pub trait ClientCodegen {
@@ -9,7 +9,7 @@ pub trait ClientCodegen {
 }
 
 /// The trait represents a Namespace with rpc methods
-pub trait RpcNamespace: crate::Namespace + InputTypeVisitor {
+pub trait RpcNamespace: crate::Namespace + RequestTypeVisitor {
     type Req: serde::de::DeserializeOwned;
 }
 
@@ -92,7 +92,7 @@ impl Display for RpcRequest {
 mod test {
     use super::*;
     use crate::Namespace;
-    use crate::InputType;
+    use crate::RequestType;
     use pretty_assertions::assert_eq;
 
     #[test]

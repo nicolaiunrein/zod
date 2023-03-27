@@ -10,7 +10,7 @@ macro_rules! join {
 
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
-        impl $crate::InputType for $T {
+        impl $crate::RequestType for $T {
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::ast::Export {
                     docs: None,
@@ -25,7 +25,7 @@ macro_rules! impl_primitive {
             );
         }
 
-        impl $crate::InputTypeVisitor for $T {
+        impl $crate::RequestTypeVisitor for $T {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -52,7 +52,7 @@ macro_rules! tuple {
 
 macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
-        impl<$($i: InputType),*> InputType for ($($i,)*) {
+        impl<$($i: RequestType),*> RequestType for ($($i,)*) {
 
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 $crate::types::macros::tuple!($N, $($i),*),
@@ -60,7 +60,7 @@ macro_rules! impl_tuple {
             );
         }
 
-        impl<$($i: InputType),*> InputTypeVisitor for ($($i,)*) {
+        impl<$($i: RequestType),*> RequestTypeVisitor for ($($i,)*) {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -74,11 +74,11 @@ macro_rules! impl_tuple {
 
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
-        impl<T: InputType> InputType for $type {
+        impl<T: RequestType> RequestType for $type {
             const AST: $crate::ast::Definition = $crate::ast::Definition::inlined(T::AST.inline());
         }
 
-        impl<T: InputType> InputTypeVisitor for $type {
+        impl<T: RequestType> RequestTypeVisitor for $type {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,
@@ -91,7 +91,7 @@ macro_rules! impl_wrapper {
 
 macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
-        impl<$($generics: InputType),*> InputType for $ty {
+        impl<$($generics: RequestType),*> RequestType for $ty {
 
             const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
                 Export {
@@ -108,7 +108,7 @@ macro_rules! impl_generic {
         }
 
 
-        impl<$($generics: InputType),*> InputTypeVisitor for $ty {
+        impl<$($generics: RequestType),*> RequestTypeVisitor for $ty {
             fn register(ctx: &mut $crate::DependencyMap)
             where
                 Self: 'static,

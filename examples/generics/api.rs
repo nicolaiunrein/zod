@@ -1,4 +1,4 @@
-use zod::{types::Usize, Namespace, InputType};
+use zod::{types::Usize, Namespace, RequestType};
 
 #[derive(serde::Serialize, serde::Deserialize, Node, Default, Debug)]
 #[zod(namespace = "Ns")]

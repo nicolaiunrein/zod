@@ -173,7 +173,7 @@ mod test {
     #[test]
     fn newtype_ok() {
         const NEWTYPE: NewtypeSchema =
-            NewtypeSchema::new(&<String as crate::InputType>::AST.inline(), false);
+            NewtypeSchema::new(&<String as crate::RequestType>::AST.inline(), false);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,

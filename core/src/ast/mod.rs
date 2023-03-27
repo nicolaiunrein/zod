@@ -96,7 +96,7 @@ mod test {
     use std::collections::HashSet;
 
     use crate::types::Usize;
-    use crate::{InputType, InputTypeVisitor, Namespace};
+    use crate::{RequestType, RequestTypeVisitor, Namespace};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -112,7 +112,7 @@ mod test {
         t2: T2,
     }
 
-    impl<T1: InputType, T2: InputType> InputType for MyGeneric<T1, T2> {
+    impl<T1: RequestType, T2: RequestType> RequestType for MyGeneric<T1, T2> {
         const AST: Definition = Definition::exported(
             Export {
                 docs: None,
@@ -126,7 +126,7 @@ mod test {
         );
     }
 
-    impl<T1: InputType, T2: InputType> InputTypeVisitor for MyGeneric<T1, T2> {
+    impl<T1: RequestType, T2: RequestType> RequestTypeVisitor for MyGeneric<T1, T2> {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,
@@ -139,7 +139,7 @@ mod test {
         inner_my_type: Partial<usize>,
     }
 
-    impl InputType for MyType {
+    impl RequestType for MyType {
         const AST: Definition = Definition::exported(
             Export {
                 docs: None,
@@ -152,7 +152,7 @@ mod test {
         );
     }
 
-    impl InputTypeVisitor for MyType {
+    impl RequestTypeVisitor for MyType {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,
@@ -165,13 +165,13 @@ mod test {
         partial_inner: MyGeneric<String, T>,
     }
 
-    impl<T: InputType> InputType for Partial<T> {
+    impl<T: RequestType> RequestType for Partial<T> {
         const AST: Definition = Definition::inlined(InlineSchema::Object(ObjectSchema::new(&[
             NamedField::new::<MyGeneric<String, T>>("partial_inner"),
         ])));
     }
 
-    impl<T: InputType> InputTypeVisitor for Partial<T> {
+    impl<T: RequestType> RequestTypeVisitor for Partial<T> {
         fn register(ctx: &mut crate::DependencyMap)
         where
             Self: 'static,

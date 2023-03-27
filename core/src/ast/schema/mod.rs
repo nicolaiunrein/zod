@@ -98,7 +98,7 @@ impl Formatter for InlineSchema {
 #[cfg(test)]
 mod test {
     use super::NamedField;
-    use crate::InputType;
+    use crate::RequestType;
 
     use super::*;
     use pretty_assertions::assert_eq;

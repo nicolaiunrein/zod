@@ -17,8 +17,8 @@ use proc_macro_error::proc_macro_error;
 use quote::quote;
 
 #[proc_macro_error]
-#[proc_macro_derive(InputType, attributes(zod))]
-pub fn node(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(RequestType, attributes(zod))]
+pub fn request(input: TokenStream) -> TokenStream {
     let parsed = match syn::parse(input) {
         Ok(parsed) => parsed,
         Err(err) => {
@@ -34,6 +34,12 @@ pub fn node(input: TokenStream) -> TokenStream {
     };
 
     quote!(#node).into()
+}
+
+#[proc_macro_error]
+#[proc_macro_derive(ResponseType, attributes(zod))]
+pub fn response(input: TokenStream) -> TokenStream {
+    quote!().into()
 }
 
 #[proc_macro_error]

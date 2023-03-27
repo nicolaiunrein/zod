@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt::Display;
 
 use crate::{
-    ast::rpc, ast::Export, rpc::Request, rpc::ResponseSender, InputTypeVisitor, Namespace,
+    ast::rpc, ast::Export, rpc::Request, rpc::ResponseSender, RequestTypeVisitor, Namespace,
     OutputTypeVisitor,
 };
 
@@ -22,7 +22,7 @@ impl Drop for StreamHandle {
 
 /// This trait represents a collection of Namespaces
 #[async_trait::async_trait]
-pub trait Backend: InputTypeVisitor + OutputTypeVisitor {
+pub trait Backend: RequestTypeVisitor + OutputTypeVisitor {
     async fn handle_request(
         &mut self,
         req: Request,
@@ -38,7 +38,7 @@ pub trait Backend: InputTypeVisitor + OutputTypeVisitor {
         let mut out = T::get();
         let mut exports = BTreeMap::<&str, Vec<_>>::new();
 
-        for export in <Self as InputTypeVisitor>::dependencies()
+        for export in <Self as RequestTypeVisitor>::dependencies()
             .resolve()
             .into_iter()
         {

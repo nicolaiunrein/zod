@@ -122,11 +122,11 @@ impl<'a> ToTokens for ZodType {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         tokens.extend(quote! {
-            impl #impl_generics #zod::core::InputType for #ident #ty_generics #where_clause {
+            impl #impl_generics #zod::core::RequestType for #ident #ty_generics #where_clause {
                 const AST: #zod::core::ast::Definition = #definition;
             }
 
-            impl #impl_generics #zod::core::InputTypeVisitor for #ident #ty_generics #where_clause {
+            impl #impl_generics #zod::core::RequestTypeVisitor for #ident #ty_generics #where_clause {
                 fn register(ctx: &mut #zod::core::DependencyMap)
                 where
                     Self: 'static,

@@ -1,6 +1,6 @@
 use crate::ast::Definition;
 use crate::types::Usize;
-use crate::InputType;
+use crate::RequestType;
 
 use super::macros::impl_generic;
 use super::macros::impl_primitive;
@@ -8,7 +8,7 @@ use super::macros::impl_tuple;
 use super::macros::impl_wrapper;
 
 use crate::ast::{Export, ExportSchema, GenericArgument, Path};
-use crate::InputTypeVisitor;
+use crate::RequestTypeVisitor;
 
 const ARRAY_SCHEMA: &str = r#"
 Pick<
@@ -209,11 +209,11 @@ impl_generic!({
     zod: "T.optional()"
 });
 
-impl<T: InputType + ToOwned> InputType for std::borrow::Cow<'static, T> {
+impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
     const AST: Definition = Definition::inlined(T::AST.inline());
 }
 
-impl<T: InputType + ToOwned> InputTypeVisitor for std::borrow::Cow<'static, T> {
+impl<T: RequestType + ToOwned> RequestTypeVisitor for std::borrow::Cow<'static, T> {
     fn register(ctx: &mut crate::DependencyMap)
     where
         Self: 'static,
@@ -222,7 +222,7 @@ impl<T: InputType + ToOwned> InputTypeVisitor for std::borrow::Cow<'static, T> {
     }
 }
 
-impl<const N: usize, T: InputType> InputType for [T; N] {
+impl<const N: usize, T: RequestType> RequestType for [T; N] {
     const AST: Definition = Definition::exported(
         Export {
             docs: None,
@@ -247,7 +247,7 @@ impl<const N: usize, T: InputType> InputType for [T; N] {
     );
 }
 
-impl<const N: usize, T: InputType> InputTypeVisitor for [T; N] {
+impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
     fn register(ctx: &mut crate::DependencyMap)
     where
         Self: 'static,

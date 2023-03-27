@@ -50,7 +50,7 @@ impl<'a> ToTokens for NewtypeSchema {
         let optional = self.optional;
 
         tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new(&<#ty as #zod::core::InputType>::AST.inline(), #optional)
+            #zod::core::ast::NewtypeSchema::new(&<#ty as #zod::core::RequestType>::AST.inline(), #optional)
         })
     }
 }
