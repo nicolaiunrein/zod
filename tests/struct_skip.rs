@@ -2,56 +2,46 @@ use pretty_assertions::assert_eq;
 
 mod test_utils;
 use test_utils::*;
+use zod::ResponseType;
 
 #[test]
 fn serde_skip_struct_field() {
     test_case! {
-        #[derive(Debug, PartialEq, serde::Deserialize)]
+        #[derive(Debug, PartialEq, serde::Deserialize, zod::ResponseType)]
         struct Test {
             #[serde(skip)]
-            to_be_skipped: String,
+            skip_both: String,
+
+            #[serde(skip_deserializing)]
+            skip_req: String,
+
+            #[serde(skip_serializing)]
+            skip_res: String,
+
             num: Usize,
         }
     }
 
     let value = Test {
-        to_be_skipped: String::new(),
+        skip_both: String::new(),
+        skip_req: String::new(),
+        skip_res: String::new(),
         num: Usize(123),
     };
 
     assert_eq!(
         value,
-        serde_json::from_value(serde_json::json!({"num": "123"})).unwrap()
+        serde_json::from_value(serde_json::json!({"num": "123", "skip_res": ""})).unwrap()
     );
-    assert!(!Test::export()
-        .unwrap()
-        .to_zod_string()
-        .contains("to_be_skipped"));
-}
 
-// #[test]
-// fn serde_skip_deserializing_struct_field() {
-//     test_case! {
-//         #[derive(Debug, PartialEq, serde::Deserialize)]
-//         struct Test {
-//             #[serde(skip_deserializing)]
-//             to_be_skipped: String,
-//             num: Usize,
-//         }
-//     }
-//
-//     let value = Test {
-//         to_be_skipped: String::new(),
-//         num: Usize(123),
-//     };
-//
-//     assert_eq!(
-//         value,
-//         serde_json::from_value(serde_json::json!({"num": "123"})).unwrap()
-//     );
-//
-//     assert!(!Test::export()
-//         .unwrap()
-//         .to_zod_string()
-//         .contains("to_be_skipped"));
-// }
+    let req_export = <Test as RequestType>::export().unwrap().to_zod_string();
+    let res_export = <Test as ResponseType>::export().unwrap().to_zod_string();
+
+    assert!(!req_export.contains("skip_both"));
+    assert!(!req_export.contains("skip_req"));
+    assert!(req_export.contains("skip_res"));
+
+    assert!(!res_export.contains("skip_both"));
+    assert!(!res_export.contains("skip_res"));
+    assert!(res_export.contains("skip_req"));
+}
