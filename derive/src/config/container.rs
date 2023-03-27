@@ -3,7 +3,7 @@ use serde_derive_internals::attr::Container;
 use syn::{Attribute, Type};
 
 use crate::docs::RustDocs;
-use crate::error::{Error, SerdeConflict};
+use crate::node::Derive;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum TagType {
@@ -39,9 +39,10 @@ pub struct ContainerConfig {
     pub docs: RustDocs,
     pub name: String,
     pub transparent: bool,
-    pub from_into: Option<Type>,
+    pub type_alias: Option<Type>,
     pub namespace: syn::Path,
     pub tag: TagType,
+    pub derive: Derive,
 }
 
 #[cfg(test)]
@@ -51,9 +52,10 @@ impl Default for ContainerConfig {
             docs: Default::default(),
             name: String::from("MyType"),
             transparent: false,
-            from_into: None,
+            type_alias: None,
             namespace: syn::parse_quote!(Ns),
             tag: Default::default(),
+            derive: Derive::Request,
         }
     }
 }
@@ -63,37 +65,23 @@ impl ContainerConfig {
         serde_attrs: &Container,
         orig: &[Attribute],
         namespace: syn::Path,
+        derive: Derive,
     ) -> Result<Self, darling::Error> {
         let docs = RustDocs::from_attributes(&orig).unwrap();
 
-        let name = {
-            let name = serde_attrs.name();
-            let ser = name.serialize_name();
-            let de = name.deserialize_name();
-
-            if ser != de {
-                return Err(Error::SerdeConflict(SerdeConflict::Name { ser, de }).into());
-            } else {
-                ser
-            }
+        let name = match derive {
+            Derive::Request => serde_attrs.name().deserialize_name(),
+            Derive::Response => serde_attrs.name().serialize_name(),
         };
 
         let transparent = serde_attrs.transparent();
 
-        let from_ty = serde_attrs
-            .type_from()
-            .or_else(|| serde_attrs.type_try_from());
-
-        let into_ty = serde_attrs.type_into();
-
-        let from_into = match (from_ty, into_ty) {
-            (None, None) => Ok(None),
-            (Some(from), Some(into)) if from == into => Ok(Some(from)),
-            (from, into) => Err(Error::from(SerdeConflict::Type {
-                from: from.cloned(),
-                into: into.cloned(),
-            })),
-        }?
+        let type_alias = match derive {
+            Derive::Request => serde_attrs
+                .type_from()
+                .or_else(|| serde_attrs.type_try_from()),
+            Derive::Response => serde_attrs.type_into(),
+        }
         .cloned();
 
         let tag = match serde_attrs.tag() {
@@ -112,9 +100,10 @@ impl ContainerConfig {
             docs,
             name,
             transparent,
-            from_into,
+            type_alias,
             namespace,
             tag,
+            derive,
         })
     }
 }

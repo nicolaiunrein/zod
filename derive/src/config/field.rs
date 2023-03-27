@@ -1,51 +1,42 @@
 use serde_derive_internals::attr;
 
-use crate::error::{Error, SerdeConflict};
+use crate::error::Error;
+use crate::node::Derive;
 
 #[cfg_attr(test, derive(Default))]
 #[derive(Clone)]
 pub struct FieldConfig {
-    pub default: bool,
+    pub required: bool,
     pub name: Option<String>,
     pub ignored: bool,
+    pub derive: Derive,
 }
 
 impl FieldConfig {
-    pub fn new(input: &attr::Field) -> Result<Self, Error> {
-        let name = {
-            let name = input.name();
-            let ser = name.serialize_name();
-            let de = name.deserialize_name();
-
-            if ser != de {
-                return Err(Error::SerdeConflict(SerdeConflict::Name { ser, de }).into());
-            } else {
-                ser
-            }
+    pub fn new(input: &attr::Field, derive: Derive) -> Result<Self, Error> {
+        let name = match derive {
+            Derive::Request => input.name().deserialize_name(),
+            Derive::Response => input.name().serialize_name(),
         };
 
-        if let Some(_expr) = input.skip_serializing_if() {
-            return Err(SerdeConflict::Skip.into());
-        }
+        let required =
+            input.skip_serializing_if().is_none() && matches!(input.default(), attr::Default::None);
 
-        let ignored = match (input.skip_serializing(), input.skip_deserializing()) {
-            (true, true) => true,
-            (false, false) => false,
-            _ => return Err(SerdeConflict::Skip.into()),
+        let ignored = match derive {
+            Derive::Request => input.skip_deserializing(),
+            Derive::Response => input.skip_serializing(),
         };
 
         Ok(Self {
             ignored,
-            default: match input.default() {
-                attr::Default::None => false,
-                _ => true,
-            },
+            required,
             // todo
             name: if name.chars().all(|c| c.is_numeric()) {
                 None
             } else {
                 Some(name)
             },
+            derive,
         })
     }
 }

@@ -33,10 +33,19 @@ pub struct ZodType {
     pub config: ContainerConfig,
     pub definition: TokenStream,
     pub dependencies: Vec<Type>,
+    pub derive: Derive,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(test, derive(Default))]
+pub enum Derive {
+    Request,
+    #[cfg_attr(test, default)]
+    Response,
 }
 
 impl ZodType {
-    pub fn from_derive_input(orig: &syn::DeriveInput) -> darling::Result<Self> {
+    pub fn from_derive_input(orig: &syn::DeriveInput, derive: Derive) -> darling::Result<Self> {
         let input = ZodTypeDeriveInput::from_derive_input(orig)?;
 
         let cx = serde_derive_internals::Ctxt::new();
@@ -50,7 +59,7 @@ impl ZodType {
 
         let serde_attrs = serde_ast.attrs;
 
-        let config = ContainerConfig::new(&serde_attrs, &input.attrs, input.namespace)?;
+        let config = ContainerConfig::new(&serde_attrs, &input.attrs, input.namespace, derive)?;
 
         if let Err(errors) = cx.check() {
             let mut darling_errors = darling::Error::accumulator();
@@ -81,6 +90,7 @@ impl ZodType {
                     dependencies,
                     definition,
                     config,
+                    derive,
                 })
             }
             Data::Struct(ref style, ref fields) => {
@@ -90,10 +100,11 @@ impl ZodType {
                     fields: FilteredFields::new(
                         fields
                             .into_iter()
-                            .map(Field::new)
+                            .map(|f| Field::new(f, derive))
                             .collect::<Result<Vec<_>, _>>()?,
                     ),
                     config: &config,
+                    derive,
                 };
 
                 let dependencies = s.dependencies();
@@ -105,6 +116,7 @@ impl ZodType {
                     dependencies,
                     definition,
                     config,
+                    derive,
                 })
             }
         }
@@ -121,12 +133,22 @@ impl<'a> ToTokens for ZodType {
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
+        let impl_trait = match self.derive {
+            Derive::Request => quote!(#zod::core::RequestType),
+            Derive::Response => quote!(#zod::core::ResponseType),
+        };
+
+        let impl_trait_visitor = match self.derive {
+            Derive::Request => quote!(#zod::core::RequestTypeVisitor),
+            Derive::Response => quote!(#zod::core::ResponseTypeVisitor),
+        };
+
         tokens.extend(quote! {
-            impl #impl_generics #zod::core::RequestType for #ident #ty_generics #where_clause {
+            impl #impl_generics #impl_trait for #ident #ty_generics #where_clause {
                 const AST: #zod::core::ast::Definition = #definition;
             }
 
-            impl #impl_generics #zod::core::RequestTypeVisitor for #ident #ty_generics #where_clause {
+            impl #impl_generics #impl_trait_visitor for #ident #ty_generics #where_clause {
                 fn register(ctx: &mut #zod::core::DependencyMap)
                 where
                     Self: 'static,

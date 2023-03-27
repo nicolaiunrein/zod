@@ -1,5 +1,6 @@
 use crate::config::FieldConfig;
 use crate::error::Error;
+use crate::node::Derive;
 use darling::ToTokens;
 use quote::quote;
 use serde_derive_internals::ast::Field as SerdeField;
@@ -14,10 +15,10 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new<'a>(value: &'a SerdeField) -> Result<Self, Error> {
+    pub fn new<'a>(value: &'a SerdeField, derive: Derive) -> Result<Self, Error> {
         Ok(Self {
             ty: value.original.ty.clone(),
-            config: FieldConfig::new(&value.attrs)?,
+            config: FieldConfig::new(&value.attrs, derive)?,
         })
     }
 }
@@ -26,10 +27,10 @@ impl ToTokens for Field {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ty = &self.ty;
 
-        let optional = if self.config.default {
-            quote!(.optional())
-        } else {
+        let optional = if self.config.required {
             quote!()
+        } else {
+            quote!(.optional())
         };
 
         let zod = get_zod();

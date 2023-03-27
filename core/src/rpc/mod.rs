@@ -7,7 +7,12 @@ pub mod server;
 pub use error::*;
 
 use crate::types::Usize;
-use crate::RequestType;
+use crate::{RequestTypeVisitor, ResponseType, ResponseTypeVisitor};
+
+/// The trait represents a Namespace with rpc methods
+pub trait RpcNamespace: crate::Namespace {
+    type Req: serde::de::DeserializeOwned + RequestTypeVisitor + ResponseTypeVisitor;
+}
 
 /// The sending half of a Response channel
 pub type ResponseSender = futures::channel::mpsc::UnboundedSender<Response>;
@@ -52,7 +57,7 @@ impl Response {
         }
     }
 
-    pub fn method(id: usize, value: impl serde::ser::Serialize + RequestType) -> Self {
+    pub fn method(id: usize, value: impl serde::ser::Serialize + ResponseType) -> Self {
         match serde_json::to_value(value) {
             Ok(data) => Self::Method {
                 id: Usize(id),
@@ -62,7 +67,7 @@ impl Response {
         }
     }
 
-    pub fn stream(id: usize, value: impl serde::ser::Serialize + RequestType) -> Self {
+    pub fn stream(id: usize, value: impl serde::ser::Serialize + ResponseType) -> Self {
         match serde_json::to_value(value) {
             Ok(data) => Self::Stream {
                 id: Usize(id),

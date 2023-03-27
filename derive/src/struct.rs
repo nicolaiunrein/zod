@@ -1,5 +1,6 @@
 use crate::config::ContainerConfig;
 use crate::field::FilteredFields;
+use crate::node::Derive;
 use crate::utils::{get_zod, is_export};
 use darling::ToTokens;
 use proc_macro2::TokenStream;
@@ -12,6 +13,7 @@ pub struct Struct<'a> {
     pub(crate) fields: FilteredFields,
     pub(crate) style: &'a Style,
     pub(crate) config: &'a ContainerConfig,
+    pub(crate) derive: Derive,
 }
 
 impl<'a> Struct<'a> {
@@ -40,14 +42,14 @@ impl ToTokens for ObjectSchema {
 
 struct NewtypeSchema {
     inner: Type,
-    optional: bool,
+    required: bool,
 }
 
 impl<'a> ToTokens for NewtypeSchema {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ty = &self.inner;
-        let optional = self.optional;
+        let optional = !self.required;
 
         tokens.extend(quote! {
             #zod::core::ast::NewtypeSchema::new(&<#ty as #zod::core::RequestType>::AST.inline(), #optional)
@@ -120,6 +122,7 @@ impl<'a> ToTokens for Inlined<'a> {
 struct Export<'a> {
     config: &'a ContainerConfig,
     schema: Schema<'a>,
+    inline_schemas: Vec<TokenStream>,
 }
 
 impl<'a> ToTokens for Export<'a> {
@@ -135,14 +138,15 @@ impl<'a> ToTokens for Export<'a> {
             Schema::Newtype(schema) => quote!(#zod::core::ast::ExportSchema::Newtype(#schema)),
         };
 
+        let inline_schemas = &self.inline_schemas;
+
         let definition = quote! {
             #zod::core::ast::Definition::exported(#zod::core::ast::Export {
                 docs: #docs,
                 path: #zod::core::ast::Path::new::<#ns>(#name),
                 schema: #schema
             },
-            //todo
-            &[]
+            &[#(#inline_schemas),*]
             )
         };
 
@@ -152,6 +156,8 @@ impl<'a> ToTokens for Export<'a> {
 
 impl<'a> ToTokens for Struct<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+
         let schema = match self.style {
             Style::Tuple => Schema::Tuple(TupleSchema {
                 fields: &self.fields,
@@ -159,10 +165,10 @@ impl<'a> ToTokens for Struct<'a> {
 
             Style::Struct => {
                 if self.config.transparent {
-                    let field = self.fields.iter().next().expect("todo");
+                    let field = self.fields.iter().next().expect("unreachable");
                     Schema::Newtype(NewtypeSchema {
                         inner: field.ty.clone(),
-                        optional: field.config.default,
+                        required: field.config.required,
                     })
                 } else {
                     Schema::Object(ObjectSchema {
@@ -172,18 +178,29 @@ impl<'a> ToTokens for Struct<'a> {
             }
             Style::Unit => unreachable!(),
             Style::Newtype => {
-                let field = self.fields.iter().next().expect("todo");
+                let field = self.fields.iter().next().expect("unreachable");
 
                 Schema::Newtype(NewtypeSchema {
                     inner: field.ty.clone(),
-                    optional: field.config.default,
+                    required: field.config.required,
                 })
             }
         };
 
+        let inline_schemas = self
+            .generics
+            .params
+            .iter()
+            .map(|gen| match self.derive {
+                Derive::Request => quote!(<#gen as #zod::core::RequestType>::AST.inline()),
+                Derive::Response => quote!(<#gen as #zod::core::ResponseType>::AST.inline()),
+            })
+            .collect();
+
         if is_export(self.fields.iter().cloned(), &self.generics) {
             Export {
                 config: &self.config,
+                inline_schemas,
                 schema,
             }
             .to_tokens(tokens);
@@ -208,6 +225,7 @@ mod test {
             generics: &Default::default(),
             style: &Style::Struct,
             fields: FilteredFields::new(Vec::new()),
+            derive: Default::default(),
         };
 
         compare(
@@ -247,6 +265,7 @@ mod test {
                 },
             ]),
             config: &Default::default(),
+            derive: Default::default(),
         };
 
         compare(
@@ -274,6 +293,7 @@ mod test {
             fields: FilteredFields::new(Vec::new()),
             style: &Style::Tuple,
             config: &Default::default(),
+            derive: Default::default(),
         };
 
         compare(
@@ -304,6 +324,7 @@ mod test {
                 },
             ]),
             config: &Default::default(),
+            derive: Default::default(),
         };
 
         compare(
@@ -358,6 +379,7 @@ mod test {
                 },
             ]),
             config: &Default::default(),
+            derive: Default::default(),
         };
 
         compare(
@@ -416,6 +438,7 @@ mod test {
                 },
             ]),
             config: &Default::default(),
+            derive: Default::default(),
         };
 
         compare(

@@ -1,33 +1,52 @@
+use proc_macro2::Span;
 use syn::Type;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("conflicting serde arguments: {0}")]
-    SerdeConflict(#[from] SerdeConflict),
-
     #[error("Input and Output names must match")]
     TransparentMismatch { serde: bool, zod: bool },
 
     #[error("todo")]
     NoSerde,
+
+    #[error("todo")]
+    NonAsyncReturningDefault(Span),
+
+    #[error("namespace methods are not allowed to have lifetimes")]
+    NamespaceLifetimes(Span),
+
+    #[error("expected `&mut self` got `{got}`.")]
+    WrongSelf { span: Span, got: &'static str },
+
+    #[error("namespace methods must have a self argument")]
+    NoSelf(Span),
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum SerdeConflict {
-    #[error("generated input and output types must have the same name. {ser} != {de}")]
-    Name { ser: String, de: String },
+impl Error {
+    pub fn owned_self(span: Span) -> Self {
+        Self::WrongSelf { span, got: "self" }
+    }
 
-    #[error("todo")]
-    Type {
-        from: Option<Type>,
-        into: Option<Type>,
-    },
-    #[error("todo")]
-    Skip,
+    pub(crate) fn shared_self(span: Span) -> Self {
+        Self::WrongSelf { span, got: "&self" }
+    }
+
+    pub(crate) fn mut_self(span: Span) -> Self {
+        Self::WrongSelf {
+            span,
+            got: "mut self",
+        }
+    }
 }
 
 impl From<Error> for darling::Error {
     fn from(value: Error) -> Self {
         darling::Error::custom(format!("zod: `{}`", value))
+    }
+}
+
+impl From<Error> for syn::Error {
+    fn from(value: Error) -> Self {
+        todo!()
     }
 }

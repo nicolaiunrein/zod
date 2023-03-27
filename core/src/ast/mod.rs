@@ -96,7 +96,7 @@ mod test {
     use std::collections::HashSet;
 
     use crate::types::Usize;
-    use crate::{RequestType, RequestTypeVisitor, Namespace};
+    use crate::{Namespace, RequestType, RequestTypeVisitor};
 
     use super::*;
     use pretty_assertions::assert_eq;
