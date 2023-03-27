@@ -1,6 +1,8 @@
 use crate::ast::Definition;
 use crate::types::Usize;
 use crate::RequestType;
+use crate::ResponseType;
+use crate::ResponseTypeVisitor;
 
 use super::macros::impl_generic;
 use super::macros::impl_primitive;
@@ -218,7 +220,20 @@ impl<T: RequestType + ToOwned> RequestTypeVisitor for std::borrow::Cow<'static, 
     where
         Self: 'static,
     {
-        crate::register_dependencies!(ctx, T);
+        crate::visit_req_dependencies!(ctx, T);
+    }
+}
+
+impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
+    const AST: Definition = Definition::inlined(T::AST.inline());
+}
+
+impl<T: ResponseType + ToOwned> ResponseTypeVisitor for std::borrow::Cow<'static, T> {
+    fn register(ctx: &mut crate::DependencyMap)
+    where
+        Self: 'static,
+    {
+        crate::visit_res_dependencies!(ctx, T);
     }
 }
 
@@ -232,7 +247,7 @@ impl<const N: usize, T: RequestType> RequestType for [T; N] {
                     GenericArgument::Type("T"),
                     GenericArgument::Const {
                         name: "N",
-                        schema: Usize::AST.inline(),
+                        schema: <Usize as RequestType>::AST.inline(),
                     },
                     GenericArgument::Assign {
                         name: "TObj",
@@ -252,7 +267,41 @@ impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
     where
         Self: 'static,
     {
-        crate::register_dependencies!(ctx, T);
+        crate::visit_req_dependencies!(ctx, T);
+    }
+}
+
+impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
+    const AST: Definition = Definition::exported(
+        Export {
+            docs: None,
+            path: Path::new::<crate::types::Rs>("Array"),
+            schema: ExportSchema::Raw {
+                args: &[
+                    GenericArgument::Type("T"),
+                    GenericArgument::Const {
+                        name: "N",
+                        schema: <Usize as ResponseType>::AST.inline(),
+                    },
+                    GenericArgument::Assign {
+                        name: "TObj",
+                        value: "[T, ...T[]]",
+                    },
+                ],
+                zod: "z.array(T).length(N)",
+                ts: ARRAY_SCHEMA,
+            },
+        },
+        &[],
+    );
+}
+
+impl<const N: usize, T: ResponseType> ResponseTypeVisitor for [T; N] {
+    fn register(ctx: &mut crate::DependencyMap)
+    where
+        Self: 'static,
+    {
+        crate::visit_res_dependencies!(ctx, T);
     }
 }
 
@@ -289,7 +338,7 @@ mod test {
 
     #[test]
     fn string_ok() {
-        let export = <String>::export();
+        let export = <String as RequestType>::export();
         let expected_zod_export = "export const String = z.lazy(() => z.string());";
         let expected_ts_export = "export type String = string;";
 
@@ -303,8 +352,8 @@ mod test {
 
     #[test]
     fn option_ok() {
-        let export = <Option<String>>::export();
-        let inlined = <Option<String>>::inline();
+        let export = <Option<String> as RequestType>::export();
+        let inlined = <Option<String> as RequestType>::inline();
 
         let expected_zod_export =
             "export const Option = z.lazy(() => (T: z.ZodTypeAny) => T.optional());";
@@ -324,8 +373,8 @@ mod test {
 
     #[test]
     fn generics_ok() {
-        let export = <Vec<String>>::export();
-        let inlined = <Vec<String>>::inline();
+        let export = <Vec<String> as RequestType>::export();
+        let inlined = <Vec<String> as RequestType>::inline();
 
         let expected_zod_export =
             "export const Vec = z.lazy(() => (T: z.ZodTypeAny) => z.array(T));";
@@ -345,7 +394,7 @@ mod test {
 
     #[test]
     fn array_ok() {
-        let export = <[String; 5]>::export();
+        let export = <[String; 5] as RequestType>::export();
         assert_eq!(
             export.as_ref().unwrap().to_zod_string(),
             "export const Array = z.lazy(() => (T: z.ZodTypeAny, N: Rs.Usize) => z.array(T).length(N));"
@@ -366,7 +415,7 @@ mod test {
     }
     #[test]
     fn tuple_ok() {
-        let export = <(String, Usize)>::export();
+        let export = <(String, Usize) as RequestType>::export();
 
         assert_eq!(export.as_ref().unwrap().to_zod_string(), "export const Tuple2 = z.lazy(() => (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.tuple([T1, T2]));");
         assert_eq!(
@@ -377,8 +426,8 @@ mod test {
 
     #[test]
     fn wrapper_ok() {
-        let export = <Box<String>>::export();
-        let inline = <Box<String>>::inline();
+        let export = <Box<String> as RequestType>::export();
+        let inline = <Box<String> as RequestType>::inline();
 
         assert!(export.is_none());
 
@@ -388,7 +437,7 @@ mod test {
 
     #[test]
     fn vec_ok() {
-        let export = <Vec<String>>::export();
+        let export = <Vec<String> as RequestType>::export();
 
         assert_eq!(
             export.as_ref().unwrap().to_zod_string(),
@@ -408,7 +457,7 @@ mod test {
         let num: Usize = serde_json::from_value(json).unwrap();
         assert_eq!(num, 123123);
 
-        let export = Usize::export().unwrap();
+        let export = <Usize as RequestType>::export().unwrap();
         assert_eq!(
             export.to_zod_string(),
             "export const Usize = z.lazy(() => z.bigint().nonnegative().lt(2n ** 64n));"

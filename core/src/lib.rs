@@ -35,7 +35,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// ## using the helper macro
 /// ```
 /// # use zod_core::{RequestType, ast::InlineSchema, RequestTypeVisitor, ast::Definition, types, ast,
-/// DependencyMap, register_dependencies};
+/// DependencyMap, visit_req_dependencies};
 /// #
 /// # struct MyType<T: RequestType> {
 /// #     field1: Option<types::Usize>,
@@ -53,7 +53,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 ///     where
 ///         Self: 'static,
 ///     {
-///         register_dependencies!(ctx, Option<types::Usize>, String, T);
+///         visit_req_dependencies!(ctx, Option<types::Usize>, String, T);
 ///     }
 /// }
 /// ```
@@ -82,7 +82,7 @@ use ast::{Definition, Docs, Export, InlineSchema};
 ///     where
 ///         Self: 'static,
 ///     {
-///         if ctx.add_self::<Self>() {
+///         if ctx.add_self_as_req::<Self>() {
 ///             <Option<types::Usize>>::register(ctx);
 ///             <String>::register(ctx);
 ///             <T>::register(ctx);
@@ -90,10 +90,10 @@ use ast::{Definition, Docs, Export, InlineSchema};
 ///
 ///         // THIS WOULD GO WRONG:
 ///         //
-///         // if ctx.add_self::<Self>() {
-///         //     ctx.add_self::<Option<types::Usize>>();
-///         //     ctx.add_self::<String>>();
-///         //     ctx.add_self::<T>>();
+///         // if ctx.add_self_as_req::<Self>() {
+///         //     ctx.add_self_as_req::<Option<types::Usize>>();
+///         //     ctx.add_self_as_req::<String>>();
+///         //     ctx.add_self_as_req::<T>>();
 ///         // }
 ///     }
 /// }
@@ -166,9 +166,17 @@ pub trait ResponseTypeVisitor {
 pub struct DependencyMap(BTreeMap<TypeId, Option<ast::Export>>);
 
 impl DependencyMap {
-    pub fn add_self<T>(&mut self) -> bool
+    pub fn add_self_as_req<T>(&mut self) -> bool
     where
         T: RequestType + 'static,
+    {
+        let id = TypeId::of::<T>();
+        self.0.insert(id, T::AST.export()).is_none()
+    }
+
+    pub fn add_self_as_res<T>(&mut self) -> bool
+    where
+        T: ResponseType + 'static,
     {
         let id = TypeId::of::<T>();
         self.0.insert(id, T::AST.export()).is_none()
@@ -181,15 +189,29 @@ impl DependencyMap {
 
 /// helper macro to generate the implementation of the [RequestTypeVisitor::register] method
 #[macro_export]
-macro_rules! register_dependencies {
+macro_rules! visit_req_dependencies {
     ($ctx: ident, $($ty: ty),*) => {
-        if $ctx.add_self::<Self>() {
+        if $ctx.add_self_as_req::<Self>() {
             $(<$ty as $crate::RequestTypeVisitor>::register($ctx);)*
         }
     };
 
     ($ctx: ident) => {
-        $ctx.add_self::<Self>();
+        $ctx.add_self_as_req::<Self>();
+    }
+}
+
+/// helper macro to generate the implementation of the [ResponseTypeVisitor::register] method
+#[macro_export]
+macro_rules! visit_res_dependencies {
+    ($ctx: ident, $($ty: ty),*) => {
+        if $ctx.add_self_as_res::<Self>() {
+            $(<$ty as $crate::ResponseTypeVisitor>::register($ctx);)*
+        }
+    };
+
+    ($ctx: ident) => {
+        $ctx.add_self_as_res::<Self>();
     }
 }
 
