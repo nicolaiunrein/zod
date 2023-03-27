@@ -20,14 +20,14 @@ use syn::{Attribute, Generics};
     supports(struct_named, struct_newtype, struct_tuple, enum_any)
 )]
 
-pub struct ZodNodeInput {
+pub struct ZodTypeDeriveInput {
     pub ident: syn::Ident,
     pub namespace: syn::Path,
     pub attrs: Vec<Attribute>,
     pub generics: Generics,
 }
 
-pub struct ZodNode {
+pub struct ZodType {
     pub ident: syn::Ident,
     pub generics: Generics,
     pub config: ContainerConfig,
@@ -35,9 +35,9 @@ pub struct ZodNode {
     pub dependencies: Vec<Type>,
 }
 
-impl ZodNode {
+impl ZodType {
     pub fn from_derive_input(orig: &syn::DeriveInput) -> darling::Result<Self> {
-        let input = ZodNodeInput::from_derive_input(orig)?;
+        let input = ZodTypeDeriveInput::from_derive_input(orig)?;
 
         let cx = serde_derive_internals::Ctxt::new();
 
@@ -111,7 +111,7 @@ impl ZodNode {
     }
 }
 
-impl<'a> ToTokens for ZodNode {
+impl<'a> ToTokens for ZodType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ident = self.ident.clone();

@@ -11,7 +11,7 @@ mod utils;
 
 use darling::FromDeriveInput;
 use namespace::Namespace;
-use node::ZodNode;
+use node::ZodType;
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
 use quote::quote;
@@ -26,7 +26,7 @@ pub fn node(input: TokenStream) -> TokenStream {
         }
     };
 
-    let node = match ZodNode::from_derive_input(&parsed) {
+    let node = match ZodType::from_derive_input(&parsed) {
         Ok(input) => input,
         Err(err) => {
             return err.write_errors().into();

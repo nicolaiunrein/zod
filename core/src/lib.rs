@@ -100,14 +100,6 @@ use ast::{Definition, Docs, Export, InlineSchema};
 /// ```
 ///
 
-/// ## The core trait of zod
-///
-/// Each and every element to be accessible for the client needs to
-/// implement it.
-/// This crate implements this trait for most of the relevant standard library types as well as
-/// types from some third party crates. If you find yourself in need for a specific type to
-/// implement this trait and you cannot implement it yourself because of the orphan rule please
-/// file an issue or submit a PR. Contribution is more than welcome!
 pub trait InputType: InputTypeVisitor {
     const AST: Definition;
 
@@ -124,7 +116,7 @@ pub trait InputType: InputTypeVisitor {
     }
 }
 
-pub trait OutputType: InputTypeVisitor {
+pub trait OutputType: OutputTypeVisitor {
     const AST: Definition;
 
     fn export() -> Option<Export> {
@@ -141,6 +133,21 @@ pub trait OutputType: InputTypeVisitor {
 }
 
 pub trait InputTypeVisitor {
+    fn register(_: &mut DependencyMap)
+    where
+        Self: 'static;
+
+    fn dependencies() -> DependencyMap
+    where
+        Self: 'static,
+    {
+        let mut cx = DependencyMap(Default::default());
+        Self::register(&mut cx);
+        cx
+    }
+}
+
+pub trait OutputTypeVisitor {
     fn register(_: &mut DependencyMap)
     where
         Self: 'static;

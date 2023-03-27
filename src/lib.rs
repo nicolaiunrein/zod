@@ -128,8 +128,6 @@ pub mod rpc;
 
 pub use zod_core as core;
 
-pub use zod_core::InputType;
-
 #[ignore]
 #[test]
 fn ui() {
