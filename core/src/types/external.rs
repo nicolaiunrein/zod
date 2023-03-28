@@ -339,7 +339,7 @@ mod test {
     #[test]
     fn string_ok() {
         let export = <String as RequestType>::export();
-        let expected_zod_export = "export const String = z.lazy(() => z.string());";
+        let expected_zod_export = "export const String = z.string();";
         let expected_ts_export = "export type String = string;";
 
         assert_eq!(
@@ -355,8 +355,7 @@ mod test {
         let export = <Option<String> as RequestType>::export();
         let inlined = <Option<String> as RequestType>::inline();
 
-        let expected_zod_export =
-            "export const Option = z.lazy(() => (T: z.ZodTypeAny) => T.optional());";
+        let expected_zod_export = "export const Option = (T: z.ZodTypeAny) => T.optional();";
 
         let expected_ts_export = "export type Option<T> = T | undefined;";
 
@@ -376,9 +375,7 @@ mod test {
         let export = <Vec<String> as RequestType>::export();
         let inlined = <Vec<String> as RequestType>::inline();
 
-        let expected_zod_export =
-            "export const Vec = z.lazy(() => (T: z.ZodTypeAny) => z.array(T));";
-
+        let expected_zod_export = "export const Vec = (T: z.ZodTypeAny) => z.array(T);";
         let expected_ts_export = "export type Vec<T> = T[];";
 
         assert_eq!(
@@ -397,7 +394,7 @@ mod test {
         let export = <[String; 5] as RequestType>::export();
         assert_eq!(
             export.as_ref().unwrap().to_zod_string(),
-            "export const Array = z.lazy(() => (T: z.ZodTypeAny, N: Rs.Usize) => z.array(T).length(N));"
+            "export const Array = (T: z.ZodTypeAny, N: Rs.Usize) => z.array(T).length(N);"
         );
 
         assert_eq!(
@@ -417,7 +414,10 @@ mod test {
     fn tuple_ok() {
         let export = <(String, Usize) as RequestType>::export();
 
-        assert_eq!(export.as_ref().unwrap().to_zod_string(), "export const Tuple2 = z.lazy(() => (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.tuple([T1, T2]));");
+        assert_eq!(
+            export.as_ref().unwrap().to_zod_string(),
+            "export const Tuple2 = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.tuple([T1, T2]);"
+        );
         assert_eq!(
             export.as_ref().unwrap().to_ts_string(),
             "export type Tuple2<T1, T2> = [T1, T2];"
@@ -441,7 +441,7 @@ mod test {
 
         assert_eq!(
             export.as_ref().unwrap().to_zod_string(),
-            "export const Vec = z.lazy(() => (T: z.ZodTypeAny) => z.array(T));"
+            "export const Vec = (T: z.ZodTypeAny) => z.array(T);"
         );
         assert_eq!(
             export.as_ref().unwrap().to_ts_string(),
@@ -460,7 +460,7 @@ mod test {
         let export = <Usize as RequestType>::export().unwrap();
         assert_eq!(
             export.to_zod_string(),
-            "export const Usize = z.lazy(() => z.bigint().nonnegative().lt(2n ** 64n));"
+            "export const Usize = z.bigint().nonnegative().lt(2n ** 64n);"
         );
     }
 }

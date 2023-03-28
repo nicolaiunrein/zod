@@ -35,17 +35,8 @@ fn generic_structs() {
         "export interface User { value: Ns.Generic<Rs.String, Rs.Usize> }",
     );
 
-    // compare_export::<Generic<(), ()>>(
-    // "export const Generic = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.lazy(() => z.object({value: Rs.String, t: T1, v: T2}));",
-    // "export interface Generic<T1, T2> { value: Rs.String, t: T1, v: T2 }",
-    // );
-
-    let ex = <Generic<(), ()> as RequestType>::AST;
-    println!("{ex:#?}");
-    panic!()
-
-    // compare(
-    // ex.export().unwrap().to_ts_string(),
-    // "export interface Generic<T1, T2> { value: Rs.String, t: T1, v: T2 }",
-    // );
+    compare_export::<Generic<(), ()>>(
+        "export const Generic = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({value: Rs.String, t: T1, v: T2});",
+        "export interface Generic<T1, T2> { value: Rs.String, t: T1, v: T2 }",
+    );
 }

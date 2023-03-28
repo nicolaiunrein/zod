@@ -100,7 +100,34 @@ impl ZodType {
                     fields: FilteredFields::new(
                         fields
                             .into_iter()
-                            .map(|f| Field::new(f, derive))
+                            .map(|f| {
+                                Field::new(
+                                    f,
+                                    derive,
+                                    orig.generics.params.iter().find_map(|p| match p {
+                                        syn::GenericParam::Type(t) => {
+                                            match f.ty {
+                                                Type::Path(p) => {
+                                                    if let Some(value) = p.path.get_ident() {
+                                                        if value == &t.ident {
+                                                            Some(value.clone())
+                                                        } else {
+                                                            None
+                                                        }
+                                                    } else {
+                                                        None
+                                                    }
+                                                }
+                                                _ => None,
+                                            }
+
+                                            // Some(t.ident.clone()),
+                                        }
+                                        syn::GenericParam::Lifetime(_) => None,
+                                        syn::GenericParam::Const(_) => None,
+                                    }),
+                                )
+                            })
                             .collect::<Result<Vec<_>, _>>()?,
                     ),
                     config: &config,

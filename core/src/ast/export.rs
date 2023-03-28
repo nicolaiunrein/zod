@@ -26,7 +26,7 @@ impl Formatter for Export {
         }
         f.write_str("export const ")?;
         f.write_str(self.path.name())?;
-        f.write_str(" = z.lazy(() => ")?;
+        f.write_str(" = ")?;
 
         match self.schema {
             ExportSchema::Raw { args, zod, .. } => {
@@ -38,15 +38,56 @@ impl Formatter for Export {
                     f.write_str(") => ")?;
                 }
                 f.write_str(zod)?;
+                f.write_str(";")?;
             }
-            ExportSchema::Object(inner) => inner.fmt_zod(f)?,
-            ExportSchema::Newtype(inner) => inner.fmt_zod(f)?,
-            ExportSchema::Tuple(inner) => inner.fmt_zod(f)?,
-            ExportSchema::Union(inner) => inner.fmt_zod(f)?,
-            ExportSchema::DiscriminatedUnion(inner) => inner.fmt_zod(f)?,
+            //todo generics
+            ExportSchema::Object(inner) => {
+                let mut generics = inner.generics().peekable();
+                if generics.peek().is_some() {
+                    f.write_str("(")?;
+                    while let Some(generic) = generics.next() {
+                        f.write_str(generic)?;
+                        f.write_str(": z.ZodTypeAny")?;
+                        if generics.peek().is_some() {
+                            f.write_str(", ")?;
+                        }
+                    }
+                    f.write_str(") => ")?;
+                    inner.fmt_zod(f)?;
+                    f.write_str(";")?;
+                } else {
+                    f.write_str("z.lazy(() => ")?;
+                    inner.fmt_zod(f)?;
+                    f.write_str(");")?;
+                }
+            }
+
+            //todo generics
+            ExportSchema::Newtype(inner) => {
+                f.write_str("z.lazy(() => ")?;
+                inner.fmt_zod(f)?;
+                f.write_str(");")?;
+            }
+            //todo generics
+            ExportSchema::Tuple(inner) => {
+                f.write_str("z.lazy(() => ")?;
+                inner.fmt_zod(f)?;
+                f.write_str(");")?;
+            }
+            //todo generics
+            ExportSchema::Union(inner) => {
+                f.write_str("z.lazy(() => ")?;
+                inner.fmt_zod(f)?;
+                f.write_str(");")?;
+            }
+            //todo generics
+            ExportSchema::DiscriminatedUnion(inner) => {
+                f.write_str("z.lazy(() => ")?;
+                inner.fmt_zod(f)?;
+                f.write_str(");")?;
+            }
         }
 
-        f.write_str(");")?;
         Ok(())
     }
 
@@ -82,20 +123,35 @@ impl Formatter for Export {
             ExportSchema::Object(inner) => {
                 f.write_str("interface ")?;
                 f.write_str(self.path.name())?;
+                let mut generics = inner.generics().peekable();
+                if generics.peek().is_some() {
+                    f.write_str("<")?;
+                    while let Some(gen) = generics.next() {
+                        f.write_str(gen)?;
+                        if generics.peek().is_some() {
+                            f.write_str(", ")?;
+                        }
+                    }
+                    f.write_str(">")?;
+                }
                 f.write_str(" ")?;
                 inner.fmt_ts(f)?;
             }
+            //todo generics
             ExportSchema::Tuple(inner) => {
                 fmt_type(&inner)?;
             }
 
+            //todo generics
             ExportSchema::Newtype(inner) => {
                 fmt_type(&inner)?;
             }
 
+            //todo generics
             ExportSchema::Union(inner) => {
                 fmt_type(&inner)?;
             }
+            //todo generics
             ExportSchema::DiscriminatedUnion(inner) => {
                 fmt_type(&inner)?;
             }

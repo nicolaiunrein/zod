@@ -2,11 +2,49 @@ use crate::RequestType;
 
 use super::{Formatter, InlineSchema};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FieldValue {
+    Resolved(InlineSchema),
+    Generic(&'static str),
+}
+
+impl FieldValue {
+    pub const fn is_generic(&self) -> bool {
+        match self {
+            FieldValue::Resolved(_) => false,
+            FieldValue::Generic(_) => true,
+        }
+    }
+
+    pub(crate) fn get_generic(&self) -> Option<&'static str> {
+        match self {
+            FieldValue::Resolved(_) => None,
+            FieldValue::Generic(value) => Some(value),
+        }
+    }
+}
+
+impl Formatter for FieldValue {
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FieldValue::Resolved(value) => value.fmt_zod(f),
+            FieldValue::Generic(value) => f.write_str(value),
+        }
+    }
+
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FieldValue::Resolved(value) => value.fmt_ts(f),
+            FieldValue::Generic(value) => f.write_str(value),
+        }
+    }
+}
+
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedField {
     name: &'static str,
-    value: InlineSchema,
+    value: FieldValue,
     optional: bool,
 }
 
@@ -14,15 +52,24 @@ impl NamedField {
     pub const fn new<T: RequestType>(name: &'static str) -> Self {
         Self {
             name,
-            value: T::AST.inline(),
+            value: FieldValue::Resolved(T::AST.inline()),
             optional: false,
         }
     }
+
+    pub const fn generic(name: &'static str, value: &'static str) -> Self {
+        Self {
+            name,
+            value: FieldValue::Generic(value),
+            optional: false,
+        }
+    }
+
     pub const fn name(&self) -> &'static str {
         self.name
     }
 
-    pub const fn value(&self) -> InlineSchema {
+    pub const fn value(&self) -> FieldValue {
         self.value
     }
 

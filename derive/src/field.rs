@@ -4,7 +4,7 @@ use crate::node::Derive;
 use darling::ToTokens;
 use quote::quote;
 use serde_derive_internals::ast::Field as SerdeField;
-use syn::Type;
+use syn::{Ident, Type};
 
 use crate::utils::get_zod;
 
@@ -12,13 +12,19 @@ use crate::utils::get_zod;
 pub struct Field {
     pub ty: Type,
     pub config: FieldConfig,
+    pub generic: Option<Ident>,
 }
 
 impl Field {
-    pub fn new<'a>(value: &'a SerdeField, derive: Derive) -> Result<Self, Error> {
+    pub fn new<'a>(
+        value: &'a SerdeField,
+        derive: Derive,
+        generic: Option<Ident>,
+    ) -> Result<Self, Error> {
         Ok(Self {
             ty: value.original.ty.clone(),
             config: FieldConfig::new(&value.attrs, derive)?,
+            generic,
         })
     }
 }
@@ -35,13 +41,29 @@ impl ToTokens for Field {
 
         let zod = get_zod();
 
-        match self.config.name {
-            Some(ref name) => tokens.extend(quote! {
+        match (&self.generic, &self.config.name) {
+            (None, Some(ref name)) => tokens.extend(quote! {
                 #zod::core::ast::NamedField::new::<#ty>(#name) #optional
             }),
-            None => tokens.extend(quote! {
+            (None, None) => tokens.extend(quote! {
                 #zod::core::ast::TupleField::new::<#ty>() #optional
             }),
+
+            (Some(ident), Some(ref name)) => {
+                let value = ident.to_string();
+
+                tokens.extend(quote! {
+                    #zod::core::ast::NamedField::generic(#name, #value) #optional
+                })
+            }
+            (Some(ident), None) => {
+                let value = ident.to_string();
+
+                tokens.extend(quote! {
+                    // todo
+                    #zod::core::ast::TupleField::new::<#ty>() #optional
+                })
+            }
         }
     }
 }

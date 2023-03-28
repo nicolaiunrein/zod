@@ -11,6 +11,10 @@ impl ObjectSchema {
     pub const fn new(fields: &'static [NamedField]) -> Self {
         Self { fields }
     }
+
+    pub fn generics(&self) -> impl Iterator<Item = &'static str> {
+        self.fields.iter().filter_map(|f| f.value().get_generic())
+    }
 }
 
 impl Formatter for ObjectSchema {

@@ -118,8 +118,8 @@ mod test {
                 docs: None,
                 path: Path::new::<Ns>("MyGeneric"),
                 schema: ExportSchema::Object(ObjectSchema::new(&[
-                    NamedField::new::<T1>("t1"),
-                    NamedField::new::<T2>("t2"),
+                    NamedField::generic("t1", "T1"),
+                    NamedField::generic("t2", "T2"),
                 ])),
             },
             &[T1::AST.inline(), T2::AST.inline()],
@@ -211,6 +211,6 @@ mod test {
     #[test]
     fn generic_export_ok() {
         let gen = <MyGeneric<String, Usize>>::export().unwrap();
-        assert_eq!(gen.to_zod_string(), "export const MyGeneric = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.lazy(() => z.object({ t1: T1, t2: T2 }))");
+        assert_eq!(gen.to_zod_string(), "export const MyGeneric = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ t1: T1, t2: T2 });");
     }
 }
