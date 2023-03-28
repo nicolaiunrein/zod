@@ -207,4 +207,10 @@ mod test {
 
         assert_eq!(deps, expected);
     }
+
+    #[test]
+    fn generic_export_ok() {
+        let gen = <MyGeneric<String, Usize>>::export().unwrap();
+        assert_eq!(gen.to_zod_string(), "export const MyGeneric = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.lazy(() => z.object({ t1: T1, t2: T2 }))");
+    }
 }
