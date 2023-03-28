@@ -9,9 +9,19 @@ pub use error::*;
 use crate::types::Usize;
 use crate::{RequestTypeVisitor, ResponseType, ResponseTypeVisitor};
 
+use server::StreamHandle;
+
 /// The trait represents a Namespace with rpc methods
+#[async_trait::async_trait]
 pub trait RpcNamespace: crate::Namespace {
+    const AST: &'static [crate::ast::rpc::RpcRequest];
     type Req: serde::de::DeserializeOwned + RequestTypeVisitor + ResponseTypeVisitor;
+    async fn process(
+        &mut self,
+        req: Self::Req,
+        sender: ResponseSender,
+        id: usize,
+    ) -> Option<StreamHandle>;
 }
 
 /// The sending half of a Response channel

@@ -21,7 +21,7 @@ impl BackendProxy {
         tokio::spawn(async move {
             while let Some((result, mut res)) = rx.next().await {
                 match result {
-                    Ok(req) => backend.handle_request(req, res, &mut subscribers).await,
+                    Ok(req) => backend.forward_request(req, res, &mut subscribers).await,
                     Err(err) => {
                         if let Err(err) = res.send(err).await {
                             tracing::warn!(?err);

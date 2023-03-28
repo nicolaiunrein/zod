@@ -34,7 +34,6 @@ impl ToTokens for Namespace {
             impl #impl_generics #zod::core::Namespace for #ident #ty_generics #where_clause {
                 const NAME: &'static str = #name;
                 const DOCS: Option<#zod::core::ast::Docs> = #docs;
-
             }
         };
 

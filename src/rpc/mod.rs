@@ -3,7 +3,7 @@
 pub mod clients;
 pub mod servers;
 
-pub use zod_core::rpc::{server::Backend, server::SubscriberMap, Error, Request, Response};
+use zod_core::rpc::{server::Backend, Error, Response};
 
 #[async_trait::async_trait]
 pub trait Server {

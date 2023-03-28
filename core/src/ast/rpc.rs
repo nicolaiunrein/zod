@@ -55,7 +55,7 @@ impl Display for RpcRequest {
 
         let req = match self.kind {
             RpcRequestKind::Method => "request",
-            RpcRequestKind::Stream => "stream",
+            RpcRequestKind::Stream => "subscribe",
         };
 
         f.write_str("// @ts-ignore\n")?;

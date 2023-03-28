@@ -29,7 +29,7 @@ pub enum RpcItemKind {
 
 impl RpcInput {
     pub(crate) fn req_ident(&self) -> Ident {
-        format_ident!("{}Req", self.ident)
+        format_ident!("{}Request", self.ident)
     }
 }
 
