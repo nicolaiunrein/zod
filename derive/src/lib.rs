@@ -102,20 +102,21 @@ pub fn backend(input: TokenStream) -> TokenStream {
 
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn rpc(input: TokenStream, _args: TokenStream) -> TokenStream {
+pub fn rpc(_attrs: TokenStream, input: TokenStream) -> TokenStream {
     let orig = proc_macro2::TokenStream::from(input.clone());
 
     let ast = syn::parse_macro_input!(input as syn::ItemImpl);
-    // let input = match rpc::RpcInput::try_from(ast) {
-    // Ok(v) => v,
-    // Err(err) => {
-    // return syn::Error::from(err).into_compile_error().into();
-    // }
-    // };
+
+    let input = match rpc::RpcInput::try_from(ast) {
+        Ok(v) => v,
+        Err(err) => {
+            return syn::Error::from(err).into_compile_error().into();
+        }
+    };
 
     let output = quote! {
         #orig
-        // #input
+        #input
     };
 
     output.into()

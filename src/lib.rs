@@ -138,6 +138,8 @@ pub mod __private {
 
     // #[cfg(features = "rpc")]
     pub use tokio;
+
+    pub use futures;
 }
 
 #[ignore]

@@ -1,35 +1,195 @@
-use crate::error::Error;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use proc_macro_error::abort_call_site;
-use quote::format_ident;
+use quote::quote;
 use syn::{parse_quote, Ident, ImplItem, ImplItemMethod, ItemImpl, Type};
 
+use crate::error::Error;
+use crate::utils::get_zod;
+
 pub struct RpcInput {
-    pub ident: syn::Ident,
-    pub items: Vec<RpcItem>,
+    ident: syn::Ident,
+    items: Vec<RpcItem>,
 }
 
 pub struct RpcItem {
-    pub ident: syn::Ident,
-    pub arg_types: Vec<RpcArg>,
-    pub kind: RpcItemKind,
-    pub output: Box<Type>,
+    ident: syn::Ident,
+    method_args: Vec<RpcArg>,
+    kind: RpcItemKind,
 }
 
 pub struct RpcArg {
-    pub name: String,
-    pub ty: Box<Type>,
+    name: String,
+    ty: Box<Type>,
 }
 
 pub enum RpcItemKind {
-    Method,
-    Stream,
+    Method(Box<Type>),
+    Stream(Box<Type>),
 }
 
-impl RpcInput {
-    pub(crate) fn req_ident(&self) -> Ident {
-        format_ident!("{}Request", self.ident)
+impl ToTokens for RpcInput {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+        let ident = &self.ident;
+
+        let enum_variants = self
+            .items
+            .iter()
+            .map(|item| {
+                let field_ident = &item.ident;
+                let types = item.method_args.iter().map(|arg| &arg.ty);
+
+                // todo
+                let maybe_comma = if item.method_args.len() == 1 {
+                    quote!(,)
+                } else {
+                    quote!()
+                };
+
+                quote!(#field_ident {args: (#(#types),* #maybe_comma) })
+            })
+            .collect::<Vec<_>>();
+
+        let input_types = self
+            .items
+            .iter()
+            .map(|item| item.method_args.iter().map(|arg| &arg.ty))
+            .flatten()
+            .collect::<Vec<_>>();
+
+        let rpc_requests = self.items.iter().map(|item| {
+            let name = item.ident.to_string();
+
+            let args = item.method_args.iter().map(|arg| {
+                let ty = &arg.ty;
+                let name = &arg.name;
+                quote!(#zod::core::ast::NamedField::new::<#ty>(#name))
+            });
+
+            match &item.kind {
+                RpcItemKind::Method(output) => {
+                    quote! {
+                        #zod::core::ast::rpc::RpcRequest {
+                            path: #zod::core::ast::Path::new::<#ident>(#name),
+                            args: &[#(#args),*],
+                            res: <#output as ResponseType>::AST.inline(),
+                            kind: #zod::core::ast::rpc::RpcRequestKind::Method,
+                        }
+                    }
+                }
+                RpcItemKind::Stream(_) => {
+                    let arg_types = item
+                        .method_args
+                        .iter()
+                        .map(|arg| &arg.ty)
+                        .collect::<Vec<_>>();
+
+                    let item_ast = ImplStreamItemAstExtractor {
+                        ns: &self.ident,
+                        method: &item.ident,
+                        args: &arg_types,
+                    };
+
+                    quote! {
+                        #zod::core::ast::rpc::RpcRequest {
+                            path: #zod::core::ast::Path::new::<#ident>(#name),
+                            args: &[#(#args),*],
+                            res: #item_ast.get().inline(),
+                            kind: #zod::core::ast::rpc::RpcRequestKind::Stream,
+                        }
+                    }
+                }
+            }
+        });
+
+        let match_entries = self.items.iter().map(|item| {
+            let ident = &item.ident;
+            let args = item.method_args.iter().enumerate().map(|(i, _)| {
+                let index = syn::Index::from(i);
+                quote!(args.#index)
+            });
+
+            match &item.kind {
+                RpcItemKind::Method(_) => {
+                    quote! {
+                        NsReq:: #ident { args } => {
+                            let res = self.#ident(#(#args),*).await;
+                            let _ = sender.unbounded_send(Response::method(id, res));
+                            None
+                        }
+                    }
+                }
+                RpcItemKind::Stream(_) => {
+                    quote! {
+                        NsReq::hello_stream { args } => {
+                            let mut res = self.#ident(#(#args),*);
+                            let jh = tokio::spawn(async move {
+                                while let Some(evt) = res.next().await {
+                                    let _ = sender.unbounded_send(Response::stream(id, evt));
+                                }
+                            });
+
+                            Some(jh.into())
+                        }
+                    }
+                }
+            }
+        });
+
+        let output = quote! {
+            const _: () = {
+                #[derive(#zod::__private::serde::Deserialize)]
+                #[serde(tag = "method")]
+                #[allow(non_camel_case_types)]
+                #[allow(non_snake_case)]
+                #[allow(non_upper_case_globals)]
+                enum NsReq {
+                    #(#enum_variants),*
+                }
+
+                impl #zod::core::RequestTypeVisitor for NsReq {
+                    fn register(ctx: &mut #zod::core::DependencyMap)
+                    where
+                        Self: 'static,
+                    {
+                        #(<#input_types as #zod::core::RequestTypeVisitor>::register(ctx));*
+                    }
+                }
+
+                impl #zod::core::ResponseTypeVisitor for NsReq {
+                    fn register(ctx: &mut #zod::core::DependencyMap)
+                    where
+                        Self: 'static,
+                    {
+
+                        // #(<#response_types as #zod::core::ResponseTypeVisitor>::register(ctx));*
+                    }
+                }
+
+                #[#zod::__private::async_trait::async_trait]
+                impl #zod::core::rpc::RpcNamespace for #ident {
+                    const AST: &'static [#zod::core::ast::rpc::RpcRequest] = &[
+                        #(#rpc_requests),*
+                    ];
+
+                    type Req = NsReq;
+
+                    async fn process(
+                        &mut self,
+                        req: Self::Req,
+                        sender: #zod::core::rpc::ResponseSender,
+                        id: usize,
+                    ) -> Option<#zod::core::rpc::server::StreamHandle> {
+                        match req {
+                            #(#match_entries),*
+                        }
+                    }
+                }
+            };
+        };
+
+        tokens.extend(output);
     }
 }
 
@@ -54,51 +214,6 @@ impl TryFrom<ItemImpl> for RpcInput {
     }
 }
 
-impl ToTokens for RpcInput {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let req_ident = self.req_ident();
-        let ident = &self.ident;
-
-        // let req_variant_defs = self.items.iter().map(expand_req_variant_decl);
-        // let req_variant_impls = self.items.iter().map(expand_req_variant_impl);
-
-        // let output = quote_spanned! {
-        // ident.span() =>
-        // const _: () = {
-        // impl #__private::codegen::RpcNamespace for #ident {
-        // type Req = #req_ident;
-        // }
-
-        // #[derive(#__private::serde::Deserialize, Debug)]
-        // #[serde(tag = "method")]
-        // #[allow(non_camel_case_types)]
-        // #[allow(non_snake_case)]
-        // #[allow(non_upper_case_globals)]
-        // pub enum #req_ident {
-        // #(#req_variant_defs),*
-        // }
-
-        // impl #req_ident {
-        // #[allow(dead_code)]
-        // #[allow(unused_variables)]
-        // pub async fn call(
-        // self,
-        // id: usize,
-        // ctx: &mut #ident,
-        // sender: #__private::ResponseSender,
-        // ) -> ::std::option::Option<#__private::tokio::task::JoinHandle<()>> {
-        // match self {
-        // #(#req_variant_impls),*
-        // }
-        // }
-        // }
-        // };
-        // };
-
-        tokens.extend(quote::quote!());
-    }
-}
-
 impl TryFrom<ImplItemMethod> for RpcItem {
     type Error = syn::Error;
 
@@ -107,21 +222,13 @@ impl TryFrom<ImplItemMethod> for RpcItem {
         let ident = sig.ident;
         let is_async = sig.asyncness.is_some();
 
-        let kind = if is_async {
-            RpcItemKind::Method
-        } else {
-            RpcItemKind::Stream
-        };
-
-        let output = match (&kind, sig.output) {
-            (RpcItemKind::Method, syn::ReturnType::Default) => {
-                parse_quote!(())
-            }
-            (RpcItemKind::Stream, syn::ReturnType::Default) => {
+        let kind = match (is_async, sig.output) {
+            (true, syn::ReturnType::Default) => RpcItemKind::Method(parse_quote!(())),
+            (false, syn::ReturnType::Default) => {
                 return Err(Error::NonAsyncReturningDefault(ident.span()).into());
             }
-            (RpcItemKind::Method, syn::ReturnType::Type(_, t))
-            | (RpcItemKind::Stream, syn::ReturnType::Type(_, t)) => t,
+            (true, syn::ReturnType::Type(_, t)) => RpcItemKind::Method(t),
+            (false, syn::ReturnType::Type(_, t)) => RpcItemKind::Stream(t),
         };
 
         if let Some(receiver) = sig.inputs.iter().find_map(|arg| match arg {
@@ -141,7 +248,7 @@ impl TryFrom<ImplItemMethod> for RpcItem {
             return Err(Error::NoSelf(ident.span()).into());
         }
 
-        let arg_types = sig
+        let method_args = sig
             .inputs
             .iter()
             .filter_map(|arg| match arg {
@@ -158,9 +265,43 @@ impl TryFrom<ImplItemMethod> for RpcItem {
 
         Ok(Self {
             ident,
-            arg_types,
+            method_args,
             kind,
-            output,
         })
+    }
+}
+
+struct ImplStreamItemAstExtractor<'a> {
+    ns: &'a Ident,
+    method: &'a Ident,
+    args: &'a [&'a Box<Type>],
+}
+
+impl<'a> ToTokens for ImplStreamItemAstExtractor<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+        let ns = &self.ns;
+        let args = self.args;
+        let method = self.method;
+
+        let output = quote! {
+            {
+                struct Helper<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> {
+                    _inner: &'static dyn Fn(&mut #ns, #(#args),*) -> S,
+                }
+
+                impl<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> Helper<I, S> {
+                    const fn get(&self) -> #zod::core::ast::Definition {
+                        <I as #zod::core::ResponseType>::AST
+                    }
+                }
+
+                Helper {
+                    _inner: &#ns::#method,
+                }
+            }
+        };
+
+        tokens.extend(output)
     }
 }
