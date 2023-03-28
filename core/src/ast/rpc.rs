@@ -130,7 +130,7 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
     name;
     age;
     z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([...arguments]);
-    return stream(\"Ns\", \"test\", arguments);
+    return subscribe(\"Ns\", \"test\", arguments);
 };
 ";
 
