@@ -3,7 +3,7 @@ use serde_derive_internals::attr;
 use crate::error::Error;
 use crate::node::Derive;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FieldConfig {
     pub required: bool,
     pub name: Option<String>,

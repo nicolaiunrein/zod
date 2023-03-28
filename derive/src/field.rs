@@ -8,7 +8,7 @@ use syn::Type;
 
 use crate::utils::get_zod;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Field {
     pub ty: Type,
     pub config: FieldConfig,
@@ -46,7 +46,7 @@ impl ToTokens for Field {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FilteredFields(Vec<Field>);
 
 impl FilteredFields {
