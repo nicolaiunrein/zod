@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Delimited, Docs, ExportSchema, Formatter, GenericArgument, Path, Ref};
+use super::{Delimited, Docs, ExportSchema, Formatter, Path, Ref};
 
 /// The struct containing all the info about a [Node](crate::Node) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -40,14 +40,14 @@ impl Formatter for Export {
                 if !args.is_empty() {
                     f.write_str("(")?;
                     args.iter()
-                        .filter(|arg| !matches!(arg, GenericArgument::Assign { .. }))
+                        .filter(|arg| !arg.is_assign())
                         .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
                     f.write_str(") => ")?;
                 }
                 f.write_str(zod)?;
                 f.write_str(";")?;
             }
-            //todo generics
+
             ExportSchema::Object(inner) => {
                 let mut generics = inner.generics().peekable();
                 if generics.peek().is_some() {

@@ -16,6 +16,20 @@ pub enum GenericArgument {
     },
 }
 
+impl GenericArgument {
+    pub const fn is_type(&self) -> bool {
+        matches!(self, GenericArgument::Type(_))
+    }
+
+    pub const fn is_const(&self) -> bool {
+        matches!(self, GenericArgument::Const { .. })
+    }
+
+    pub const fn is_assign(&self) -> bool {
+        matches!(self, GenericArgument::Assign { .. })
+    }
+}
+
 impl Formatter for GenericArgument {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
