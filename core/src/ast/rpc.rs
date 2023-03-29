@@ -20,8 +20,7 @@ pub enum RpcRequestKind {
 pub struct RpcRequest {
     pub path: Path,
     pub args: &'static [NamedField],
-    //todo rename to reference
-    pub res: Ref,
+    pub output: Ref,
     pub kind: RpcRequestKind,
 }
 
@@ -50,8 +49,8 @@ impl Display for RpcRequest {
         };
 
         let res = match self.kind {
-            RpcRequestKind::Method => format!("Promise<{}>", self.res.to_ts_string()),
-            RpcRequestKind::Stream => format!("Store<{}>", self.res.to_ts_string()),
+            RpcRequestKind::Method => format!("Promise<{}>", self.output.to_ts_string()),
+            RpcRequestKind::Stream => format!("Store<{}>", self.output.to_ts_string()),
         };
 
         let req = match self.kind {
@@ -116,7 +115,7 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            res: <Option<bool>>::AST.inline(),
+            output: <Option<bool>>::AST.get_ref(),
         };
 
         assert_eq!(REQ.to_string(), expected);
@@ -147,7 +146,7 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            res: <Option<bool>>::AST.inline(),
+            output: <Option<bool>>::AST.get_ref(),
         };
 
         assert_eq!(REQ.to_string(), expected);

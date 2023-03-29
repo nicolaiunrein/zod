@@ -34,8 +34,19 @@ use ast::{Docs, Export, Ref};
 /// # Example
 /// ## using the helper macro
 /// ```
-/// # use zod_core::{RequestType, ast::InlineSchema, RequestTypeVisitor, ast::Definition, types, ast,
-/// DependencyMap, visit_req_dependencies};
+/// # use zod_core::{
+/// #   RequestType,
+/// #   RequestTypeVisitor,
+/// #   types,
+/// #   ast,
+/// #   DependencyMap,
+/// #   visit_req_dependencies,
+/// #   ast::Export,
+/// #   types::Rs,
+/// #   ast::ObjectSchema,
+/// #   ast::ExportSchema,
+/// #   ast::Path
+/// # };
 /// #
 /// # struct MyType<T: RequestType> {
 /// #     field1: Option<types::Usize>,
@@ -44,10 +55,14 @@ use ast::{Docs, Export, Ref};
 /// # }
 /// #
 /// # impl<T: RequestType> RequestType for MyType<T> {
-/// #     const AST: ast::Definition =
-/// #         Definition::Inlined(InlineSchema::Tuple(ast::TupleSchema::new(&[])));
+/// #     const AST: Export = Export {
+/// #        docs: None,
+/// #        path: Path::new::<Rs>("MyType"),
+/// #        args: &[],
+/// #        schema: ExportSchema::Object(ObjectSchema::new(&[]))
+/// #     };
 /// # }
-/// #
+///
 /// impl<T: RequestType> RequestTypeVisitor for MyType<T> {
 ///     fn register(ctx: &mut DependencyMap)
 ///     where
@@ -63,8 +78,19 @@ use ast::{Docs, Export, Ref};
 /// incorrectly. In the commented case only direct dependencies would get registered breaking the
 /// recursion.
 /// ```
-/// # use zod_core::{RequestType, ast::InlineSchema, RequestTypeVisitor, ast::Definition, types, ast,
-/// DependencyMap};
+/// # use zod_core::{
+/// #   RequestType,
+/// #   RequestTypeVisitor,
+/// #   types,
+/// #   ast,
+/// #   DependencyMap,
+/// #   visit_req_dependencies,
+/// #   ast::Export,
+/// #   types::Rs,
+/// #   ast::ObjectSchema,
+/// #   ast::ExportSchema,
+/// #   ast::Path
+/// # };
 /// #
 /// # struct MyType<T: RequestType> {
 /// #     field1: Option<types::Usize>,
@@ -73,8 +99,12 @@ use ast::{Docs, Export, Ref};
 /// # }
 /// #
 /// # impl<T: RequestType> RequestType for MyType<T> {
-/// #     const AST: ast::Definition =
-/// #         Definition::Inlined(InlineSchema::Tuple(ast::TupleSchema::new(&[])));
+/// #     const AST: Export = Export {
+/// #        docs: None,
+/// #        path: Path::new::<Rs>("MyType"),
+/// #        args: &[],
+/// #        schema: ExportSchema::Object(ObjectSchema::new(&[]))
+/// #     };
 /// # }
 /// #
 /// impl<T: RequestType> RequestTypeVisitor for MyType<T> {
@@ -107,9 +137,8 @@ pub trait RequestType: RequestTypeVisitor {
         Self::AST
     }
 
-    //todo rename to get_ref
-    fn inline() -> Ref {
-        Self::AST.inline()
+    fn get_ref() -> Ref {
+        Self::AST.get_ref()
     }
 
     fn docs() -> Option<Docs> {
@@ -124,9 +153,8 @@ pub trait ResponseType: ResponseTypeVisitor {
         Self::AST
     }
 
-    //todo rename to get_ref
-    fn inline() -> Ref {
-        Self::AST.inline()
+    fn get_ref() -> Ref {
+        Self::AST.get_ref()
     }
 
     fn docs() -> Option<Docs> {

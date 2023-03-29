@@ -12,8 +12,7 @@ pub struct Export {
 }
 
 impl Export {
-    //todo rename
-    pub const fn inline(&self) -> Ref {
+    pub const fn get_ref(&self) -> Ref {
         Ref::new(self)
     }
 }
@@ -239,7 +238,7 @@ mod test {
     #[test]
     fn newtype_ok() {
         const NEWTYPE: NewtypeSchema =
-            NewtypeSchema::new(&<String as crate::RequestType>::AST.inline(), false);
+            NewtypeSchema::new(&<String as crate::RequestType>::AST.get_ref(), false);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,

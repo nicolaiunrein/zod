@@ -52,7 +52,7 @@ impl NamedField {
     pub const fn new<T: RequestType>(name: &'static str) -> Self {
         Self {
             name,
-            value: FieldValue::Resolved(T::AST.inline()),
+            value: FieldValue::Resolved(T::AST.get_ref()),
             optional: false,
         }
     }
@@ -116,7 +116,7 @@ pub struct TupleField {
 impl TupleField {
     pub const fn new<T: RequestType>() -> Self {
         Self {
-            value: T::AST.inline(),
+            value: T::AST.get_ref(),
             optional: false,
         }
     }

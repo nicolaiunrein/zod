@@ -66,7 +66,7 @@ macro_rules! tuple_req {
                 zod: concat!("z.tuple([", $crate::types::macros::join!(", ", $($i),*),"])"),
                 ts: concat!("[", $crate::types::macros::join!(", ", $($i),*) ,"]")
             },
-            args: &[$(<$i>::AST.inline()),*]
+            args: &[$(<$i>::AST.get_ref()),*]
         }
     };
 }
@@ -110,10 +110,10 @@ macro_rules! impl_wrapper {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &<T>::AST.inline(),
+                    &<T>::AST.get_ref(),
                     false,
                 )),
-                args: <T>::AST.args,
+                args: &[T::AST.get_ref()],
             };
         }
 
@@ -127,7 +127,15 @@ macro_rules! impl_wrapper {
         }
 
         impl<T: $crate::ResponseType> $crate::ResponseType for $type {
-            const AST: $crate::ast::Export = todo!();
+            const AST: $crate::ast::Export = $crate::ast::Export {
+                docs: None,
+                path: $crate::ast::Path::new::<$crate::types::Rs>($name),
+                schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
+                    &<T>::AST.get_ref(),
+                    false,
+                )),
+                args: &[T::AST.get_ref()],
+            };
         }
 
         impl<T: $crate::ResponseType> $crate::ResponseTypeVisitor for $type {
@@ -153,7 +161,7 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                    args: &[$($generics::AST.inline()),*]
+                    args: &[$($generics::AST.get_ref()),*]
                 };
         }
 
@@ -178,7 +186,7 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                    args: &[$($generics::AST.inline()),*]
+                    args: &[$($generics::AST.get_ref()),*]
                 };
         }
 

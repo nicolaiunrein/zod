@@ -50,7 +50,7 @@ mod test {
                 NamedField::generic("t1", "T1"),
                 NamedField::generic("t2", "T2"),
             ])),
-            args: &[T1::AST.inline(), T2::AST.inline()],
+            args: &[T1::AST.get_ref(), T2::AST.get_ref()],
         };
     }
 
@@ -98,7 +98,7 @@ mod test {
             schema: ExportSchema::Object(ObjectSchema::new(&[NamedField::new::<
                 MyGeneric<String, T>,
             >("partial_inner")])),
-            args: &[T::AST.inline()],
+            args: &[T::AST.get_ref()],
         };
     }
 
