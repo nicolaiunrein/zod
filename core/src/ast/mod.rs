@@ -50,8 +50,8 @@ mod test {
                 NamedField::generic("t1", "T1"),
                 NamedField::generic("t2", "T2"),
             ])),
-            args: &[T1::EXPORT.get_ref(), T2::EXPORT.get_ref()],
         };
+        const ARGS: &'static [Ref] = &[Ref::new_req::<T1>(), Ref::new_req::<T2>()];
     }
 
     impl<T1: RequestType, T2: RequestType> RequestTypeVisitor for MyGeneric<T1, T2> {
@@ -74,8 +74,8 @@ mod test {
             schema: ExportSchema::Object(ObjectSchema::new(&[NamedField::new::<Partial<Usize>>(
                 "my_type_inner",
             )])),
-            args: &[],
         };
+        const ARGS: &'static [Ref] = &[];
     }
 
     impl RequestTypeVisitor for MyType {
@@ -98,8 +98,9 @@ mod test {
             schema: ExportSchema::Object(ObjectSchema::new(&[NamedField::new::<
                 MyGeneric<String, T>,
             >("partial_inner")])),
-            args: &[T::EXPORT.get_ref()],
         };
+
+        const ARGS: &'static [Ref] = &[Ref::new_req::<T>()];
     }
 
     impl<T: RequestType> RequestTypeVisitor for Partial<T> {

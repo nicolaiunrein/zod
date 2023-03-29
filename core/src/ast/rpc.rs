@@ -87,7 +87,6 @@ impl Display for RpcRequest {
 mod test {
     use super::*;
     use crate::Namespace;
-    use crate::RequestType;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -115,7 +114,7 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            output: <Option<bool>>::EXPORT.get_ref(),
+            output: Ref::new_res::<Option<bool>>(),
         };
 
         assert_eq!(REQ.to_string(), expected);
@@ -146,7 +145,7 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            output: <Option<bool>>::EXPORT.get_ref(),
+            output: Ref::new_res::<Option<bool>>(),
         };
 
         assert_eq!(REQ.to_string(), expected);

@@ -45,7 +45,8 @@ use ast::{Docs, Export, Ref};
 /// #   types::Rs,
 /// #   ast::ObjectSchema,
 /// #   ast::ExportSchema,
-/// #   ast::Path
+/// #   ast::Path,
+/// #   ast::Ref
 /// # };
 /// #
 /// # struct MyType<T: RequestType> {
@@ -58,9 +59,9 @@ use ast::{Docs, Export, Ref};
 /// #     const EXPORT: Export = Export {
 /// #        docs: None,
 /// #        path: Path::new::<Rs>("MyType"),
-/// #        args: &[],
 /// #        schema: ExportSchema::Object(ObjectSchema::new(&[]))
 /// #     };
+/// #     const ARGS: &'static [Ref] = &[];
 /// # }
 ///
 /// impl<T: RequestType> RequestTypeVisitor for MyType<T> {
@@ -89,7 +90,8 @@ use ast::{Docs, Export, Ref};
 /// #   types::Rs,
 /// #   ast::ObjectSchema,
 /// #   ast::ExportSchema,
-/// #   ast::Path
+/// #   ast::Path,
+/// #   ast::Ref
 /// # };
 /// #
 /// # struct MyType<T: RequestType> {
@@ -102,9 +104,9 @@ use ast::{Docs, Export, Ref};
 /// #     const EXPORT: Export = Export {
 /// #        docs: None,
 /// #        path: Path::new::<Rs>("MyType"),
-/// #        args: &[],
 /// #        schema: ExportSchema::Object(ObjectSchema::new(&[]))
 /// #     };
+/// #     const ARGS: &'static [Ref] = &[];
 /// # }
 /// #
 /// impl<T: RequestType> RequestTypeVisitor for MyType<T> {
@@ -132,13 +134,10 @@ use ast::{Docs, Export, Ref};
 
 pub trait RequestType: RequestTypeVisitor {
     const EXPORT: Export;
+    const ARGS: &'static [Ref];
 
     fn export() -> Export {
         Self::EXPORT
-    }
-
-    fn get_ref() -> Ref {
-        Self::EXPORT.get_ref()
     }
 
     fn docs() -> Option<Docs> {
@@ -148,13 +147,10 @@ pub trait RequestType: RequestTypeVisitor {
 
 pub trait ResponseType: ResponseTypeVisitor {
     const EXPORT: Export;
+    const ARGS: &'static [Ref];
 
     fn export() -> Export {
         Self::EXPORT
-    }
-
-    fn get_ref() -> Ref {
-        Self::EXPORT.get_ref()
     }
 
     fn docs() -> Option<Docs> {

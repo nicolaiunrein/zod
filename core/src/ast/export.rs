@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Delimited, Docs, ExportSchema, Formatter, Path, Ref};
+use super::{Delimited, Docs, ExportSchema, Formatter, Path};
 
 /// The struct containing all the info about a [Node](crate::Node) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -8,13 +8,6 @@ pub struct Export {
     pub docs: Option<Docs>,
     pub path: Path,
     pub schema: ExportSchema,
-    pub args: &'static [Ref],
-}
-
-impl Export {
-    pub const fn get_ref(&self) -> Ref {
-        Ref::new(self)
-    }
 }
 
 impl Display for Export {
@@ -192,7 +185,6 @@ mod test {
             docs: None,
             path: Path::new::<Ns>("test"),
             schema: ExportSchema::Object(OBJECT),
-            args: &[],
         };
 
         assert_eq!(
@@ -219,7 +211,6 @@ mod test {
             docs: None,
             path: Path::new::<Ns>("test"),
             schema: ExportSchema::Tuple(TUPLE),
-            args: &[],
         };
 
         assert_eq!(
@@ -238,13 +229,12 @@ mod test {
     #[test]
     fn newtype_ok() {
         const NEWTYPE: NewtypeSchema =
-            NewtypeSchema::new(&<String as crate::RequestType>::EXPORT.get_ref(), false);
+            NewtypeSchema::new(&crate::ast::Ref::new_req::<String>(), false);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,
             path: Path::new::<Ns>("test"),
             schema: ExportSchema::Newtype(NEWTYPE),
-            args: &[],
         };
 
         assert_eq!(

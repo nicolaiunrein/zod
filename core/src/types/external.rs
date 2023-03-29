@@ -1,3 +1,4 @@
+use crate::ast::Ref;
 use crate::types::Usize;
 use crate::RequestType;
 use crate::ResponseType;
@@ -214,12 +215,9 @@ impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
-            &<T>::EXPORT.get_ref(),
-            false,
-        )),
-        args: &[T::EXPORT.get_ref()],
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&Ref::new_req::<T>(), false)),
     };
+    const ARGS: &'static [Ref] = &[Ref::new_req::<T>()];
 }
 
 impl<T: RequestType + ToOwned> RequestTypeVisitor for std::borrow::Cow<'static, T> {
@@ -235,12 +233,9 @@ impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
-            &<T>::EXPORT.get_ref(),
-            false,
-        )),
-        args: &[T::EXPORT.get_ref()],
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&Ref::new_res::<T>(), false)),
     };
+    const ARGS: &'static [Ref] = &[Ref::new_res::<T>()];
 }
 
 impl<T: ResponseType + ToOwned> ResponseTypeVisitor for std::borrow::Cow<'static, T> {
@@ -261,7 +256,7 @@ impl<const N: usize, T: RequestType> RequestType for [T; N] {
                 GenericArgument::Type("T"),
                 GenericArgument::Const {
                     name: "N",
-                    schema: <Usize as RequestType>::EXPORT.get_ref(),
+                    schema: Ref::new_req::<Usize>(),
                 },
                 GenericArgument::Assign {
                     name: "TObj",
@@ -271,8 +266,12 @@ impl<const N: usize, T: RequestType> RequestType for [T; N] {
             zod: "z.array(T).length(N)",
             ts: ARRAY_SCHEMA,
         },
-        args: &[],
     };
+
+    const ARGS: &'static [Ref] = &[
+        Ref::new_req::<T>(),
+        // todo reference to N
+    ];
 }
 
 impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
@@ -284,6 +283,7 @@ impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
     }
 }
 
+// todo as request
 impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
     const EXPORT: Export = Export {
         docs: None,
@@ -293,7 +293,7 @@ impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
                 GenericArgument::Type("T"),
                 GenericArgument::Const {
                     name: "N",
-                    schema: <Usize as ResponseType>::EXPORT.get_ref(),
+                    schema: Ref::new_res::<Usize>(),
                 },
                 GenericArgument::Assign {
                     name: "TObj",
@@ -303,8 +303,12 @@ impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
             zod: "z.array(T).length(N)",
             ts: ARRAY_SCHEMA,
         },
-        args: &[],
     };
+
+    const ARGS: &'static [Ref] = &[
+        Ref::new_res::<T>(),
+        // todo ref of N
+    ];
 }
 
 impl<const N: usize, T: ResponseType> ResponseTypeVisitor for [T; N] {
@@ -360,7 +364,7 @@ mod test {
     #[test]
     fn option_ok() {
         let export = <Option<String> as RequestType>::export();
-        let reference = <Option<String> as RequestType>::get_ref();
+        let reference = Ref::new_req::<Option<String>>();
 
         let expected_zod_export = "export const Option = (T: z.ZodTypeAny) => T.optional();";
 
@@ -377,7 +381,7 @@ mod test {
     #[test]
     fn generics_ok() {
         let export = <Vec<String> as RequestType>::export();
-        let reference = <Vec<String> as RequestType>::get_ref();
+        let reference = Ref::new_req::<Vec<String>>();
 
         let expected_zod_export = "export const Vec = (T: z.ZodTypeAny) => z.array(T);";
         let expected_ts_export = "export type Vec<T> = T[];";
@@ -429,7 +433,7 @@ mod test {
     #[test]
     fn wrapper_ok() {
         let export = <Box<String> as RequestType>::export();
-        let reference = <Box<String> as RequestType>::get_ref();
+        let reference = Ref::new_req::<Box<String>>();
 
         assert_eq!(
             export.to_zod_string(),

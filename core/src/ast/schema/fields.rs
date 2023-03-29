@@ -49,10 +49,11 @@ pub struct NamedField {
 }
 
 impl NamedField {
+    // todo this is wrong.
     pub const fn new<T: RequestType>(name: &'static str) -> Self {
         Self {
             name,
-            value: FieldValue::Resolved(T::EXPORT.get_ref()),
+            value: FieldValue::Resolved(Ref::new_req::<T>()),
             optional: false,
         }
     }
@@ -116,7 +117,7 @@ pub struct TupleField {
 impl TupleField {
     pub const fn new<T: RequestType>() -> Self {
         Self {
-            value: T::EXPORT.get_ref(),
+            value: Ref::new_req::<T>(),
             optional: false,
         }
     }

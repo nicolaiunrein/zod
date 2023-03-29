@@ -12,7 +12,9 @@ pub use object::*;
 pub use r#union::*;
 pub use tuple::*;
 
-use super::{Delimited, Export, Formatter, GenericArgument, Path};
+use crate::{RequestType, ResponseType};
+
+use super::{Delimited, Formatter, GenericArgument, Path};
 
 /// Definition of a zod/typescript schema to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -36,11 +38,18 @@ pub struct Ref {
 }
 
 impl Ref {
-    pub const fn new(export: &Export) -> Self {
-        Self {
-            path: export.path,
-            args: export.args,
-        }
+    pub const fn new_req<T: RequestType>() -> Self {
+        let path = T::EXPORT.path;
+        let args = T::ARGS;
+
+        Self { path, args }
+    }
+
+    pub const fn new_res<T: ResponseType>() -> Self {
+        let path = T::EXPORT.path;
+        let args = T::ARGS;
+
+        Self { path, args }
     }
 }
 
@@ -75,7 +84,6 @@ impl Formatter for Ref {
 #[cfg(test)]
 mod test {
     use super::NamedField;
-    use crate::RequestType;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -107,8 +115,8 @@ mod test {
     #[test]
     fn union_ok() {
         const DEF: UnionSchema = UnionSchema::new(&[
-            String::EXPORT.get_ref(),
-            crate::types::Usize::EXPORT.get_ref(),
+            Ref::new_req::<String>(),
+            Ref::new_req::<crate::types::Usize>(),
         ]);
 
         assert_eq!(DEF.to_zod_string(), "z.union([Rs.String, Rs.Usize])");
