@@ -14,11 +14,11 @@ macro_rules! impl_primitive {
             const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                schema: $crate::ast::ExportSchema::Raw {
+                schema: $crate::ast::ExportSchema::Raw($crate::ast::RawSchema {
                     args: &[],
                     zod: $zod,
                     ts: $ts,
-                },
+                }),
             };
             const ARGS: &'static [$crate::ast::Ref] = &[];
         }
@@ -36,11 +36,11 @@ macro_rules! impl_primitive {
             const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                schema: $crate::ast::ExportSchema::Raw {
+                schema: $crate::ast::ExportSchema::Raw($crate::ast::RawSchema {
                     args: &[],
                     zod: $zod,
                     ts: $ts,
-                },
+                }),
             };
 
             const ARGS: &'static [$crate::ast::Ref] = &[];
@@ -62,11 +62,11 @@ macro_rules! tuple_req {
         Export {
             docs: None,
             path: $crate::ast::Path::new::<$crate::types::Rs>(concat!("Tuple", $N)),
-            schema: $crate::ast::ExportSchema::Raw {
+            schema: $crate::ast::ExportSchema::Raw ($crate::ast::RawSchema{
                 args: &[$(GenericArgument::Type(stringify!($i))),*],
                 zod: concat!("z.tuple([", $crate::types::macros::join!(", ", $($i),*),"])"),
                 ts: concat!("[", $crate::types::macros::join!(", ", $($i),*) ,"]")
-            },
+            }),
         }
     };
 }
@@ -158,11 +158,11 @@ macro_rules! impl_generic {
             const EXPORT: $crate::ast::Export = $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    schema: $crate::ast::ExportSchema::Raw {
+                    schema: $crate::ast::ExportSchema::Raw($crate::ast::RawSchema {
                         args: &[$(GenericArgument::Type(stringify!($generics))),+],
                         zod: $zod,
                         ts: $ts
-                    },
+                    }),
                 };
 
             const ARGS: &'static [$crate::ast::Ref] = &[$($crate::ast::Ref::new_req::<$generics>()),*];
@@ -183,11 +183,11 @@ macro_rules! impl_generic {
                 $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    schema: $crate::ast::ExportSchema::Raw {
+                    schema: $crate::ast::ExportSchema::Raw($crate::ast::RawSchema {
                         args: &[$(GenericArgument::Type(stringify!($generics))),+],
                         zod: $zod,
                         ts: $ts
-                    },
+                    }),
                 };
 
             const ARGS: &'static [$crate::ast::Ref] = &[$($crate::ast::Ref::new_res::<$generics>()),*];

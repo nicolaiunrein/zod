@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
-use super::{Delimited, Docs, ExportSchema, Formatter, Path};
+use super::{Docs, ExportSchema, Formatter, Path};
 
-/// The struct containing all the info about a [Node](crate::Node) to be exported
+/// The struct containing all the info about a [RequestType](crate::RequestType)/[ResponseType](crate::ResponseType) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Export {
     pub docs: Option<Docs>,
@@ -24,43 +24,23 @@ impl Formatter for Export {
         if let Some(docs) = self.docs {
             docs.fmt_zod(f)?;
         }
-        f.write_str("export const ")?;
-        f.write_str(self.path.name())?;
-        f.write_str(" = ")?;
+
+        f.write_str("export ")?;
+
+        // todo remove
+        match self.schema {
+            ExportSchema::Raw(_) => {}
+            ExportSchema::Object(_) => {}
+            _ => {
+                f.write_str("const ")?;
+                f.write_str(self.path.name())?;
+                f.write_str(" = ")?;
+            }
+        }
 
         match self.schema {
-            ExportSchema::Raw { args, zod, .. } => {
-                if !args.is_empty() {
-                    f.write_str("(")?;
-                    args.iter()
-                        .filter(|arg| !arg.is_assign())
-                        .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-                    f.write_str(") => ")?;
-                }
-                f.write_str(zod)?;
-                f.write_str(";")?;
-            }
-
-            ExportSchema::Object(inner) => {
-                let mut generics = inner.generics().peekable();
-                if generics.peek().is_some() {
-                    f.write_str("(")?;
-                    while let Some(generic) = generics.next() {
-                        f.write_str(generic)?;
-                        f.write_str(": z.ZodTypeAny")?;
-                        if generics.peek().is_some() {
-                            f.write_str(", ")?;
-                        }
-                    }
-                    f.write_str(") => ")?;
-                    inner.fmt_zod(f)?;
-                    f.write_str(";")?;
-                } else {
-                    f.write_str("z.lazy(() => ")?;
-                    inner.fmt_zod(f)?;
-                    f.write_str(");")?;
-                }
-            }
+            ExportSchema::Raw(schema) => (self.path.name(), schema).fmt_zod(f)?,
+            ExportSchema::Object(schema) => (self.path.name(), schema).fmt_zod(f)?,
 
             //todo generics
             ExportSchema::Newtype(inner) => {
@@ -68,12 +48,14 @@ impl Formatter for Export {
                 inner.fmt_zod(f)?;
                 f.write_str(");")?;
             }
+
             //todo generics
             ExportSchema::Tuple(inner) => {
                 f.write_str("z.lazy(() => ")?;
                 inner.fmt_zod(f)?;
                 f.write_str(");")?;
             }
+
             //todo generics
             ExportSchema::Union(inner) => {
                 f.write_str("z.lazy(() => ")?;
@@ -98,6 +80,7 @@ impl Formatter for Export {
 
         f.write_str("export ")?;
 
+        // todo remove
         let mut fmt_type = |inner: &dyn Formatter| {
             f.write_str("type ")?;
             f.write_str(self.path.name())?;
@@ -108,53 +91,20 @@ impl Formatter for Export {
         };
 
         match self.schema {
-            ExportSchema::Raw { args, ts, .. } => {
-                f.write_str("type ")?;
-                f.write_str(self.path.name())?;
-                if !args.is_empty() {
-                    f.write_str("<")?;
-                    args.iter().comma_separated(f, |f, arg| arg.fmt_ts(f))?;
-                    f.write_str(">")?;
-                }
-                f.write_str(" = ")?;
-                f.write_str(ts)?;
-                f.write_str(";")?;
-            }
-            ExportSchema::Object(inner) => {
-                f.write_str("interface ")?;
-                f.write_str(self.path.name())?;
-                let mut generics = inner.generics().peekable();
-                if generics.peek().is_some() {
-                    f.write_str("<")?;
-                    while let Some(gen) = generics.next() {
-                        f.write_str(gen)?;
-                        if generics.peek().is_some() {
-                            f.write_str(", ")?;
-                        }
-                    }
-                    f.write_str(">")?;
-                }
-                f.write_str(" ")?;
-                inner.fmt_ts(f)?;
-            }
-            //todo generics
-            ExportSchema::Tuple(inner) => {
-                fmt_type(&inner)?;
-            }
+            ExportSchema::Raw(schema) => (self.path.name(), schema).fmt_ts(f)?,
+            ExportSchema::Object(inner) => (self.path.name(), inner).fmt_ts(f)?,
 
             //todo generics
-            ExportSchema::Newtype(inner) => {
-                fmt_type(&inner)?;
-            }
+            ExportSchema::Tuple(inner) => fmt_type(&inner)?,
 
             //todo generics
-            ExportSchema::Union(inner) => {
-                fmt_type(&inner)?;
-            }
+            ExportSchema::Newtype(inner) => fmt_type(&inner)?,
+
             //todo generics
-            ExportSchema::DiscriminatedUnion(inner) => {
-                fmt_type(&inner)?;
-            }
+            ExportSchema::Union(inner) => fmt_type(&inner)?,
+
+            //todo generics
+            ExportSchema::DiscriminatedUnion(inner) => fmt_type(&inner)?,
         }
         Ok(())
     }
@@ -162,8 +112,7 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, NewtypeSchema, ObjectSchema, Ref, TupleField, TupleSchema};
-    use crate::types::Usize;
+    use crate::ast::{NewtypeSchema, TupleField, TupleSchema};
     use crate::Namespace;
 
     use super::*;
@@ -173,32 +122,6 @@ mod test {
     impl Namespace for Ns {
         const NAME: &'static str = "Ns";
         const DOCS: Option<Docs> = None;
-    }
-
-    #[test]
-    fn object_ok() {
-        const OBJECT: ObjectSchema = ObjectSchema::new(&[
-            NamedField::new("a", Ref::new_req::<String>()),
-            NamedField::new("b", Ref::new_req::<Usize>()),
-        ]);
-
-        const EXPORT_OBJECT: Export = Export {
-            docs: None,
-            path: Path::new::<Ns>("test"),
-            schema: ExportSchema::Object(OBJECT),
-        };
-
-        assert_eq!(
-            EXPORT_OBJECT.to_zod_string(),
-            format!(
-                "export const test = z.lazy(() => {});",
-                OBJECT.to_zod_string()
-            )
-        );
-        assert_eq!(
-            EXPORT_OBJECT.to_ts_string(),
-            format!("export interface test {}", OBJECT.to_ts_string())
-        );
     }
 
     #[test]

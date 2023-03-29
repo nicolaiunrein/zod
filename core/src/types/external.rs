@@ -251,7 +251,7 @@ impl<const N: usize, T: RequestType> RequestType for [T; N] {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Array"),
-        schema: ExportSchema::Raw {
+        schema: ExportSchema::Raw(crate::ast::RawSchema {
             args: &[
                 GenericArgument::Type("T"),
                 GenericArgument::Const {
@@ -265,7 +265,7 @@ impl<const N: usize, T: RequestType> RequestType for [T; N] {
             ],
             zod: "z.array(T).length(N)",
             ts: ARRAY_SCHEMA,
-        },
+        }),
     };
 
     const ARGS: &'static [Ref] = &[
@@ -287,7 +287,7 @@ impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Array"),
-        schema: ExportSchema::Raw {
+        schema: ExportSchema::Raw(crate::ast::RawSchema {
             args: &[
                 GenericArgument::Type("T"),
                 GenericArgument::Const {
@@ -301,7 +301,7 @@ impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
             ],
             zod: "z.array(T).length(N)",
             ts: ARRAY_SCHEMA,
-        },
+        }),
     };
 
     const ARGS: &'static [Ref] = &[
