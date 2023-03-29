@@ -191,20 +191,20 @@ impl<'a> ToTokens for Struct<'a> {
             .generics
             .params
             .iter()
-            .map(|gen| match gen {
+            .filter_map(|gen| match gen {
                 syn::GenericParam::Type(ty) => {
                     let ident = &ty.ident;
 
-                    match self.derive {
+                    Some(match self.derive {
                         Derive::Request => {
                             quote!(<#ident as #zod::core::RequestType>::AST.inline())
                         }
                         Derive::Response => {
                             quote!(<#ident as #zod::core::ResponseType>::AST.inline())
                         }
-                    }
+                    })
                 }
-                syn::GenericParam::Lifetime(_) => todo!(),
+                syn::GenericParam::Lifetime(_) => None,
                 syn::GenericParam::Const(_) => todo!(),
             })
             .collect();

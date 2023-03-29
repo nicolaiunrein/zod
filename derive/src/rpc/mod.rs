@@ -73,7 +73,7 @@ impl ToTokens for RpcInput {
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
-                            res: <#output as ResponseType>::AST.inline(),
+                            res: <#output as #zod::core::ResponseType>::AST.inline(),
                             kind: #zod::core::ast::rpc::RpcRequestKind::Method,
                         }
                     }
@@ -115,18 +115,19 @@ impl ToTokens for RpcInput {
                     quote! {
                         NsReq:: #ident { args } => {
                             let res = self.#ident(#(#args),*).await;
-                            let _ = sender.unbounded_send(Response::method(id, res));
+                            let _ = sender.unbounded_send(#zod::core::rpc::Response::method(id, res));
                             None
                         }
                     }
                 }
                 RpcItemKind::Stream(_) => {
                     quote! {
-                        NsReq::hello_stream { args } => {
-                            let mut res = self.#ident(#(#args),*);
+                        NsReq:: #ident { args } => {
+                            let mut stream = self.#ident(#(#args),*);
                             let jh = tokio::spawn(async move {
-                                while let Some(evt) = res.next().await {
-                                    let _ = sender.unbounded_send(Response::stream(id, evt));
+                                #zod::__private::futures::pin_mut!(stream);
+                                while let Some(evt) = stream.next().await {
+                                    let _ = sender.unbounded_send(#zod::core::rpc::Response::stream(id, evt));
                                 }
                             });
 
@@ -144,7 +145,8 @@ impl ToTokens for RpcInput {
                 #[allow(non_camel_case_types)]
                 #[allow(non_snake_case)]
                 #[allow(non_upper_case_globals)]
-                enum NsReq {
+                #[doc(hidden)]
+                pub enum NsReq {
                     #(#enum_variants),*
                 }
 
