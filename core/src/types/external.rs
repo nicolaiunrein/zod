@@ -211,11 +211,14 @@ impl_generic!({
 });
 
 impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
-    const AST: Export = Export {
+    const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&<T>::AST.get_ref(), false)),
-        args: &[T::AST.get_ref()],
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
+            &<T>::EXPORT.get_ref(),
+            false,
+        )),
+        args: &[T::EXPORT.get_ref()],
     };
 }
 
@@ -229,11 +232,14 @@ impl<T: RequestType + ToOwned> RequestTypeVisitor for std::borrow::Cow<'static, 
 }
 
 impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
-    const AST: Export = Export {
+    const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&<T>::AST.get_ref(), false)),
-        args: &[T::AST.get_ref()],
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
+            &<T>::EXPORT.get_ref(),
+            false,
+        )),
+        args: &[T::EXPORT.get_ref()],
     };
 }
 
@@ -247,7 +253,7 @@ impl<T: ResponseType + ToOwned> ResponseTypeVisitor for std::borrow::Cow<'static
 }
 
 impl<const N: usize, T: RequestType> RequestType for [T; N] {
-    const AST: Export = Export {
+    const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Array"),
         schema: ExportSchema::Raw {
@@ -255,7 +261,7 @@ impl<const N: usize, T: RequestType> RequestType for [T; N] {
                 GenericArgument::Type("T"),
                 GenericArgument::Const {
                     name: "N",
-                    schema: <Usize as RequestType>::AST.get_ref(),
+                    schema: <Usize as RequestType>::EXPORT.get_ref(),
                 },
                 GenericArgument::Assign {
                     name: "TObj",
@@ -279,7 +285,7 @@ impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
 }
 
 impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
-    const AST: Export = Export {
+    const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Array"),
         schema: ExportSchema::Raw {
@@ -287,7 +293,7 @@ impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
                 GenericArgument::Type("T"),
                 GenericArgument::Const {
                     name: "N",
-                    schema: <Usize as ResponseType>::AST.get_ref(),
+                    schema: <Usize as ResponseType>::EXPORT.get_ref(),
                 },
                 GenericArgument::Assign {
                     name: "TObj",

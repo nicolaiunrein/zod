@@ -106,8 +106,10 @@ mod test {
 
     #[test]
     fn union_ok() {
-        const DEF: UnionSchema =
-            UnionSchema::new(&[String::AST.get_ref(), crate::types::Usize::AST.get_ref()]);
+        const DEF: UnionSchema = UnionSchema::new(&[
+            String::EXPORT.get_ref(),
+            crate::types::Usize::EXPORT.get_ref(),
+        ]);
 
         assert_eq!(DEF.to_zod_string(), "z.union([Rs.String, Rs.Usize])");
         assert_eq!(DEF.to_ts_string(), "Rs.String | Rs.Usize");

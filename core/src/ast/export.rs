@@ -238,7 +238,7 @@ mod test {
     #[test]
     fn newtype_ok() {
         const NEWTYPE: NewtypeSchema =
-            NewtypeSchema::new(&<String as crate::RequestType>::AST.get_ref(), false);
+            NewtypeSchema::new(&<String as crate::RequestType>::EXPORT.get_ref(), false);
 
         const EXPORT_TUPLE: Export = Export {
             docs: None,

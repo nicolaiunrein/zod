@@ -55,7 +55,7 @@ use ast::{Docs, Export, Ref};
 /// # }
 /// #
 /// # impl<T: RequestType> RequestType for MyType<T> {
-/// #     const AST: Export = Export {
+/// #     const EXPORT: Export = Export {
 /// #        docs: None,
 /// #        path: Path::new::<Rs>("MyType"),
 /// #        args: &[],
@@ -99,7 +99,7 @@ use ast::{Docs, Export, Ref};
 /// # }
 /// #
 /// # impl<T: RequestType> RequestType for MyType<T> {
-/// #     const AST: Export = Export {
+/// #     const EXPORT: Export = Export {
 /// #        docs: None,
 /// #        path: Path::new::<Rs>("MyType"),
 /// #        args: &[],
@@ -131,34 +131,34 @@ use ast::{Docs, Export, Ref};
 ///
 
 pub trait RequestType: RequestTypeVisitor {
-    const AST: Export;
+    const EXPORT: Export;
 
     fn export() -> Export {
-        Self::AST
+        Self::EXPORT
     }
 
     fn get_ref() -> Ref {
-        Self::AST.get_ref()
+        Self::EXPORT.get_ref()
     }
 
     fn docs() -> Option<Docs> {
-        Self::AST.docs
+        Self::EXPORT.docs
     }
 }
 
 pub trait ResponseType: ResponseTypeVisitor {
-    const AST: Export;
+    const EXPORT: Export;
 
     fn export() -> Export {
-        Self::AST
+        Self::EXPORT
     }
 
     fn get_ref() -> Ref {
-        Self::AST.get_ref()
+        Self::EXPORT.get_ref()
     }
 
     fn docs() -> Option<Docs> {
-        Self::AST.docs
+        Self::EXPORT.docs
     }
 }
 
@@ -201,7 +201,7 @@ impl DependencyMap {
         T: RequestType + 'static,
     {
         let id = TypeId::of::<T>();
-        self.0.insert(id, T::AST).is_none()
+        self.0.insert(id, T::EXPORT).is_none()
     }
 
     pub fn add_self_as_res<T>(&mut self) -> bool
@@ -209,7 +209,7 @@ impl DependencyMap {
         T: ResponseType + 'static,
     {
         let id = TypeId::of::<T>();
-        self.0.insert(id, T::AST).is_none()
+        self.0.insert(id, T::EXPORT).is_none()
     }
 
     pub fn resolve(self) -> HashSet<ast::Export> {

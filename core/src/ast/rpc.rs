@@ -115,7 +115,7 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            output: <Option<bool>>::AST.get_ref(),
+            output: <Option<bool>>::EXPORT.get_ref(),
         };
 
         assert_eq!(REQ.to_string(), expected);
@@ -146,7 +146,7 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
                 NamedField::new::<String>("name"),
                 NamedField::new::<u16>("age"),
             ],
-            output: <Option<bool>>::AST.get_ref(),
+            output: <Option<bool>>::EXPORT.get_ref(),
         };
 
         assert_eq!(REQ.to_string(), expected);

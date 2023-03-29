@@ -11,18 +11,18 @@ fn serde_name_named_struct() {
         }
     }
 
-    assert!(Test::AST
+    assert!(Test::EXPORT
         .export()
         .unwrap()
         .to_zod_string()
         .starts_with("export const Hello"));
-    assert!(Test::AST
+    assert!(Test::EXPORT
         .export()
         .unwrap()
         .to_ts_string()
         .starts_with("export interface Hello"));
     compare(
-        Test::AST.export().unwrap().to_ts_string(),
+        Test::EXPORT.export().unwrap().to_ts_string(),
         "export interface Hello { s: Rs.String, num: Rs.Usize }",
     )
 }
@@ -33,13 +33,13 @@ fn serde_name_tuple_str() {
     #[serde(rename= "HelloTuple")]
     struct Test(String);
     }
-    assert!(Test::AST
+    assert!(Test::EXPORT
         .export()
         .unwrap()
         .to_zod_string()
         .starts_with("export const HelloTuple"));
     compare(
-        Test::AST.export().unwrap().to_ts_string(),
+        Test::EXPORT.export().unwrap().to_ts_string(),
         "export type HelloTuple = Rs.String;",
     );
 }
@@ -54,19 +54,19 @@ fn serde_rename_struct_field() {
         }
     }
 
-    assert!(Test::AST
+    assert!(Test::EXPORT
         .export()
         .unwrap()
         .to_zod_string()
         .contains("after"));
 
-    assert!(Test::AST
+    assert!(Test::EXPORT
         .export()
         .unwrap()
         .to_zod_string()
         .contains("other"));
 
-    assert!(!Test::AST
+    assert!(!Test::EXPORT
         .export()
         .unwrap()
         .to_zod_string()

@@ -11,7 +11,7 @@ macro_rules! join {
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::RequestType for $T {
-            const AST: $crate::ast::Export = $crate::ast::Export {
+            const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Raw {
@@ -33,7 +33,7 @@ macro_rules! impl_primitive {
         }
 
         impl $crate::ResponseType for $T {
-            const AST: $crate::ast::Export = $crate::ast::Export {
+            const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Raw {
@@ -66,7 +66,7 @@ macro_rules! tuple_req {
                 zod: concat!("z.tuple([", $crate::types::macros::join!(", ", $($i),*),"])"),
                 ts: concat!("[", $crate::types::macros::join!(", ", $($i),*) ,"]")
             },
-            args: &[$(<$i>::AST.get_ref()),*]
+            args: &[$(<$i>::EXPORT.get_ref()),*]
         }
     };
 }
@@ -74,7 +74,7 @@ macro_rules! tuple_req {
 macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
         impl<$($i: $crate::RequestType),*> $crate::RequestType for ($($i,)*) {
-            const AST: $crate::ast::Export = $crate::types::macros::tuple_req!($N, $($i),*);
+            const EXPORT: $crate::ast::Export = $crate::types::macros::tuple_req!($N, $($i),*);
         }
 
         impl<$($i: $crate::RequestType),*> $crate::RequestTypeVisitor for ($($i,)*) {
@@ -88,7 +88,7 @@ macro_rules! impl_tuple {
         }
 
         impl<$($i: $crate::ResponseType),*> $crate::ResponseType for ($($i,)*) {
-            const AST: $crate::ast::Export = $crate::types::macros::tuple_req!($N, $($i),*);
+            const EXPORT: $crate::ast::Export = $crate::types::macros::tuple_req!($N, $($i),*);
         }
 
         impl<$($i: $crate::ResponseType),*> $crate::ResponseTypeVisitor for ($($i,)*) {
@@ -106,14 +106,14 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: $crate::RequestType> $crate::RequestType for $type {
-            const AST: $crate::ast::Export = $crate::ast::Export {
+            const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &<T>::AST.get_ref(),
+                    &<T>::EXPORT.get_ref(),
                     false,
                 )),
-                args: &[T::AST.get_ref()],
+                args: &[T::EXPORT.get_ref()],
             };
         }
 
@@ -127,14 +127,14 @@ macro_rules! impl_wrapper {
         }
 
         impl<T: $crate::ResponseType> $crate::ResponseType for $type {
-            const AST: $crate::ast::Export = $crate::ast::Export {
+            const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &<T>::AST.get_ref(),
+                    &<T>::EXPORT.get_ref(),
                     false,
                 )),
-                args: &[T::AST.get_ref()],
+                args: &[T::EXPORT.get_ref()],
             };
         }
 
@@ -153,7 +153,7 @@ macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: $crate::RequestType),*> $crate::RequestType for $ty {
 
-            const AST: $crate::ast::Export = $crate::ast::Export {
+            const EXPORT: $crate::ast::Export = $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: $crate::ast::ExportSchema::Raw {
@@ -161,7 +161,7 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                    args: &[$($generics::AST.get_ref()),*]
+                    args: &[$($generics::EXPORT.get_ref()),*]
                 };
         }
 
@@ -177,7 +177,7 @@ macro_rules! impl_generic {
 
         impl<$($generics: $crate::ResponseType),*> $crate::ResponseType for $ty {
 
-            const AST: $crate::ast::Export =
+            const EXPORT: $crate::ast::Export =
                 $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
@@ -186,7 +186,7 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                    args: &[$($generics::AST.get_ref()),*]
+                    args: &[$($generics::EXPORT.get_ref()),*]
                 };
         }
 

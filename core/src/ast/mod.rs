@@ -43,14 +43,14 @@ mod test {
     }
 
     impl<T1: RequestType, T2: RequestType> RequestType for MyGeneric<T1, T2> {
-        const AST: Export = Export {
+        const EXPORT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("MyGeneric"),
             schema: ExportSchema::Object(ObjectSchema::new(&[
                 NamedField::generic("t1", "T1"),
                 NamedField::generic("t2", "T2"),
             ])),
-            args: &[T1::AST.get_ref(), T2::AST.get_ref()],
+            args: &[T1::EXPORT.get_ref(), T2::EXPORT.get_ref()],
         };
     }
 
@@ -68,7 +68,7 @@ mod test {
     }
 
     impl RequestType for MyType {
-        const AST: Export = Export {
+        const EXPORT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("MyType"),
             schema: ExportSchema::Object(ObjectSchema::new(&[NamedField::new::<Partial<Usize>>(
@@ -92,13 +92,13 @@ mod test {
     }
 
     impl<T: RequestType> RequestType for Partial<T> {
-        const AST: Export = Export {
+        const EXPORT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("Partial"),
             schema: ExportSchema::Object(ObjectSchema::new(&[NamedField::new::<
                 MyGeneric<String, T>,
             >("partial_inner")])),
-            args: &[T::AST.get_ref()],
+            args: &[T::EXPORT.get_ref()],
         };
     }
 
@@ -113,7 +113,7 @@ mod test {
 
     #[test]
     fn nested_ok() {
-        let export = <MyType>::AST;
+        let export = <MyType>::EXPORT;
         let expected_zod_export= "export const MyType = z.lazy(() => z.object({ my_type_inner: Ns.Partial(Rs.Usize) }));";
         let expected_ts_export = "export interface MyType { my_type_inner: Ns.Partial<Rs.Usize> }";
         assert_eq!(export.to_zod_string(), expected_zod_export);
