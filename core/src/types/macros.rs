@@ -11,18 +11,16 @@ macro_rules! join {
 macro_rules! impl_primitive {
     ({ ty: $T:ty, name: $name: literal, ts: $ts: literal, zod: $zod: literal }) => {
         impl $crate::RequestType for $T {
-            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
-                $crate::ast::Export {
-                    docs: None,
-                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    schema: $crate::ast::ExportSchema::Raw {
-                        args: &[],
-                        zod: $zod,
-                        ts: $ts,
-                    },
+            const AST: $crate::ast::Export = $crate::ast::Export {
+                docs: None,
+                path: $crate::ast::Path::new::<$crate::types::Rs>($name),
+                schema: $crate::ast::ExportSchema::Raw {
+                    args: &[],
+                    zod: $zod,
+                    ts: $ts,
                 },
-                &[],
-            );
+                args: &[],
+            };
         }
 
         impl $crate::RequestTypeVisitor for $T {
@@ -35,18 +33,16 @@ macro_rules! impl_primitive {
         }
 
         impl $crate::ResponseType for $T {
-            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
-                $crate::ast::Export {
-                    docs: None,
-                    path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                    schema: $crate::ast::ExportSchema::Raw {
-                        args: &[],
-                        zod: $zod,
-                        ts: $ts,
-                    },
+            const AST: $crate::ast::Export = $crate::ast::Export {
+                docs: None,
+                path: $crate::ast::Path::new::<$crate::types::Rs>($name),
+                schema: $crate::ast::ExportSchema::Raw {
+                    args: &[],
+                    zod: $zod,
+                    ts: $ts,
                 },
-                &[],
-            );
+                args: &[],
+            };
         }
 
         impl $crate::ResponseTypeVisitor for $T {
@@ -69,7 +65,8 @@ macro_rules! tuple_req {
                 args: &[$(GenericArgument::Type(stringify!($i))),*],
                 zod: concat!("z.tuple([", $crate::types::macros::join!(", ", $($i),*),"])"),
                 ts: concat!("[", $crate::types::macros::join!(", ", $($i),*) ,"]")
-            }
+            },
+            args: &[$(<$i>::AST.inline()),*]
         }
     };
 }
@@ -77,11 +74,7 @@ macro_rules! tuple_req {
 macro_rules! impl_tuple {
 ( $N: literal, $($i:ident),* ) => {
         impl<$($i: $crate::RequestType),*> $crate::RequestType for ($($i,)*) {
-
-            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
-                $crate::types::macros::tuple_req!($N, $($i),*),
-                &[$(<$i>::AST.inline()),*]
-            );
+            const AST: $crate::ast::Export = $crate::types::macros::tuple_req!($N, $($i),*);
         }
 
         impl<$($i: $crate::RequestType),*> $crate::RequestTypeVisitor for ($($i,)*) {
@@ -95,11 +88,7 @@ macro_rules! impl_tuple {
         }
 
         impl<$($i: $crate::ResponseType),*> $crate::ResponseType for ($($i,)*) {
-
-            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
-                $crate::types::macros::tuple_req!($N, $($i),*),
-                &[$(<$i>::AST.inline()),*]
-            );
+            const AST: $crate::ast::Export = $crate::types::macros::tuple_req!($N, $($i),*);
         }
 
         impl<$($i: $crate::ResponseType),*> $crate::ResponseTypeVisitor for ($($i,)*) {
@@ -117,7 +106,15 @@ macro_rules! impl_tuple {
 macro_rules! impl_wrapper {
     ($name: literal, $type: ty) => {
         impl<T: $crate::RequestType> $crate::RequestType for $type {
-            const AST: $crate::ast::Definition = $crate::ast::Definition::inlined(T::AST.inline());
+            const AST: $crate::ast::Export = $crate::ast::Export {
+                docs: None,
+                path: $crate::ast::Path::new::<$crate::types::Rs>($name),
+                schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
+                    &<T>::AST.inline(),
+                    false,
+                )),
+                args: <T>::AST.args,
+            };
         }
 
         impl<T: $crate::RequestType> $crate::RequestTypeVisitor for $type {
@@ -130,7 +127,7 @@ macro_rules! impl_wrapper {
         }
 
         impl<T: $crate::ResponseType> $crate::ResponseType for $type {
-            const AST: $crate::ast::Definition = $crate::ast::Definition::inlined(T::AST.inline());
+            const AST: $crate::ast::Export = todo!();
         }
 
         impl<T: $crate::ResponseType> $crate::ResponseTypeVisitor for $type {
@@ -148,8 +145,7 @@ macro_rules! impl_generic {
     ({ ty: $ty: ty, name: $name: literal, generics: [$($generics: ident),+], ts: $ts: literal, zod: $zod: literal}) => {
         impl<$($generics: $crate::RequestType),*> $crate::RequestType for $ty {
 
-            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
-                Export {
+            const AST: $crate::ast::Export = $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: $crate::ast::ExportSchema::Raw {
@@ -157,9 +153,8 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                },
-                &[$($generics::AST.inline()),*]
-                );
+                    args: &[$($generics::AST.inline()),*]
+                };
         }
 
 
@@ -174,8 +169,8 @@ macro_rules! impl_generic {
 
         impl<$($generics: $crate::ResponseType),*> $crate::ResponseType for $ty {
 
-            const AST: $crate::ast::Definition = $crate::ast::Definition::exported(
-                Export {
+            const AST: $crate::ast::Export =
+                $crate::ast::Export {
                     docs: None,
                     path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                     schema: $crate::ast::ExportSchema::Raw {
@@ -183,9 +178,8 @@ macro_rules! impl_generic {
                         zod: $zod,
                         ts: $ts
                     },
-                },
-                &[$($generics::AST.inline()),*]
-                );
+                    args: &[$($generics::AST.inline()),*]
+                };
         }
 
 

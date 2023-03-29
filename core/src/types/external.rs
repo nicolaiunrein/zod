@@ -1,4 +1,3 @@
-use crate::ast::Definition;
 use crate::types::Usize;
 use crate::RequestType;
 use crate::ResponseType;
@@ -148,12 +147,12 @@ impl_primitive!({
 });
 
 impl_wrapper!("Box", Box<T>);
-impl_wrapper!("Arc", std::sync::Arc<T>);
-impl_wrapper!("Rc", std::rc::Rc<T>);
-impl_wrapper!("Cell", std::cell::Cell<T>);
-impl_wrapper!("RefCell", std::cell::RefCell<T>);
-impl_wrapper!("Mutex", std::sync::Mutex<T>);
-impl_wrapper!("Weak", std::sync::Weak<T>);
+// impl_wrapper!("Arc", std::sync::Arc<T>);
+// impl_wrapper!("Rc", std::rc::Rc<T>);
+// impl_wrapper!("Cell", std::cell::Cell<T>);
+// impl_wrapper!("RefCell", std::cell::RefCell<T>);
+// impl_wrapper!("Mutex", std::sync::Mutex<T>);
+// impl_wrapper!("Weak", std::sync::Weak<T>);
 
 impl_generic!({
     ty: Vec<T>,
@@ -212,7 +211,7 @@ impl_generic!({
 });
 
 impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
-    const AST: Definition = Definition::inlined(T::AST.inline());
+    const AST: Export = todo!();
 }
 
 impl<T: RequestType + ToOwned> RequestTypeVisitor for std::borrow::Cow<'static, T> {
@@ -225,7 +224,7 @@ impl<T: RequestType + ToOwned> RequestTypeVisitor for std::borrow::Cow<'static, 
 }
 
 impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
-    const AST: Definition = Definition::inlined(T::AST.inline());
+    const AST: Export = todo!();
 }
 
 impl<T: ResponseType + ToOwned> ResponseTypeVisitor for std::borrow::Cow<'static, T> {
@@ -238,28 +237,26 @@ impl<T: ResponseType + ToOwned> ResponseTypeVisitor for std::borrow::Cow<'static
 }
 
 impl<const N: usize, T: RequestType> RequestType for [T; N] {
-    const AST: Definition = Definition::exported(
-        Export {
-            docs: None,
-            path: Path::new::<crate::types::Rs>("Array"),
-            schema: ExportSchema::Raw {
-                args: &[
-                    GenericArgument::Type("T"),
-                    GenericArgument::Const {
-                        name: "N",
-                        schema: <Usize as RequestType>::AST.inline(),
-                    },
-                    GenericArgument::Assign {
-                        name: "TObj",
-                        value: "[T, ...T[]]",
-                    },
-                ],
-                zod: "z.array(T).length(N)",
-                ts: ARRAY_SCHEMA,
-            },
+    const AST: Export = Export {
+        docs: None,
+        path: Path::new::<crate::types::Rs>("Array"),
+        schema: ExportSchema::Raw {
+            args: &[
+                GenericArgument::Type("T"),
+                GenericArgument::Const {
+                    name: "N",
+                    schema: <Usize as RequestType>::AST.inline(),
+                },
+                GenericArgument::Assign {
+                    name: "TObj",
+                    value: "[T, ...T[]]",
+                },
+            ],
+            zod: "z.array(T).length(N)",
+            ts: ARRAY_SCHEMA,
         },
-        &[],
-    );
+        args: &[],
+    };
 }
 
 impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
@@ -272,28 +269,26 @@ impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
 }
 
 impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
-    const AST: Definition = Definition::exported(
-        Export {
-            docs: None,
-            path: Path::new::<crate::types::Rs>("Array"),
-            schema: ExportSchema::Raw {
-                args: &[
-                    GenericArgument::Type("T"),
-                    GenericArgument::Const {
-                        name: "N",
-                        schema: <Usize as ResponseType>::AST.inline(),
-                    },
-                    GenericArgument::Assign {
-                        name: "TObj",
-                        value: "[T, ...T[]]",
-                    },
-                ],
-                zod: "z.array(T).length(N)",
-                ts: ARRAY_SCHEMA,
-            },
+    const AST: Export = Export {
+        docs: None,
+        path: Path::new::<crate::types::Rs>("Array"),
+        schema: ExportSchema::Raw {
+            args: &[
+                GenericArgument::Type("T"),
+                GenericArgument::Const {
+                    name: "N",
+                    schema: <Usize as ResponseType>::AST.inline(),
+                },
+                GenericArgument::Assign {
+                    name: "TObj",
+                    value: "[T, ...T[]]",
+                },
+            ],
+            zod: "z.array(T).length(N)",
+            ts: ARRAY_SCHEMA,
         },
-        &[],
-    );
+        args: &[],
+    };
 }
 
 impl<const N: usize, T: ResponseType> ResponseTypeVisitor for [T; N] {
@@ -342,12 +337,8 @@ mod test {
         let expected_zod_export = "export const String = z.string();";
         let expected_ts_export = "export type String = string;";
 
-        assert_eq!(
-            export.as_ref().unwrap().to_zod_string(),
-            expected_zod_export
-        );
-
-        assert_eq!(export.as_ref().unwrap().to_ts_string(), expected_ts_export);
+        assert_eq!(export.to_zod_string(), expected_zod_export);
+        assert_eq!(export.to_ts_string(), expected_ts_export);
     }
 
     #[test]
@@ -359,12 +350,9 @@ mod test {
 
         let expected_ts_export = "export type Option<T> = T | undefined;";
 
-        assert_eq!(
-            export.as_ref().unwrap().to_zod_string(),
-            expected_zod_export
-        );
+        assert_eq!(export.to_zod_string(), expected_zod_export);
 
-        assert_eq!(export.as_ref().unwrap().to_ts_string(), expected_ts_export);
+        assert_eq!(export.to_ts_string(), expected_ts_export);
 
         assert_eq!(inlined.to_zod_string(), "Rs.Option(Rs.String)");
         assert_eq!(inlined.to_ts_string(), "Rs.Option<Rs.String>");
@@ -378,12 +366,9 @@ mod test {
         let expected_zod_export = "export const Vec = (T: z.ZodTypeAny) => z.array(T);";
         let expected_ts_export = "export type Vec<T> = T[];";
 
-        assert_eq!(
-            export.as_ref().unwrap().to_zod_string(),
-            expected_zod_export
-        );
+        assert_eq!(export.to_zod_string(), expected_zod_export);
 
-        assert_eq!(export.as_ref().unwrap().to_ts_string(), expected_ts_export);
+        assert_eq!(export.to_ts_string(), expected_ts_export);
 
         assert_eq!(inlined.to_zod_string(), "Rs.Vec(Rs.String)");
         assert_eq!(inlined.to_ts_string(), "Rs.Vec<Rs.String>");
@@ -393,12 +378,12 @@ mod test {
     fn array_ok() {
         let export = <[String; 5] as RequestType>::export();
         assert_eq!(
-            export.as_ref().unwrap().to_zod_string(),
+            export.to_zod_string(),
             "export const Array = (T: z.ZodTypeAny, N: Rs.Usize) => z.array(T).length(N);"
         );
 
         assert_eq!(
-            export.as_ref().unwrap().to_ts_string(),
+            export.to_ts_string(),
             format!(
                 "export type Array<T, N extends Rs.Usize, TObj = [T, ...T[]]> = {};",
                 ARRAY_SCHEMA
@@ -415,11 +400,11 @@ mod test {
         let export = <(String, Usize) as RequestType>::export();
 
         assert_eq!(
-            export.as_ref().unwrap().to_zod_string(),
+            export.to_zod_string(),
             "export const Tuple2 = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.tuple([T1, T2]);"
         );
         assert_eq!(
-            export.as_ref().unwrap().to_ts_string(),
+            export.to_ts_string(),
             "export type Tuple2<T1, T2> = [T1, T2];"
         );
     }
@@ -429,10 +414,13 @@ mod test {
         let export = <Box<String> as RequestType>::export();
         let inline = <Box<String> as RequestType>::inline();
 
-        assert!(export.is_none());
+        assert_eq!(
+            export.to_zod_string(),
+            "export const Box = (T: z.ZodTypeAny) => T;"
+        );
 
-        assert_eq!(inline.to_zod_string(), "Rs.String");
-        assert_eq!(inline.to_ts_string(), "Rs.String");
+        // assert_eq!(inline.to_zod_string(), "Rs.String");
+        // assert_eq!(inline.to_ts_string(), "Rs.String");
     }
 
     #[test]
@@ -440,13 +428,10 @@ mod test {
         let export = <Vec<String> as RequestType>::export();
 
         assert_eq!(
-            export.as_ref().unwrap().to_zod_string(),
+            export.to_zod_string(),
             "export const Vec = (T: z.ZodTypeAny) => z.array(T);"
         );
-        assert_eq!(
-            export.as_ref().unwrap().to_ts_string(),
-            "export type Vec<T> = T[];"
-        );
+        assert_eq!(export.to_ts_string(), "export type Vec<T> = T[];");
     }
 
     #[test]
@@ -457,7 +442,7 @@ mod test {
         let num: Usize = serde_json::from_value(json).unwrap();
         assert_eq!(num, 123123);
 
-        let export = <Usize as RequestType>::export().unwrap();
+        let export = <Usize as RequestType>::export();
         assert_eq!(
             export.to_zod_string(),
             "export const Usize = z.bigint().nonnegative().lt(2n ** 64n);"

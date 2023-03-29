@@ -25,7 +25,7 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-use ast::{Definition, Docs, Export, InlineSchema};
+use ast::{Docs, Export, InlineSchema};
 
 /// Trait for dependency registration
 /// Each implementor should recursively call register on all its dependencies (ie. fields in a
@@ -101,10 +101,10 @@ use ast::{Definition, Docs, Export, InlineSchema};
 ///
 
 pub trait RequestType: RequestTypeVisitor {
-    const AST: Definition;
+    const AST: Export;
 
-    fn export() -> Option<Export> {
-        Self::AST.export()
+    fn export() -> Export {
+        Self::AST
     }
 
     fn inline() -> InlineSchema {
@@ -112,15 +112,15 @@ pub trait RequestType: RequestTypeVisitor {
     }
 
     fn docs() -> Option<Docs> {
-        Self::AST.docs()
+        Self::AST.docs
     }
 }
 
 pub trait ResponseType: ResponseTypeVisitor {
-    const AST: Definition;
+    const AST: Export;
 
-    fn export() -> Option<Export> {
-        Self::AST.export()
+    fn export() -> Export {
+        Self::AST
     }
 
     fn inline() -> InlineSchema {
@@ -128,7 +128,7 @@ pub trait ResponseType: ResponseTypeVisitor {
     }
 
     fn docs() -> Option<Docs> {
-        Self::AST.docs()
+        Self::AST.docs
     }
 }
 
@@ -163,7 +163,7 @@ pub trait ResponseTypeVisitor {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct DependencyMap(BTreeMap<TypeId, Option<ast::Export>>);
+pub struct DependencyMap(BTreeMap<TypeId, ast::Export>);
 
 impl DependencyMap {
     pub fn add_self_as_req<T>(&mut self) -> bool
@@ -171,7 +171,7 @@ impl DependencyMap {
         T: RequestType + 'static,
     {
         let id = TypeId::of::<T>();
-        self.0.insert(id, T::AST.export()).is_none()
+        self.0.insert(id, T::AST).is_none()
     }
 
     pub fn add_self_as_res<T>(&mut self) -> bool
@@ -179,11 +179,11 @@ impl DependencyMap {
         T: ResponseType + 'static,
     {
         let id = TypeId::of::<T>();
-        self.0.insert(id, T::AST.export()).is_none()
+        self.0.insert(id, T::AST).is_none()
     }
 
     pub fn resolve(self) -> HashSet<ast::Export> {
-        self.0.into_values().filter_map(|exp| exp).collect()
+        self.0.into_values().collect()
     }
 }
 
