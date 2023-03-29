@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Delimited, Docs, ExportSchema, Formatter, GenericArgument, InlineSchema, Path};
+use super::{Delimited, Docs, ExportSchema, Formatter, GenericArgument, Path, Ref};
 
 /// The struct containing all the info about a [Node](crate::Node) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -8,15 +8,13 @@ pub struct Export {
     pub docs: Option<Docs>,
     pub path: Path,
     pub schema: ExportSchema,
-    pub args: &'static [InlineSchema],
+    pub args: &'static [Ref],
 }
 
 impl Export {
-    pub const fn inline(&self) -> InlineSchema {
-        InlineSchema::Ref {
-            path: self.path,
-            args: self.args,
-        }
+    //todo rename
+    pub const fn inline(&self) -> Ref {
+        Ref::new(self)
     }
 }
 

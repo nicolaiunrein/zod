@@ -12,9 +12,7 @@ pub use object::*;
 pub use r#union::*;
 pub use tuple::*;
 
-use std::fmt::Display;
-
-use super::{Delimited, Formatter, GenericArgument, Path};
+use super::{Delimited, Export, Formatter, GenericArgument, Path};
 
 /// Definition of a zod/typescript schema to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -31,65 +29,44 @@ pub enum ExportSchema {
     DiscriminatedUnion(DiscriminatedUnionSchema),
 }
 
-/// Definition of a zod/typescript schema to be inlined into other definitions
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum InlineSchema {
-    Ref {
-        path: Path,
-        args: &'static [InlineSchema],
-    },
-    Object(ObjectSchema),
-    Newtype(NewtypeSchema),
-    Tuple(TupleSchema),
-    Union(UnionSchema),
-    DiscriminatedUnion(DiscriminatedUnionSchema),
+pub struct Ref {
+    path: Path,
+    args: &'static [Ref],
 }
 
-impl InlineSchema {
-    pub const fn path(&self) -> Option<Path> {
-        match self {
-            InlineSchema::Ref { path, .. } => Some(*path),
-            _ => None,
+impl Ref {
+    pub const fn new(export: &Export) -> Self {
+        Self {
+            path: export.path,
+            args: export.args,
         }
     }
 }
 
-impl Formatter for InlineSchema {
+impl Formatter for Ref {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InlineSchema::Ref { path, args } => {
-                path.fmt(f)?;
-                if !args.is_empty() {
-                    f.write_str("(")?;
-                    args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
+        std::fmt::Display::fmt(&self.path, f)?;
+        if !self.args.is_empty() {
+            f.write_str("(")?;
+            self.args
+                .iter()
+                .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
 
-                    f.write_str(")")?;
-                }
-            }
-            InlineSchema::Object(typed) => typed.fmt_zod(f)?,
-            InlineSchema::Newtype(typed) => typed.fmt_zod(f)?,
-            InlineSchema::Tuple(typed) => typed.fmt_zod(f)?,
-            InlineSchema::Union(typed) => typed.fmt_zod(f)?,
-            InlineSchema::DiscriminatedUnion(typed) => typed.fmt_zod(f)?,
+            f.write_str(")")?;
         }
+
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InlineSchema::Ref { path, args } => {
-                path.fmt(f)?;
-                if !args.is_empty() {
-                    f.write_str("<")?;
-                    args.iter().comma_separated(f, |f, arg| arg.fmt_ts(f))?;
-                    f.write_str(">")?;
-                }
-            }
-            InlineSchema::Object(typed) => typed.fmt_ts(f)?,
-            InlineSchema::Newtype(typed) => typed.fmt_ts(f)?,
-            InlineSchema::Tuple(typed) => typed.fmt_ts(f)?,
-            InlineSchema::Union(typed) => typed.fmt_ts(f)?,
-            InlineSchema::DiscriminatedUnion(typed) => typed.fmt_ts(f)?,
+        std::fmt::Display::fmt(&self.path, f)?;
+        if !self.args.is_empty() {
+            f.write_str("<")?;
+            self.args
+                .iter()
+                .comma_separated(f, |f, arg| arg.fmt_ts(f))?;
+            f.write_str(">")?;
         }
         Ok(())
     }

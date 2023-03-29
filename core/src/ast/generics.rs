@@ -1,4 +1,4 @@
-use super::{Formatter, InlineSchema};
+use super::{Formatter, Ref};
 
 /// Representation of a generic argument in typescript/zod
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -7,10 +7,7 @@ pub enum GenericArgument {
     Type(&'static str),
 
     /// Example: the `N: Rs.Usize` in `Array<N: Rs.Usize>`
-    Const {
-        name: &'static str,
-        schema: InlineSchema,
-    },
+    Const { name: &'static str, schema: Ref },
 
     /// Example: the `Def = [T, ...T[]]` in `Array<T, N: Rs.Usize, Def = [T, ..T[]]>`
     Assign {

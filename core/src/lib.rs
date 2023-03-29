@@ -25,7 +25,7 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-use ast::{Docs, Export, InlineSchema};
+use ast::{Docs, Export, Ref};
 
 /// Trait for dependency registration
 /// Each implementor should recursively call register on all its dependencies (ie. fields in a
@@ -107,7 +107,8 @@ pub trait RequestType: RequestTypeVisitor {
         Self::AST
     }
 
-    fn inline() -> InlineSchema {
+    //todo rename to get_ref
+    fn inline() -> Ref {
         Self::AST.inline()
     }
 
@@ -123,7 +124,8 @@ pub trait ResponseType: ResponseTypeVisitor {
         Self::AST
     }
 
-    fn inline() -> InlineSchema {
+    //todo rename to get_ref
+    fn inline() -> Ref {
         Self::AST.inline()
     }
 

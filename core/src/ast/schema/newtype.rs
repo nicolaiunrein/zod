@@ -1,15 +1,15 @@
 use crate::ast::Formatter;
 
-use super::InlineSchema;
+use super::Ref;
 
 /// An type alias
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct NewtypeSchema {
-    inner: &'static InlineSchema,
+    inner: &'static Ref,
     optional: bool,
 }
 impl NewtypeSchema {
-    pub const fn new(inner: &'static InlineSchema, optional: bool) -> NewtypeSchema {
+    pub const fn new(inner: &'static Ref, optional: bool) -> NewtypeSchema {
         Self { inner, optional }
     }
 }

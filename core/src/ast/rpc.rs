@@ -20,7 +20,8 @@ pub enum RpcRequestKind {
 pub struct RpcRequest {
     pub path: Path,
     pub args: &'static [NamedField],
-    pub res: InlineSchema,
+    //todo rename to reference
+    pub res: Ref,
     pub kind: RpcRequestKind,
 }
 

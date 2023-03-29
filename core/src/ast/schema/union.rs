@@ -1,15 +1,15 @@
 use crate::ast::{Delimited, Formatter};
 
-use super::InlineSchema;
+use super::Ref;
 
 /// Representation of a `z.union([ ... ])`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnionSchema {
-    variants: &'static [InlineSchema],
+    variants: &'static [Ref],
 }
 
 impl UnionSchema {
-    pub const fn new(variants: &'static [InlineSchema]) -> UnionSchema {
+    pub const fn new(variants: &'static [Ref]) -> UnionSchema {
         Self { variants }
     }
 }

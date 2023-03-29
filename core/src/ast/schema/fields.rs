@@ -1,10 +1,10 @@
 use crate::RequestType;
 
-use super::{Formatter, InlineSchema};
+use super::{Formatter, Ref};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
-    Resolved(InlineSchema),
+    Resolved(Ref),
     Generic(&'static str),
 }
 
@@ -109,7 +109,7 @@ impl Formatter for NamedField {
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TupleField {
-    value: InlineSchema,
+    value: Ref,
     optional: bool,
 }
 
@@ -121,7 +121,7 @@ impl TupleField {
         }
     }
 
-    pub const fn value(&self) -> InlineSchema {
+    pub const fn value(&self) -> Ref {
         self.value
     }
 
