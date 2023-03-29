@@ -49,11 +49,10 @@ pub struct NamedField {
 }
 
 impl NamedField {
-    // todo this is wrong.
-    pub const fn new<T: RequestType>(name: &'static str) -> Self {
+    pub const fn new(name: &'static str, value: Ref) -> Self {
         Self {
             name,
-            value: FieldValue::Resolved(Ref::new_req::<T>()),
+            value: FieldValue::Resolved(value),
             optional: false,
         }
     }
@@ -154,18 +153,20 @@ impl Formatter for TupleField {
 
 #[cfg(test)]
 mod test {
+    use crate::types::Usize;
+
     use super::*;
 
     #[test]
     fn named_field_non_optional() {
-        const FIELD: NamedField = NamedField::new::<crate::types::Usize>("test");
+        const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>());
         assert_eq!(FIELD.to_zod_string(), "test: Rs.Usize");
         assert_eq!(FIELD.to_ts_string(), "test: Rs.Usize");
     }
 
     #[test]
     fn named_field_optional() {
-        const FIELD: NamedField = NamedField::new::<crate::types::Usize>("test").optional();
+        const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>()).optional();
 
         assert_eq!(FIELD.to_zod_string(), "test: Rs.Usize.optional()");
         assert_eq!(FIELD.to_ts_string(), "test?: Rs.Usize | undefined");

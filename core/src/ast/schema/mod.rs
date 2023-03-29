@@ -83,6 +83,8 @@ impl Formatter for Ref {
 
 #[cfg(test)]
 mod test {
+    use crate::types::{Isize, Usize};
+
     use super::NamedField;
 
     use super::*;
@@ -101,8 +103,8 @@ mod test {
     #[test]
     fn object_ok() {
         const DEF: ObjectSchema = ObjectSchema::new(&[
-            NamedField::new::<String>("a"),
-            NamedField::new::<crate::types::Usize>("b"),
+            NamedField::new("a", Ref::new_req::<String>()),
+            NamedField::new("b", Ref::new_req::<Usize>()),
         ]);
 
         assert_eq!(
@@ -127,12 +129,12 @@ mod test {
     fn discriminated_union_ok() {
         const FIELDS: &[ObjectSchema] = &[
             ObjectSchema::new(&[
-                NamedField::new::<String>("myKey"),
-                NamedField::new::<crate::types::Usize>("b"),
+                NamedField::new("myKey", Ref::new_req::<String>()),
+                NamedField::new("b", Ref::new_req::<Usize>()),
             ]),
             ObjectSchema::new(&[
-                NamedField::new::<String>("myKey"),
-                NamedField::new::<crate::types::Isize>("c"),
+                NamedField::new("myKey", Ref::new_req::<String>()),
+                NamedField::new("c", Ref::new_req::<Isize>()),
             ]),
         ];
 

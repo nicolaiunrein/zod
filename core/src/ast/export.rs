@@ -162,7 +162,8 @@ impl Formatter for Export {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, NewtypeSchema, ObjectSchema, TupleField, TupleSchema};
+    use crate::ast::{NamedField, NewtypeSchema, ObjectSchema, Ref, TupleField, TupleSchema};
+    use crate::types::Usize;
     use crate::Namespace;
 
     use super::*;
@@ -177,8 +178,8 @@ mod test {
     #[test]
     fn object_ok() {
         const OBJECT: ObjectSchema = ObjectSchema::new(&[
-            NamedField::new::<String>("a"),
-            NamedField::new::<crate::types::Usize>("b"),
+            NamedField::new("a", Ref::new_req::<String>()),
+            NamedField::new("b", Ref::new_req::<Usize>()),
         ]);
 
         const EXPORT_OBJECT: Export = Export {

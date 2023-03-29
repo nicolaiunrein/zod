@@ -283,7 +283,6 @@ impl<const N: usize, T: RequestType> RequestTypeVisitor for [T; N] {
     }
 }
 
-// todo as request
 impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
     const EXPORT: Export = Export {
         docs: None,
@@ -307,7 +306,7 @@ impl<const N: usize, T: ResponseType> ResponseType for [T; N] {
 
     const ARGS: &'static [Ref] = &[
         Ref::new_res::<T>(),
-        // todo ref of N
+        // todo reference of N
     ];
 }
 
