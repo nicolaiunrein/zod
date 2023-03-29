@@ -57,7 +57,7 @@ impl ToTokens for Field {
                 })
             }
             (Some(ident), None) => {
-                let value = ident.to_string();
+                let _value = ident.to_string();
 
                 tokens.extend(quote! {
                     // todo

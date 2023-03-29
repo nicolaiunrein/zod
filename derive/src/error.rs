@@ -1,5 +1,4 @@
 use proc_macro2::Span;
-use syn::Type;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -46,7 +45,7 @@ impl From<Error> for darling::Error {
 }
 
 impl From<Error> for syn::Error {
-    fn from(value: Error) -> Self {
+    fn from(_value: Error) -> Self {
         todo!()
     }
 }

@@ -41,13 +41,19 @@ impl ToTokens for BackendInput {
             .iter()
             .map(|(ident, ty)| quote!(#ident(<#ty as #zod::core::rpc::RpcNamespace>::Req)));
 
-        let inner_match = variants.iter().map(|(ident, _)| {
-            quote!(Inner::#ident(req) => {
-                if let Some(jh) = self.0.process(req, sender, *id).await {
-                    subscribers.insert(*id, jh);
-                }
-            })
-        });
+        let inner_match =
+            variants
+                .iter()
+                .map(|(ident, _)| ident)
+                .enumerate()
+                .map(|(index, ident)| {
+                    let index = syn::Index::from(index);
+                    quote!(Inner::#ident(req) => {
+                        if let Some(jh) = self.#index.process(req, sender, *id).await {
+                            subscribers.insert(*id, jh);
+                        }
+                    })
+                });
 
         let output = quote! {
             const _: () = {

@@ -113,7 +113,7 @@ impl ToTokens for RpcInput {
             match &item.kind {
                 RpcItemKind::Method(_) => {
                     quote! {
-                        NsReq:: #ident { args } => {
+                        Self::Req:: #ident { args } => {
                             let res = self.#ident(#(#args),*).await;
                             let _ = sender.unbounded_send(#zod::core::rpc::Response::method(id, res));
                             None
@@ -122,7 +122,7 @@ impl ToTokens for RpcInput {
                 }
                 RpcItemKind::Stream(_) => {
                     quote! {
-                        NsReq:: #ident { args } => {
+                        Self::Req:: #ident { args } => {
                             let mut stream = self.#ident(#(#args),*);
                             let jh = tokio::spawn(async move {
                                 #zod::__private::futures::pin_mut!(stream);
@@ -138,6 +138,8 @@ impl ToTokens for RpcInput {
             }
         });
 
+        let req_name = quote::format_ident!("{}Req", ident);
+
         let output = quote! {
             const _: () = {
                 #[derive(#zod::__private::serde::Deserialize)]
@@ -146,11 +148,11 @@ impl ToTokens for RpcInput {
                 #[allow(non_snake_case)]
                 #[allow(non_upper_case_globals)]
                 #[doc(hidden)]
-                pub enum NsReq {
+                pub enum #req_name {
                     #(#enum_variants),*
                 }
 
-                impl #zod::core::RequestTypeVisitor for NsReq {
+                impl #zod::core::RequestTypeVisitor for #req_name {
                     fn register(ctx: &mut #zod::core::DependencyMap)
                     where
                         Self: 'static,
@@ -159,7 +161,7 @@ impl ToTokens for RpcInput {
                     }
                 }
 
-                impl #zod::core::ResponseTypeVisitor for NsReq {
+                impl #zod::core::ResponseTypeVisitor for #req_name {
                     fn register(ctx: &mut #zod::core::DependencyMap)
                     where
                         Self: 'static,
@@ -175,7 +177,7 @@ impl ToTokens for RpcInput {
                         #(#rpc_requests),*
                     ];
 
-                    type Req = NsReq;
+                    type Req = #req_name;
 
                     async fn process(
                         &mut self,
