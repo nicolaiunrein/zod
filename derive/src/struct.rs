@@ -209,16 +209,23 @@ impl<'a> ToTokens for Struct<'a> {
             })
             .collect();
 
-        if is_export(self.fields.iter().cloned(), &self.generics) {
-            Export {
-                config: &self.config,
-                inline_schemas,
-                schema,
-            }
-            .to_tokens(tokens);
-        } else {
-            Inlined { schema }.to_tokens(tokens);
+        // if is_export(self.fields.iter().cloned(), &self.generics) {
+        // Export {
+        // config: &self.config,
+        // inline_schemas,
+        // schema,
+        // }
+        // .to_tokens(tokens);
+        // } else {
+        // Inlined { schema }.to_tokens(tokens);
+        // }
+
+        Export {
+            config: &self.config,
+            inline_schemas,
+            schema,
         }
+        .to_tokens(tokens);
     }
 }
 

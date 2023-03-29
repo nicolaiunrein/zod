@@ -15,6 +15,9 @@ impl ObjectSchema {
     pub fn generics(&self) -> impl Iterator<Item = &'static str> {
         self.fields.iter().filter_map(|f| f.value().get_generic())
     }
+    pub const fn fields(&self) -> &'static [NamedField] {
+        self.fields
+    }
 }
 
 impl Formatter for ObjectSchema {
