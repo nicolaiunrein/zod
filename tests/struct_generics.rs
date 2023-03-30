@@ -74,3 +74,26 @@ fn flipped_argus() {
         _ => panic!("unexpected schema"),
     }
 }
+
+#[test]
+fn nested_generics() {
+    test_case! {
+        #[derive(serde::Deserialize, Debug)]
+        pub struct Generic<T: zod::RequestType> {
+            t: T,
+        }
+
+        #[derive(serde::Serialize, serde::Deserialize, Debug, RequestType)]
+        #[zod(namespace = "Ns")]
+        pub struct User<T: zod::RequestType> {
+            value: Generic<Option<T>>,
+        }
+
+
+    }
+
+    compare_export::<User<String>>(
+        "export const User = z.lazy(() => z.object({value: Ns.Generic(Rs.Option(Rs.String)) }));",
+        "export interface User { value: Ns.Generic<Rs.Option<Rs.String>> }",
+    );
+}
