@@ -4,7 +4,6 @@ use crate::utils::get_zod;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Type;
 
 pub(super) enum Schema<'a> {
     Object(ObjectSchema),

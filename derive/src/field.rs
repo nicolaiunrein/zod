@@ -2,7 +2,6 @@ use crate::config::{Derive, FieldConfig};
 use crate::error::Error;
 use darling::ToTokens;
 use quote::quote;
-use serde_derive_internals::ast::Field as SerdeField;
 use syn::{Ident, Type};
 
 use crate::utils::get_zod;
@@ -15,12 +14,8 @@ pub(crate) struct Field {
 }
 
 impl Field {
-    pub(crate) fn new(
-        value: &SerdeField,
-        derive: Derive,
-        generics: &[&Ident],
-    ) -> Result<Self, Error> {
-        let generic = match value.ty {
+    pub(crate) fn new(ty: &Type, config: FieldConfig, generics: &[&Ident]) -> Result<Self, Error> {
+        let generic = match ty {
             Type::Path(p) => p
                 .path
                 .get_ident()
@@ -32,8 +27,8 @@ impl Field {
         };
 
         Ok(Self {
-            ty: value.original.ty.clone(),
-            config: FieldConfig::new(&value.attrs, derive)?,
+            ty: ty.clone(),
+            config,
             generic,
         })
     }
@@ -75,7 +70,6 @@ impl ToTokens for Field {
                 let _value = ident.to_string();
 
                 tokens.extend(quote! {
-                    // todo
                     #zod::core::ast::TupleField:: #req_res  ::<#ty>() #optional
                 })
             }
@@ -88,13 +82,12 @@ pub(crate) struct FilteredFields(Vec<Field>);
 
 impl FilteredFields {
     pub(crate) fn new(
-        fields: &Vec<serde_derive_internals::ast::Field>,
+        fields: Vec<(&Type, FieldConfig)>,
         generics: &[&Ident],
-        derive: Derive,
     ) -> Result<Self, Error> {
         let inner = fields
-            .iter()
-            .map(|f| Field::new(f, derive, generics))
+            .into_iter()
+            .map(|(ty, config)| Field::new(ty, config, generics))
             .collect::<Result<Vec<_>, _>>()?;
 
         let inner = inner.into_iter().filter(|f| !f.config.ignored).collect();

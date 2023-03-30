@@ -18,24 +18,36 @@ impl NewtypeSchema {
     }
 }
 
+impl Compiler for NewtypeSchema {
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt_zod(f)?;
+        if self.optional {
+            f.write_str(".optional()")?;
+        }
+        Ok(())
+    }
+
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt_ts(f)?;
+
+        if self.optional {
+            f.write_str(" | undefined")?;
+        }
+        Ok(())
+    }
+}
+
 impl Compiler for Exported<NewtypeSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = z.lazy(() => ", self.name))?;
-        self.schema.inner.fmt_zod(f)?;
-        if self.schema.optional {
-            f.write_str(".optional()")?;
-        }
+        self.schema.fmt_zod(f)?;
         f.write_str(");")?;
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("type {} = ", self.name))?;
-        self.schema.inner.fmt_ts(f)?;
-
-        if self.schema.optional {
-            f.write_str(" | undefined")?;
-        }
+        self.schema.fmt_ts(f)?;
         f.write_str(";")?;
         Ok(())
     }

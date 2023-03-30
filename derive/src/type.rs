@@ -1,9 +1,10 @@
 use crate::config::ContainerConfig;
 use crate::config::Derive;
+use crate::config::FieldConfig;
 use crate::error::Error;
 use crate::field::FilteredFields;
-use crate::r#enum::Enum;
-use crate::r#struct::Struct;
+use crate::r#enum::EnumExport;
+use crate::r#struct::StructExport;
 use crate::utils::get_zod;
 use darling::FromDeriveInput;
 use darling::ToTokens;
@@ -82,7 +83,7 @@ impl ZodType {
                     .flat_map(|v| v.fields.iter().map(|f| f.ty.clone()))
                     .collect::<Vec<_>>();
 
-                let definition = Enum {
+                let definition = EnumExport {
                     variants,
                     config: &config,
                 }
@@ -90,16 +91,21 @@ impl ZodType {
                 (dependencies, definition)
             }
             Data::Struct(ref style, ref fields) => {
-                let fields = FilteredFields::new(&fields, &generic_idents, derive)?;
+                let fields = fields
+                    .into_iter()
+                    .map(|f| Ok((f.ty, FieldConfig::new(&f.attrs, derive)?)))
+                    .collect::<Result<_, crate::error::Error>>()?;
+
+                let fields = FilteredFields::new(fields, &generic_idents)?;
                 let dependencies = fields.iter().map(|f| f.ty.clone()).collect();
 
-                let struct_def = Struct {
+                let struct_export = StructExport {
                     style,
                     fields,
                     config: &config,
                 };
 
-                (dependencies, quote!(#struct_def))
+                (dependencies, quote!(#struct_export))
             }
         };
 

@@ -17,26 +17,39 @@ impl TupleSchema {
     }
 }
 
-impl Compiler for Exported<TupleSchema> {
+impl Compiler for TupleSchema {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("const {} = z.lazy(() => ", self.name))?;
         f.write_str("z.tuple([")?;
-        self.schema
-            .fields
+        self.fields
             .iter()
             .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
-        f.write_str("]));")?;
+        f.write_str("])")?;
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("type {} = [", self.name))?;
-        self.schema
-            .fields
+        f.write_str("[")?;
+        self.fields
             .iter()
             .comma_separated(f, |f, field| field.fmt_ts(f))?;
-        f.write_str("];")?;
+        f.write_str("]")?;
+        Ok(())
+    }
+}
+
+impl Compiler for Exported<TupleSchema> {
+    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("const {} = z.lazy(() => ", self.name))?;
+        self.schema.fmt_zod(f)?;
+        f.write_str(");")?;
+        Ok(())
+    }
+
+    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("type {} = ", self.name))?;
+        self.schema.fmt_ts(f)?;
+        f.write_str(";")?;
         Ok(())
     }
 }
