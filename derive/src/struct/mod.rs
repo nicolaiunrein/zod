@@ -8,18 +8,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use schema::*;
 use serde_derive_internals::ast::Style;
-use syn::Type;
 
 pub(crate) struct Struct<'a> {
     pub(crate) fields: FilteredFields,
     pub(crate) style: &'a Style,
     pub(crate) config: &'a ContainerConfig,
-}
-
-impl<'a> Struct<'a> {
-    pub(crate) fn dependencies(&self) -> Vec<Type> {
-        self.fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>()
-    }
 }
 
 impl<'a> ToTokens for Struct<'a> {

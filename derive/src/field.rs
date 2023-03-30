@@ -18,8 +18,19 @@ impl Field {
     pub(crate) fn new(
         value: &SerdeField,
         derive: Derive,
-        generic: Option<Ident>,
+        generics: &[&Ident],
     ) -> Result<Self, Error> {
+        let generic = match value.ty {
+            Type::Path(p) => p
+                .path
+                .get_ident()
+                .map(|ident| generics.iter().find(|gen| gen == &&ident))
+                .flatten()
+                .map(|i| Ident::clone(i)),
+
+            _ => None,
+        };
+
         Ok(Self {
             ty: value.original.ty.clone(),
             config: FieldConfig::new(&value.attrs, derive)?,
@@ -76,9 +87,18 @@ impl ToTokens for Field {
 pub(crate) struct FilteredFields(Vec<Field>);
 
 impl FilteredFields {
-    pub(crate) fn new(inner: Vec<Field>) -> Self {
+    pub(crate) fn new(
+        fields: &Vec<serde_derive_internals::ast::Field>,
+        generics: &[&Ident],
+        derive: Derive,
+    ) -> Result<Self, Error> {
+        let inner = fields
+            .iter()
+            .map(|f| Field::new(f, derive, generics))
+            .collect::<Result<Vec<_>, _>>()?;
+
         let inner = inner.into_iter().filter(|f| !f.config.ignored).collect();
-        Self(inner)
+        Ok(Self(inner))
     }
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Field> {
         self.0.iter()

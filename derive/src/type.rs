@@ -1,7 +1,6 @@
 use crate::config::ContainerConfig;
 use crate::config::Derive;
 use crate::error::Error;
-use crate::field::Field;
 use crate::field::FilteredFields;
 use crate::r#enum::Enum;
 use crate::r#struct::Struct;
@@ -65,7 +64,18 @@ impl ZodType {
             darling_errors.finish()?;
         }
 
-        match serde_ast.data {
+        let generic_idents = orig
+            .generics
+            .params
+            .iter()
+            .filter_map(|param| match param {
+                syn::GenericParam::Type(ty) => Some(&ty.ident),
+                syn::GenericParam::Lifetime(_) => None,
+                syn::GenericParam::Const(_) => None,
+            })
+            .collect::<Vec<_>>();
+
+        let (dependencies, definition) = match serde_ast.data {
             Data::Enum(ref variants) => {
                 let dependencies = variants
                     .iter()
@@ -77,62 +87,29 @@ impl ZodType {
                     config: &config,
                 }
                 .expand();
-
-                Ok(Self {
-                    ident: input.ident,
-                    generics: input.generics,
-                    dependencies,
-                    definition,
-                    derive,
-                })
+                (dependencies, definition)
             }
             Data::Struct(ref style, ref fields) => {
-                let s = Struct {
+                let fields = FilteredFields::new(&fields, &generic_idents, derive)?;
+                let dependencies = fields.iter().map(|f| f.ty.clone()).collect();
+
+                let struct_def = Struct {
                     style,
-                    fields: FilteredFields::new(
-                        fields
-                            .iter()
-                            .map(|f| {
-                                Field::new(
-                                    f,
-                                    derive,
-                                    orig.generics.params.iter().find_map(|p| match p {
-                                        syn::GenericParam::Type(t) => match f.ty {
-                                            Type::Path(p) => {
-                                                if let Some(value) = p.path.get_ident() {
-                                                    if value == &t.ident {
-                                                        Some(value.clone())
-                                                    } else {
-                                                        None
-                                                    }
-                                                } else {
-                                                    None
-                                                }
-                                            }
-                                            _ => None,
-                                        },
-                                        syn::GenericParam::Lifetime(_) => None,
-                                        syn::GenericParam::Const(_) => None,
-                                    }),
-                                )
-                            })
-                            .collect::<Result<Vec<_>, _>>()?,
-                    ),
+                    fields,
                     config: &config,
                 };
 
-                let dependencies = s.dependencies();
-                let definition = quote!(#s);
-
-                Ok(Self {
-                    ident: input.ident,
-                    generics: input.generics,
-                    dependencies,
-                    definition,
-                    derive,
-                })
+                (dependencies, quote!(#struct_def))
             }
-        }
+        };
+
+        Ok(Self {
+            ident: input.ident,
+            generics: input.generics,
+            dependencies,
+            definition,
+            derive,
+        })
     }
 }
 
