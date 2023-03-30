@@ -1,6 +1,5 @@
-use crate::config::ContainerConfig;
+use crate::config::{ContainerConfig, Derive};
 use crate::field::FilteredFields;
-use crate::node::Derive;
 use crate::utils::get_zod;
 use darling::ToTokens;
 use proc_macro2::TokenStream;

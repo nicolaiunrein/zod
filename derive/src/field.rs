@@ -1,6 +1,5 @@
-use crate::config::FieldConfig;
+use crate::config::{Derive, FieldConfig};
 use crate::error::Error;
-use crate::node::Derive;
 use darling::ToTokens;
 use quote::quote;
 use serde_derive_internals::ast::Field as SerdeField;

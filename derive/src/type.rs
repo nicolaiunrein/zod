@@ -1,4 +1,5 @@
 use crate::config::ContainerConfig;
+use crate::config::Derive;
 use crate::error::Error;
 use crate::field::Field;
 use crate::field::FilteredFields;
@@ -33,14 +34,6 @@ pub(crate) struct ZodType {
     pub definition: TokenStream,
     pub dependencies: Vec<Type>,
     pub derive: Derive,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(test, derive(Default))]
-pub(crate) enum Derive {
-    #[cfg_attr(test, default)]
-    Request,
-    Response,
 }
 
 impl ZodType {

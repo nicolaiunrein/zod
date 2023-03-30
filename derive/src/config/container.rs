@@ -3,7 +3,8 @@ use serde_derive_internals::attr::Container;
 use syn::{Attribute, Type};
 
 use crate::docs::RustDocs;
-use crate::node::Derive;
+
+use super::Derive;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub(crate) enum TagType {
@@ -23,13 +24,10 @@ impl From<serde_derive_internals::attr::TagType> for TagType {
     fn from(value: serde_derive_internals::attr::TagType) -> Self {
         match value {
             serde_derive_internals::attr::TagType::External => TagType::External,
-            serde_derive_internals::attr::TagType::Internal { tag } => TagType::Internal {
-                tag,
-            },
-            serde_derive_internals::attr::TagType::Adjacent { tag, content } => TagType::Adjacent {
-                tag,
-                content,
-            },
+            serde_derive_internals::attr::TagType::Internal { tag } => TagType::Internal { tag },
+            serde_derive_internals::attr::TagType::Adjacent { tag, content } => {
+                TagType::Adjacent { tag, content }
+            }
             serde_derive_internals::attr::TagType::None => TagType::None,
         }
     }

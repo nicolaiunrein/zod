@@ -5,20 +5,21 @@ mod r#enum;
 mod error;
 mod field;
 mod namespace;
-mod node;
 mod r#struct;
 mod test_utils;
+mod r#type;
 mod utils;
 
 mod rpc;
 
 use backend::BackendInput;
+use config::Derive;
 use darling::FromDeriveInput;
 use namespace::Namespace;
-use node::{Derive, ZodType};
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
 use quote::quote;
+use r#type::ZodType;
 
 #[proc_macro_error]
 #[proc_macro_derive(RequestType, attributes(zod))]
