@@ -1,4 +1,4 @@
-use crate::RequestType;
+use crate::{RequestType, ResponseType};
 
 use super::{Formatter, Ref};
 
@@ -49,10 +49,18 @@ pub struct NamedField {
 }
 
 impl NamedField {
-    pub const fn new(name: &'static str, value: Ref) -> Self {
+    pub const fn new_req<T: RequestType>(name: &'static str) -> Self {
         Self {
             name,
-            value: FieldValue::Resolved(value),
+            value: FieldValue::Resolved(Ref::new_req::<T>()),
+            optional: false,
+        }
+    }
+
+    pub const fn new_res<T: ResponseType>(name: &'static str) -> Self {
+        Self {
+            name,
+            value: FieldValue::Resolved(Ref::new_res::<T>()),
             optional: false,
         }
     }
@@ -114,9 +122,16 @@ pub struct TupleField {
 }
 
 impl TupleField {
-    pub const fn new<T: RequestType>() -> Self {
+    pub const fn new_req<T: RequestType>() -> Self {
         Self {
             value: FieldValue::Resolved(Ref::new_req::<T>()),
+            optional: false,
+        }
+    }
+
+    pub const fn new_res<T: ResponseType>() -> Self {
+        Self {
+            value: FieldValue::Resolved(Ref::new_res::<T>()),
             optional: false,
         }
     }
@@ -159,14 +174,14 @@ mod test {
 
     #[test]
     fn named_field_non_optional() {
-        const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>());
+        const FIELD: NamedField = NamedField::new_req::<Usize>("test");
         assert_eq!(FIELD.to_zod_string(), "test: Rs.Usize");
         assert_eq!(FIELD.to_ts_string(), "test: Rs.Usize");
     }
 
     #[test]
     fn named_field_optional() {
-        const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>()).optional();
+        const FIELD: NamedField = NamedField::new_req::<Usize>("test").optional();
 
         assert_eq!(FIELD.to_zod_string(), "test: Rs.Usize.optional()");
         assert_eq!(FIELD.to_ts_string(), "test?: Rs.Usize | undefined");
@@ -174,14 +189,14 @@ mod test {
 
     #[test]
     fn tuple_field_non_optional() {
-        const FIELD: TupleField = TupleField::new::<crate::types::Usize>();
+        const FIELD: TupleField = TupleField::new_req::<crate::types::Usize>();
         assert_eq!(FIELD.to_zod_string(), "Rs.Usize");
         assert_eq!(FIELD.to_ts_string(), "Rs.Usize");
     }
 
     #[test]
     fn tuple_field_optional() {
-        const FIELD: TupleField = TupleField::new::<crate::types::Usize>().optional();
+        const FIELD: TupleField = TupleField::new_req::<crate::types::Usize>().optional();
 
         assert_eq!(FIELD.to_zod_string(), "Rs.Usize.optional()");
         assert_eq!(FIELD.to_ts_string(), "Rs.Usize | undefined");

@@ -6,7 +6,7 @@ use crate::docs::RustDocs;
 use crate::node::Derive;
 
 #[derive(Clone, Debug, PartialEq, Default)]
-pub enum TagType {
+pub(crate) enum TagType {
     #[default]
     None,
     External,
@@ -35,14 +35,14 @@ impl From<serde_derive_internals::attr::TagType> for TagType {
     }
 }
 
-pub struct ContainerConfig {
-    pub docs: RustDocs,
-    pub name: String,
-    pub transparent: bool,
-    pub type_alias: Option<Type>,
-    pub namespace: syn::Path,
-    pub tag: TagType,
-    pub derive: Derive,
+pub(crate) struct ContainerConfig {
+    pub(crate) docs: RustDocs,
+    pub(crate) name: String,
+    pub(crate) transparent: bool,
+    pub(crate) type_alias: Option<Type>,
+    pub(crate) namespace: syn::Path,
+    pub(crate) tag: TagType,
+    pub(crate) derive: Derive,
 }
 
 #[cfg(test)]
@@ -61,7 +61,7 @@ impl Default for ContainerConfig {
 }
 
 impl ContainerConfig {
-    pub fn new(
+    pub(crate) fn new(
         serde_attrs: &Container,
         orig: &[Attribute],
         namespace: syn::Path,

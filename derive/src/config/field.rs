@@ -4,11 +4,11 @@ use crate::error::Error;
 use crate::node::Derive;
 
 #[derive(Clone, Debug)]
-pub struct FieldConfig {
-    pub required: bool,
-    pub name: Option<String>,
-    pub ignored: bool,
-    pub derive: Derive,
+pub(crate) struct FieldConfig {
+    pub(crate) required: bool,
+    pub(crate) name: Option<String>,
+    pub(crate) ignored: bool,
+    pub(crate) derive: Derive,
 }
 
 #[cfg(test)]
@@ -24,7 +24,7 @@ impl Default for FieldConfig {
 }
 
 impl FieldConfig {
-    pub fn new(input: &attr::Field, derive: Derive) -> Result<Self, Error> {
+    pub(crate) fn new(input: &attr::Field, derive: Derive) -> Result<Self, Error> {
         let name = match derive {
             Derive::Request => input.name().deserialize_name(),
             Derive::Response => input.name().serialize_name(),

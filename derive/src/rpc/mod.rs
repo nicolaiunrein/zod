@@ -7,23 +7,23 @@ use syn::{parse_quote, Ident, ImplItem, ImplItemMethod, ItemImpl, Type};
 use crate::error::Error;
 use crate::utils::get_zod;
 
-pub struct RpcInput {
+pub(crate) struct RpcInput {
     ident: syn::Ident,
     items: Vec<RpcItem>,
 }
 
-pub struct RpcItem {
+pub(crate) struct RpcItem {
     ident: syn::Ident,
     method_args: Vec<RpcArg>,
     kind: RpcItemKind,
 }
 
-pub struct RpcArg {
+pub(crate) struct RpcArg {
     name: String,
     ty: Box<Type>,
 }
 
-pub enum RpcItemKind {
+pub(crate) enum RpcItemKind {
     Method(Box<Type>),
     Stream(Box<Type>),
 }
@@ -64,7 +64,7 @@ impl ToTokens for RpcInput {
             let args = item.method_args.iter().map(|arg| {
                 let ty = &arg.ty;
                 let name = &arg.name;
-                quote!(#zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::new_req::<#ty>()))
+                quote!(#zod::core::ast::NamedField::new_req::<#ty>(#name))
             });
 
             match &item.kind {

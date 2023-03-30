@@ -5,14 +5,14 @@ use quote::{format_ident, quote};
 use syn::Type;
 
 #[derive(FromDeriveInput)]
-pub struct BackendInput {
-    pub ident: syn::Ident,
-    pub data: Data<darling::util::Ignored, BackendVariant>,
+pub(crate) struct BackendInput {
+    pub(crate) ident: syn::Ident,
+    pub(crate) data: Data<darling::util::Ignored, BackendVariant>,
 }
 
 #[derive(FromField, Clone)]
-pub struct BackendVariant {
-    pub ty: Type,
+pub(crate) struct BackendVariant {
+    pub(crate) ty: Type,
 }
 
 impl ToTokens for BackendInput {

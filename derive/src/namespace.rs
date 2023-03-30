@@ -5,7 +5,7 @@ use quote::quote;
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(namespace), forward_attrs(allow, doc, cfg))]
-pub struct Namespace {
+pub(crate) struct Namespace {
     pub vis: syn::Visibility,
     pub ident: syn::Ident,
     pub name: Option<String>,

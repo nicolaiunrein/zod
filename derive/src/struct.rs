@@ -8,7 +8,7 @@ use quote::quote;
 use serde_derive_internals::ast::Style;
 use syn::Type;
 
-pub struct Struct<'a> {
+pub(crate) struct Struct<'a> {
     pub(crate) fields: FilteredFields,
     pub(crate) style: &'a Style,
     pub(crate) config: &'a ContainerConfig,
@@ -16,7 +16,7 @@ pub struct Struct<'a> {
 }
 
 impl<'a> Struct<'a> {
-    pub fn dependencies(&self) -> Vec<Type> {
+    pub(crate) fn dependencies(&self) -> Vec<Type> {
         self.fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>()
     }
 }

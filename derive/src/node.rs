@@ -20,17 +20,16 @@ use syn::{Attribute, Generics};
     supports(struct_named, struct_newtype, struct_tuple, enum_any)
 )]
 
-pub struct ZodTypeDeriveInput {
+struct ZodTypeDeriveInput {
     pub ident: syn::Ident,
     pub namespace: syn::Path,
     pub attrs: Vec<Attribute>,
     pub generics: Generics,
 }
 
-pub struct ZodType {
+pub(crate) struct ZodType {
     pub ident: syn::Ident,
     pub generics: Generics,
-    pub config: ContainerConfig,
     pub definition: TokenStream,
     pub dependencies: Vec<Type>,
     pub derive: Derive,
@@ -38,14 +37,17 @@ pub struct ZodType {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(test, derive(Default))]
-pub enum Derive {
+pub(crate) enum Derive {
     #[cfg_attr(test, default)]
     Request,
     Response,
 }
 
 impl ZodType {
-    pub fn from_derive_input(orig: &syn::DeriveInput, derive: Derive) -> darling::Result<Self> {
+    pub(crate) fn from_derive_input(
+        orig: &syn::DeriveInput,
+        derive: Derive,
+    ) -> darling::Result<Self> {
         let input = ZodTypeDeriveInput::from_derive_input(orig)?;
 
         let cx = serde_derive_internals::Ctxt::new();
@@ -89,7 +91,6 @@ impl ZodType {
                     generics: input.generics,
                     dependencies,
                     definition,
-                    config,
                     derive,
                 })
             }
@@ -137,7 +138,6 @@ impl ZodType {
                     generics: input.generics,
                     dependencies,
                     definition,
-                    config,
                     derive,
                 })
             }

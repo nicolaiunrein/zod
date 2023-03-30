@@ -94,19 +94,18 @@ impl Formatter for ObjectSchema {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::Ref;
     use crate::types::Usize;
 
     use super::*;
 
     const OBJECT: ObjectSchema = ObjectSchema::new(&[
-        NamedField::new("a", Ref::new_req::<String>()),
-        NamedField::new("b", Ref::new_req::<Usize>()),
+        NamedField::new_req::<String>("a"),
+        NamedField::new_req::<Usize>("b"),
     ]);
 
     const GENERIC: ObjectSchema = ObjectSchema::new(&[
         NamedField::generic("a", "A"),
-        NamedField::new("b", Ref::new_req::<Usize>()),
+        NamedField::new_req::<Usize>("b"),
     ]);
 
     #[test]

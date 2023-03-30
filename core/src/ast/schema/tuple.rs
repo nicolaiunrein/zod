@@ -49,8 +49,8 @@ mod test {
     #[test]
     fn tuple_ok() {
         const TUPLE: TupleSchema = TupleSchema::new(&[
-            TupleField::new::<String>(),
-            TupleField::new::<crate::types::Usize>(),
+            TupleField::new_req::<String>(),
+            TupleField::new_req::<crate::types::Usize>(),
         ]);
 
         assert_eq!(

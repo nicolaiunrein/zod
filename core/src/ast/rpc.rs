@@ -111,8 +111,8 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
             path: Path::new::<Ns>("test"),
             kind: RpcRequestKind::Method,
             args: &[
-                NamedField::new("name", Ref::new_req::<String>()),
-                NamedField::new("age", Ref::new_req::<u16>()),
+                NamedField::new_req::<String>("name"),
+                NamedField::new_req::<u16>("age"),
             ],
             output: Ref::new_res::<Option<bool>>(),
         };
@@ -142,8 +142,8 @@ export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
             path: Path::new::<Ns>("test"),
             kind: RpcRequestKind::Stream,
             args: &[
-                NamedField::new("name", Ref::new_req::<String>()),
-                NamedField::new("age", Ref::new_req::<u16>()),
+                NamedField::new_req::<String>("name"),
+                NamedField::new_req::<u16>("age"),
             ],
             output: Ref::new_res::<Option<bool>>(),
         };

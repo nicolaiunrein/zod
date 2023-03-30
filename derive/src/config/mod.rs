@@ -1,6 +1,5 @@
 mod container;
 mod field;
 
-pub use container::ContainerConfig;
-pub use field::FieldConfig;
-
+pub(crate) use container::ContainerConfig;
+pub(crate) use field::FieldConfig;

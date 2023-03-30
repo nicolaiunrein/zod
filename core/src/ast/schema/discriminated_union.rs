@@ -53,7 +53,7 @@ impl Formatter for Exported<DiscriminatedUnionSchema> {
 #[cfg(test)]
 mod test {
 
-    use crate::ast::{NamedField, Ref};
+    use crate::ast::NamedField;
     use crate::types::{Isize, Usize};
 
     use super::*;
@@ -63,12 +63,12 @@ mod test {
     fn discriminated_union_ok() {
         const FIELDS: &[ObjectSchema] = &[
             ObjectSchema::new(&[
-                NamedField::new("myKey", Ref::new_req::<String>()),
-                NamedField::new("b", Ref::new_req::<Usize>()),
+                NamedField::new_req::<String>("myKey"),
+                NamedField::new_req::<Usize>("b"),
             ]),
             ObjectSchema::new(&[
-                NamedField::new("myKey", Ref::new_req::<String>()),
-                NamedField::new("c", Ref::new_req::<Isize>()),
+                NamedField::new_req::<String>("myKey"),
+                NamedField::new_req::<Isize>("c"),
             ]),
         ];
 

@@ -4,13 +4,13 @@ use quote::quote;
 use serde_derive_internals::ast::Variant;
 
 #[allow(dead_code)]
-pub struct Enum<'a> {
+pub(crate) struct Enum<'a> {
     pub(crate) variants: &'a [Variant<'a>],
     pub(crate) config: &'a ContainerConfig,
 }
 
 impl<'a> Enum<'a> {
-    pub fn expand(self) -> TokenStream {
+    pub(crate) fn expand(self) -> TokenStream {
         quote!()
     }
 }

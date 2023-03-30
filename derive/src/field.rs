@@ -9,14 +9,14 @@ use syn::{Ident, Type};
 use crate::utils::get_zod;
 
 #[derive(Clone, Debug)]
-pub struct Field {
+pub(crate) struct Field {
     pub ty: Type,
     pub config: FieldConfig,
     pub generic: Option<Ident>,
 }
 
 impl Field {
-    pub fn new<'a>(
+    pub(crate) fn new<'a>(
         value: &'a SerdeField,
         derive: Derive,
         generic: Option<Ident>,
@@ -41,12 +41,17 @@ impl ToTokens for Field {
 
         let zod = get_zod();
 
+        let req_res = match self.config.derive {
+            Derive::Request => quote!(new_req),
+            Derive::Response => quote!(new_res),
+        };
+
         match (&self.generic, &self.config.name) {
             (None, Some(ref name)) => tokens.extend(quote! {
-                #zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::new_req::<#ty>()) #optional
+                #zod::core::ast::NamedField::new_req::<#ty>(#name) #optional
             }),
             (None, None) => tokens.extend(quote! {
-                #zod::core::ast::TupleField::new::<#ty>() #optional
+                #zod::core::ast::TupleField:: #req_res ::<#ty>() #optional
             }),
 
             (Some(ident), Some(ref name)) => {
@@ -61,7 +66,7 @@ impl ToTokens for Field {
 
                 tokens.extend(quote! {
                     // todo
-                    #zod::core::ast::TupleField::new::<#ty>() #optional
+                    #zod::core::ast::TupleField:: #req_res  ::<#ty>() #optional
                 })
             }
         }
@@ -69,14 +74,14 @@ impl ToTokens for Field {
 }
 
 #[derive(Clone, Debug)]
-pub struct FilteredFields(Vec<Field>);
+pub(crate) struct FilteredFields(Vec<Field>);
 
 impl FilteredFields {
-    pub fn new(inner: Vec<Field>) -> Self {
+    pub(crate) fn new(inner: Vec<Field>) -> Self {
         let inner = inner.into_iter().filter(|f| !f.config.ignored).collect();
         Self(inner)
     }
-    pub fn iter(&self) -> impl Iterator<Item = &Field> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &Field> {
         self.0.iter()
     }
 }

@@ -1,10 +1,7 @@
 use proc_macro2::Span;
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("Input and Output names must match")]
-    TransparentMismatch { serde: bool, zod: bool },
-
+pub(crate) enum Error {
     #[error("todo")]
     NoSerde,
 
@@ -22,7 +19,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn owned_self(span: Span) -> Self {
+    pub(crate) fn owned_self(span: Span) -> Self {
         Self::WrongSelf { span, got: "self" }
     }
 

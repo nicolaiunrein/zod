@@ -6,7 +6,7 @@ use syn::{Lit, Meta};
 use crate::utils::get_zod;
 
 #[derive(Default, Clone, Debug)]
-pub struct RustDocs {
+pub(crate) struct RustDocs {
     inner: Option<String>,
 }
 
