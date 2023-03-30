@@ -119,7 +119,6 @@ impl ZodType {
                             .collect::<Result<Vec<_>, _>>()?,
                     ),
                     config: &config,
-                    derive,
                 };
 
                 let dependencies = s.dependencies();

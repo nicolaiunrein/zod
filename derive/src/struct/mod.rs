@@ -1,9 +1,12 @@
-use crate::config::{ContainerConfig, Derive};
+mod schema;
+
+use crate::config::ContainerConfig;
 use crate::field::FilteredFields;
 use crate::utils::get_zod;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
+use schema::*;
 use serde_derive_internals::ast::Style;
 use syn::Type;
 
@@ -11,7 +14,6 @@ pub(crate) struct Struct<'a> {
     pub(crate) fields: FilteredFields,
     pub(crate) style: &'a Style,
     pub(crate) config: &'a ContainerConfig,
-    pub(crate) derive: Derive,
 }
 
 impl<'a> Struct<'a> {
@@ -20,78 +22,34 @@ impl<'a> Struct<'a> {
     }
 }
 
-enum Schema<'a> {
-    Object(ObjectSchema),
-    Tuple(TupleSchema<'a>),
-    Newtype(NewtypeSchema),
-}
-
-struct ObjectSchema {
-    fields: FilteredFields,
-}
-
-impl ToTokens for ObjectSchema {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        let fields = &self.fields;
-        tokens.extend(quote!(#zod::core::ast::ObjectSchema::new(&[#fields])));
-    }
-}
-
-struct NewtypeSchema {
-    inner: Type,
-    required: bool,
-    derive: Derive,
-}
-
-impl ToTokens for NewtypeSchema {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        let ty = &self.inner;
-        let optional = !self.required;
-
-        let reference = match self.derive {
-            Derive::Request => quote!(&#zod::core::ast::Ref::new_req::<#ty>()),
-            Derive::Response => quote!(&#zod::core::ast::Ref::new_res::<#ty>()),
-        };
-
-        tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new(#reference, #optional)
-        })
-    }
-}
-
-struct TupleSchema<'a> {
-    fields: &'a FilteredFields,
-}
-
-impl<'a> ToTokens for TupleSchema<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        let fields = self.fields.iter();
-
-        tokens.extend(quote! {
-            #zod::core::ast::TupleSchema::new(&[#(#fields),*])
-        })
-    }
-}
-
-struct Export<'a> {
-    config: &'a ContainerConfig,
-    schema: Schema<'a>,
-}
-
-impl<'a> ToTokens for Export<'a> {
+impl<'a> ToTokens for Struct<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let docs = &self.config.docs;
         let name = &self.config.name;
         let ns = &self.config.namespace;
 
-        let schema = match &self.schema {
-            Schema::Object(schema) => quote!(#zod::core::ast::ExportSchema::Object(#schema)),
-            Schema::Tuple(schema) => quote!( #zod::core::ast::ExportSchema::Tuple(#schema)),
-            Schema::Newtype(schema) => quote!(#zod::core::ast::ExportSchema::Newtype(#schema)),
+        let schema = match self.style {
+            Style::Tuple => Schema::Tuple(TupleSchema {
+                fields: &self.fields,
+            }),
+
+            Style::Struct => {
+                if self.config.transparent {
+                    let field = self.fields.iter().next().expect("unreachable");
+                    Schema::Newtype(NewtypeSchema { field })
+                } else {
+                    Schema::Object(ObjectSchema {
+                        fields: self.fields.clone(),
+                    })
+                }
+            }
+            Style::Unit => unreachable!(),
+            Style::Newtype => {
+                let field = self.fields.iter().next().expect("unreachable");
+
+                Schema::Newtype(NewtypeSchema { field })
+            }
         };
 
         let export = quote! {
@@ -103,47 +61,6 @@ impl<'a> ToTokens for Export<'a> {
         };
 
         tokens.extend(export)
-    }
-}
-
-impl<'a> ToTokens for Struct<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let schema = match self.style {
-            Style::Tuple => Schema::Tuple(TupleSchema {
-                fields: &self.fields,
-            }),
-
-            Style::Struct => {
-                if self.config.transparent {
-                    let field = self.fields.iter().next().expect("unreachable");
-                    Schema::Newtype(NewtypeSchema {
-                        inner: field.ty.clone(),
-                        required: field.config.required,
-                        derive: self.derive,
-                    })
-                } else {
-                    Schema::Object(ObjectSchema {
-                        fields: self.fields.clone(),
-                    })
-                }
-            }
-            Style::Unit => unreachable!(),
-            Style::Newtype => {
-                let field = self.fields.iter().next().expect("unreachable");
-
-                Schema::Newtype(NewtypeSchema {
-                    inner: field.ty.clone(),
-                    required: field.config.required,
-                    derive: self.derive,
-                })
-            }
-        };
-
-        Export {
-            config: self.config,
-            schema,
-        }
-        .to_tokens(tokens);
     }
 }
 
@@ -161,7 +78,6 @@ mod test {
             config: &Default::default(),
             style: &Style::Struct,
             fields: FilteredFields::new(Vec::new()),
-            derive: Default::default(),
         };
 
         compare(
@@ -199,7 +115,6 @@ mod test {
                 },
             ]),
             config: &Default::default(),
-            derive: Default::default(),
         };
 
         compare(
@@ -229,7 +144,6 @@ mod test {
             fields: FilteredFields::new(Vec::new()),
             style: &Style::Tuple,
             config: &Default::default(),
-            derive: Default::default(),
         };
 
         compare(
@@ -261,7 +175,6 @@ mod test {
                 },
             ]),
             config: &Default::default(),
-            derive: Default::default(),
         };
 
         compare(
@@ -319,7 +232,6 @@ mod test {
                 },
             ]),
             config: &Default::default(),
-            derive: Default::default(),
         };
 
         compare(
@@ -384,7 +296,6 @@ mod test {
                 },
             ]),
             config: &Default::default(),
-            derive: Default::default(),
         };
 
         compare(
