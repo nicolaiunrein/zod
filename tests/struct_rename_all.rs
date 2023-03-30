@@ -25,23 +25,9 @@ fn rename_all_struct() {
         serde_json::json!({"STRING_VALUE": "abc", "USIZE_VALUE": "123"})
     );
 
-    assert!(Test::export()
-        .unwrap()
-        .to_zod_string()
-        .contains("USIZE_VALUE"),);
+    assert!(Test::export().to_zod_string().contains("USIZE_VALUE"),);
+    assert!(Test::export().to_zod_string().contains("STRING_VALUE"),);
 
-    assert!(Test::export()
-        .unwrap()
-        .to_zod_string()
-        .contains("STRING_VALUE"),);
-
-    assert!(Test::export()
-        .unwrap()
-        .to_ts_string()
-        .contains("USIZE_VALUE"),);
-
-    assert!(Test::export()
-        .unwrap()
-        .to_ts_string()
-        .contains("STRING_VALUE"),);
+    assert!(Test::export().to_ts_string().contains("USIZE_VALUE"),);
+    assert!(Test::export().to_ts_string().contains("STRING_VALUE"),);
 }

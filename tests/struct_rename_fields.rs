@@ -25,9 +25,9 @@ fn rename_all_struct() {
         serde_json::json!({"after": "abc", "usize_value": "123"})
     );
 
-    assert!(Test::export().unwrap().to_zod_string().contains("after"),);
-    assert!(!Test::export().unwrap().to_zod_string().contains("before"),);
+    assert!(Test::export().to_zod_string().contains("after"),);
+    assert!(!Test::export().to_zod_string().contains("before"),);
 
-    assert!(Test::export().unwrap().to_ts_string().contains("after"),);
-    assert!(!Test::export().unwrap().to_ts_string().contains("before"),);
+    assert!(Test::export().to_ts_string().contains("after"),);
+    assert!(!Test::export().to_ts_string().contains("before"),);
 }

@@ -58,46 +58,46 @@ pub struct MyEntity2 {
     value: Usize,
 }
 
-#[zod::rpc]
-impl Pixera {
-    fn debug_stream(&mut self) -> impl Stream<Item = String> {
-        futures::stream::once(async move { String::new() })
-    }
+// #[zod::rpc]
+// impl Pixera {
+// fn debug_stream(&mut self) -> impl Stream<Item = String> {
+// futures::stream::once(async move { String::new() })
+// }
 
-    fn y(&mut self) -> std::pin::Pin<Box<dyn Stream<Item = String> + Send>> {
-        futures::stream::once(async move { String::new() }).boxed()
-    }
-}
+// fn y(&mut self) -> std::pin::Pin<Box<dyn Stream<Item = String> + Send>> {
+// futures::stream::once(async move { String::new() }).boxed()
+// }
+// }
 
-#[zod::rpc]
-impl Watchout {
-    pub async fn nested(&mut self, _value: MyEntity) -> Usize {
-        *self.shared_data += 1;
-        self.shared_data
-    }
+// #[zod::rpc]
+// impl Watchout {
+// pub async fn nested(&mut self, _value: MyEntity) -> Usize {
+// *self.shared_data += 1;
+// self.shared_data
+// }
 
-    pub async fn hello1(&mut self, _s: String) -> Usize {
-        *self.shared_data += 1;
-        self.shared_data
-    }
+// pub async fn hello1(&mut self, _s: String) -> Usize {
+// *self.shared_data += 1;
+// self.shared_data
+// }
 
-    pub async fn hello(&mut self, _s: String, _n: Usize) -> Usize {
-        *self.shared_data += 1;
-        self.shared_data
-    }
+// pub async fn hello(&mut self, _s: String, _n: Usize) -> Usize {
+// *self.shared_data += 1;
+// self.shared_data
+// }
 
-    pub async fn hello_user(&mut self, _user: User<'static>, _n: Usize) -> Usize {
-        *self.shared_data += 1;
-        self.shared_data
-    }
+// pub async fn hello_user(&mut self, _user: User<'static>, _n: Usize) -> Usize {
+// *self.shared_data += 1;
+// self.shared_data
+// }
 
-    pub fn hello_stream(&mut self, num: Usize) -> impl Stream<Item = Usize> {
-        futures::stream::iter(0..).take(*num).then(|x| async move {
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-            x.into()
-        })
-    }
-}
+// pub fn hello_stream(&mut self, num: Usize) -> impl Stream<Item = Usize> {
+// futures::stream::iter(0..).take(*num).then(|x| async move {
+// tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+// x.into()
+// })
+// }
+// }
 
-#[derive(zod::Backend)]
-pub struct MyBackend(pub Watchout, pub Pixera);
+// #[derive(zod::Backend)]
+// pub struct MyBackend(pub Watchout, pub Pixera);

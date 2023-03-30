@@ -34,8 +34,8 @@ fn serde_skip_struct_field() {
         serde_json::from_value(serde_json::json!({"num": "123", "skip_res": ""})).unwrap()
     );
 
-    let req_export = <Test as RequestType>::export().unwrap().to_zod_string();
-    let res_export = <Test as ResponseType>::export().unwrap().to_zod_string();
+    let req_export = <Test as RequestType>::export().to_zod_string();
+    let res_export = <Test as ResponseType>::export().to_zod_string();
 
     assert!(!req_export.contains("skip_both"));
     assert!(!req_export.contains("skip_req"));

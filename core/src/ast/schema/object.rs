@@ -16,6 +16,10 @@ impl ObjectSchema {
         Exported::new(name, self)
     }
 
+    pub fn fields(&self) -> &'static [NamedField] {
+        self.fields
+    }
+
     pub fn generics(&self) -> impl Iterator<Item = &'static str> {
         self.fields.iter().filter_map(|f| f.value().get_generic())
     }

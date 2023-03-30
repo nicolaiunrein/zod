@@ -62,7 +62,7 @@ fn flipped_argus() {
          }
     }
 
-    let schema = MyType::<()>::EXPORT.export().unwrap().schema;
+    let schema = MyType::<()>::export().schema;
     match schema {
         zod::ast::ExportSchema::Object(obj) => {
             let mut fields = obj.fields().iter();

@@ -50,14 +50,17 @@ pub fn response(input: TokenStream) -> TokenStream {
         }
     };
 
-    let request_type = match ZodType::from_derive_input(&parsed, Derive::Response) {
+    let response_type = match ZodType::from_derive_input(&parsed, Derive::Response) {
         Ok(input) => input,
         Err(err) => {
             return err.write_errors().into();
         }
     };
 
-    quote!(#request_type).into()
+    let x = quote!(#response_type);
+
+    println!("{x}");
+    x.into()
 }
 
 #[proc_macro_error]

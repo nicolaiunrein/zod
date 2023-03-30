@@ -95,7 +95,6 @@ impl ZodType {
             }
             Data::Struct(ref style, ref fields) => {
                 let s = Struct {
-                    generics: &input.generics,
                     style,
                     fields: FilteredFields::new(
                         fields
@@ -105,24 +104,20 @@ impl ZodType {
                                     f,
                                     derive,
                                     orig.generics.params.iter().find_map(|p| match p {
-                                        syn::GenericParam::Type(t) => {
-                                            match f.ty {
-                                                Type::Path(p) => {
-                                                    if let Some(value) = p.path.get_ident() {
-                                                        if value == &t.ident {
-                                                            Some(value.clone())
-                                                        } else {
-                                                            None
-                                                        }
+                                        syn::GenericParam::Type(t) => match f.ty {
+                                            Type::Path(p) => {
+                                                if let Some(value) = p.path.get_ident() {
+                                                    if value == &t.ident {
+                                                        Some(value.clone())
                                                     } else {
                                                         None
                                                     }
+                                                } else {
+                                                    None
                                                 }
-                                                _ => None,
                                             }
-
-                                            // Some(t.ident.clone()),
-                                        }
+                                            _ => None,
+                                        },
                                         syn::GenericParam::Lifetime(_) => None,
                                         syn::GenericParam::Const(_) => None,
                                     }),
@@ -155,7 +150,7 @@ impl<'a> ToTokens for ZodType {
         let zod = get_zod();
         let ident = self.ident.clone();
 
-        let definition = &self.definition;
+        let export = &self.definition;
         let dependencies = &self.dependencies;
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
@@ -179,9 +174,27 @@ impl<'a> ToTokens for ZodType {
             }
         };
 
+        let args = &self
+            .generics
+            .params
+            .iter()
+            .filter_map(|param| match param {
+                syn::GenericParam::Type(ty) => Some(&ty.ident),
+                syn::GenericParam::Lifetime(_) => None,
+                syn::GenericParam::Const(_) => None,
+            })
+            .map(|ident| match self.derive {
+                Derive::Request => quote!(#zod::core::ast::Ref::new_req::<#ident>()),
+                Derive::Response => quote!(#zod::core::ast::Ref::new_res::<#ident>()),
+            })
+            .collect::<Vec<_>>();
+
         tokens.extend(quote! {
             impl #impl_generics #impl_trait for #ident #ty_generics #where_clause {
-                const AST: #zod::core::ast::Definition = #definition;
+                const ARGS: &'static [#zod::core::ast::Ref] = &[
+                    #(#args),*
+                ];
+                const EXPORT: #zod::core::ast::Export = #export;
             }
 
             impl #impl_generics #impl_trait_visitor for #ident #ty_generics #where_clause {

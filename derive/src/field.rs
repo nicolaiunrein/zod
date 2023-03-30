@@ -43,7 +43,7 @@ impl ToTokens for Field {
 
         match (&self.generic, &self.config.name) {
             (None, Some(ref name)) => tokens.extend(quote! {
-                #zod::core::ast::NamedField::new::<#ty>(#name) #optional
+                #zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::new_req::<#ty>()) #optional
             }),
             (None, None) => tokens.extend(quote! {
                 #zod::core::ast::TupleField::new::<#ty>() #optional

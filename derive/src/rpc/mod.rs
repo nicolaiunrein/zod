@@ -64,7 +64,7 @@ impl ToTokens for RpcInput {
             let args = item.method_args.iter().map(|arg| {
                 let ty = &arg.ty;
                 let name = &arg.name;
-                quote!(#zod::core::ast::NamedField::new::<#ty>(#name))
+                quote!(#zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::new_req::<#ty>()))
             });
 
             match &item.kind {
@@ -73,7 +73,7 @@ impl ToTokens for RpcInput {
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
-                            res: <#output as #zod::core::ResponseType>::AST.inline(),
+                            output: #zod::core::ast::Ref::new_res::<#output>(),
                             kind: #zod::core::ast::rpc::RpcRequestKind::Method,
                         }
                     }
@@ -95,7 +95,7 @@ impl ToTokens for RpcInput {
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
-                            res: #item_ast.get().inline(),
+                            output: #item_ast.get(),
                             kind: #zod::core::ast::rpc::RpcRequestKind::Stream,
                         }
                     }
@@ -295,8 +295,8 @@ impl<'a> ToTokens for ImplStreamItemAstExtractor<'a> {
                 }
 
                 impl<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> Helper<I, S> {
-                    const fn get(&self) -> #zod::core::ast::Definition {
-                        <I as #zod::core::ResponseType>::AST
+                    const fn get(&self) -> #zod::core::ast::Ref {
+                        #zod::core::ast::Ref::new_res::<I>()
                     }
                 }
 
