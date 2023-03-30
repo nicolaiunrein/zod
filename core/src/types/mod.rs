@@ -1,4 +1,4 @@
-//! Implementations of [RequestType](crate::RequestType) as [ReturnType](crate::ReturnType) for foreign types
+//! Implementations of [RequestType](crate::RequestType) as [ResponseType](crate::ResponseType) for foreign types
 mod external;
 mod macros;
 

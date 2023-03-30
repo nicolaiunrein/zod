@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use pretty_assertions::assert_eq;
 pub use unindent::Unindent;
-pub use zod::ast::Compiler;
+pub use zod::core::ast::Compiler;
 pub use zod::types::Usize;
 pub use zod::RequestType;
 

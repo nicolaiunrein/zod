@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::Namespace;
 
-/// Qualified name of an exported [Node](crate::Node)
+/// Qualified name of an [Export](crate::Export)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Path {
     ns: &'static str,

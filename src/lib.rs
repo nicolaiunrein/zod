@@ -120,7 +120,10 @@
 //!
 #![deny(unsafe_code)]
 
-pub use zod_core::*;
+pub use zod_core::types;
+pub use zod_core::RequestType;
+pub use zod_core::ResponseType;
+
 pub use zod_derive::*;
 
 #[cfg(feature = "rpc")]
