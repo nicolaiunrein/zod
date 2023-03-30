@@ -1,4 +1,4 @@
-use crate::ast::{Delimited, Formatter};
+use crate::ast::{Compiler, Delimited};
 
 use super::{Exported, Ref};
 
@@ -18,7 +18,7 @@ impl UnionSchema {
     }
 }
 
-impl Formatter for Exported<UnionSchema> {
+impl Compiler for Exported<UnionSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = z.lazy(() => z.union([", self.name))?;
         self.schema

@@ -16,7 +16,7 @@ pub use r#union::*;
 pub use raw::*;
 pub use tuple::*;
 
-use super::Formatter;
+use super::Compiler;
 
 /// Definition of a zod/typescript schema to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

@@ -1,6 +1,6 @@
 use crate::{RequestType, ResponseType};
 
-use super::{Formatter, Ref};
+use super::{Compiler, Ref};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldValue {
@@ -24,7 +24,7 @@ impl FieldValue {
     }
 }
 
-impl Formatter for FieldValue {
+impl Compiler for FieldValue {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FieldValue::Resolved(value) => value.fmt_zod(f),
@@ -89,7 +89,7 @@ impl NamedField {
     }
 }
 
-impl Formatter for NamedField {
+impl Compiler for NamedField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name)?;
         f.write_str(": ")?;
@@ -148,7 +148,7 @@ impl TupleField {
     }
 }
 
-impl Formatter for TupleField {
+impl Compiler for TupleField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value.fmt_zod(f)?;
         if self.optional {

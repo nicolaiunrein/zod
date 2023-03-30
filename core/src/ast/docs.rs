@@ -1,4 +1,4 @@
-use super::Formatter;
+use super::Compiler;
 
 /// Docs to be formatted and placed above the exported type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -10,7 +10,7 @@ impl AsRef<str> for Docs {
     }
 }
 
-impl Formatter for Docs {
+impl Compiler for Docs {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("/**\n")?;
         for line in self.0.lines() {

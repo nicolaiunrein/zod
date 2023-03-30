@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub trait Formatter {
+pub trait Compiler {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
 
@@ -8,7 +8,7 @@ pub trait Formatter {
     where
         Self: Sized,
     {
-        struct Helper<'a>(&'a dyn Formatter);
+        struct Helper<'a>(&'a dyn Compiler);
         impl Display for Helper<'_> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 self.0.fmt_zod(f)
@@ -22,7 +22,7 @@ pub trait Formatter {
     where
         Self: Sized,
     {
-        struct Helper<'a>(&'a dyn Formatter);
+        struct Helper<'a>(&'a dyn Compiler);
         impl Display for Helper<'_> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 self.0.fmt_ts(f)

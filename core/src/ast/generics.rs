@@ -1,4 +1,4 @@
-use super::{Formatter, Ref};
+use super::{Compiler, Ref};
 
 /// Representation of a generic argument in typescript/zod
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -30,7 +30,7 @@ impl GenericArgument {
     }
 }
 
-impl Formatter for GenericArgument {
+impl Compiler for GenericArgument {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GenericArgument::Type(name) => {

@@ -1,4 +1,4 @@
-use crate::ast::{Delimited, Formatter, Path};
+use crate::ast::{Compiler, Delimited, Path};
 use crate::{RequestType, ResponseType};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -23,7 +23,7 @@ impl Ref {
     }
 }
 
-impl Formatter for Ref {
+impl Compiler for Ref {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.path, f)?;
         if !self.args.is_empty() {

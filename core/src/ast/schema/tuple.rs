@@ -1,4 +1,4 @@
-use crate::ast::{Delimited, Formatter};
+use crate::ast::{Compiler, Delimited};
 
 use super::{Exported, TupleField};
 
@@ -17,7 +17,7 @@ impl TupleSchema {
     }
 }
 
-impl Formatter for Exported<TupleSchema> {
+impl Compiler for Exported<TupleSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = z.lazy(() => ", self.name))?;
         f.write_str("z.tuple([")?;

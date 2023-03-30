@@ -1,5 +1,5 @@
 use super::{Exported, NamedField};
-use crate::ast::{Delimited, Formatter};
+use crate::ast::{Compiler, Delimited};
 
 /// Representation of a `z.object({ ... })`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -32,7 +32,7 @@ impl ObjectSchema {
     }
 }
 
-impl Formatter for Exported<ObjectSchema> {
+impl Compiler for Exported<ObjectSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = ", self.name))?;
         if self.schema.is_generic() {
@@ -70,7 +70,7 @@ impl Formatter for Exported<ObjectSchema> {
     }
 }
 
-impl Formatter for ObjectSchema {
+impl Compiler for ObjectSchema {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("z.object({ ")?;
         self.fields

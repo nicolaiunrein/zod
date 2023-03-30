@@ -346,7 +346,7 @@ impl_primitive!({
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::Formatter;
+    use crate::ast::Compiler;
     use crate::types::macros::join;
     use pretty_assertions::assert_eq;
 

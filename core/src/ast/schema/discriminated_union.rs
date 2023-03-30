@@ -1,4 +1,4 @@
-use crate::ast::{Delimited, Formatter};
+use crate::ast::{Compiler, Delimited};
 
 use super::{Exported, ObjectSchema};
 
@@ -21,7 +21,7 @@ impl DiscriminatedUnionSchema {
     }
 }
 
-impl Formatter for Exported<DiscriminatedUnionSchema> {
+impl Compiler for Exported<DiscriminatedUnionSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "const {name} = z.lazy(() => z.discriminatedUnion(\"{key}\", [",

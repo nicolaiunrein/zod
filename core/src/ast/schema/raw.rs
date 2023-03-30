@@ -1,4 +1,4 @@
-use crate::ast::{Delimited, Formatter, GenericArgument};
+use crate::ast::{Compiler, Delimited, GenericArgument};
 
 use super::Exported;
 
@@ -15,7 +15,7 @@ impl RawSchema {
     }
 }
 
-impl Formatter for Exported<RawSchema> {
+impl Compiler for Exported<RawSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = ", self.name))?;
 

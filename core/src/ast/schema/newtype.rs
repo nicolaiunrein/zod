@@ -1,4 +1,4 @@
-use crate::ast::Formatter;
+use crate::ast::Compiler;
 
 use super::{Exported, Ref};
 
@@ -18,7 +18,7 @@ impl NewtypeSchema {
     }
 }
 
-impl Formatter for Exported<NewtypeSchema> {
+impl Compiler for Exported<NewtypeSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = z.lazy(() => ", self.name))?;
         self.schema.inner.fmt_zod(f)?;

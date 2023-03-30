@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Docs, ExportSchema, Formatter, Path};
+use super::{Compiler, Docs, ExportSchema, Path};
 
 /// The struct containing all the info about a [RequestType](crate::RequestType)/[ResponseType](crate::ResponseType) to be exported
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -19,7 +19,7 @@ impl Display for Export {
     }
 }
 
-impl Formatter for Export {
+impl Compiler for Export {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(docs) = self.docs {
             docs.fmt_zod(f)?;

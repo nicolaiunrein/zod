@@ -3,9 +3,9 @@
 #[cfg(feature = "rpc")]
 pub mod rpc;
 
+mod compiler;
 mod docs;
 mod export;
-mod formatter;
 mod generics;
 mod path;
 mod schema;
@@ -17,7 +17,7 @@ pub use generics::*;
 pub use path::*;
 pub use schema::*;
 
-pub use formatter::*;
+pub use compiler::*;
 pub(crate) use utils::*;
 
 #[cfg(test)]
