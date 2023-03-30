@@ -44,7 +44,7 @@ fn generic_structs() {
 }
 
 #[test]
-fn flipped_argus() {
+fn flipped_args() {
     test_case! {
         #[derive(serde::Deserialize, Debug)]
         pub struct Generic<T1: zod::RequestType, T2: zod::RequestType> {
