@@ -26,10 +26,6 @@ impl ObjectSchema {
             .find(|f| f.value().get_generic().is_some())
             .is_some()
     }
-
-    pub const fn fields(&self) -> &'static [NamedField] {
-        self.fields
-    }
 }
 
 impl Formatter for Exported<ObjectSchema> {
@@ -57,16 +53,11 @@ impl Formatter for Exported<ObjectSchema> {
         f.write_str("interface ")?;
         f.write_str(self.name)?;
 
-        // todo
-        let mut generics = self.schema.generics().peekable();
-        if generics.peek().is_some() {
+        if self.schema.is_generic() {
             f.write_str("<")?;
-            while let Some(gen) = generics.next() {
-                f.write_str(gen)?;
-                if generics.peek().is_some() {
-                    f.write_str(", ")?;
-                }
-            }
+            self.schema
+                .generics()
+                .comma_separated(f, |f, g| f.write_str(g))?;
             f.write_str(">")?;
         }
         f.write_str(" ")?;
@@ -109,6 +100,11 @@ mod test {
         NamedField::new("b", Ref::new_req::<Usize>()),
     ]);
 
+    const GENERIC: ObjectSchema = ObjectSchema::new(&[
+        NamedField::generic("a", "A"),
+        NamedField::new("b", Ref::new_req::<Usize>()),
+    ]);
+
     #[test]
     fn object_ok() {
         assert_eq!(
@@ -129,6 +125,25 @@ mod test {
         assert_eq!(
             OBJECT.export("test").to_ts_string(),
             format!("interface test {}", OBJECT.to_ts_string())
+        );
+    }
+
+    #[test]
+    fn generic_ok() {
+        assert_eq!(GENERIC.to_zod_string(), "z.object({ a: A, b: Rs.Usize })");
+        assert_eq!(GENERIC.to_ts_string(), "{ a: A, b: Rs.Usize }");
+
+        assert_eq!(
+            GENERIC.export("test").to_zod_string(),
+            format!(
+                "const test = (A: z.ZodTypeAny) => {};",
+                GENERIC.to_zod_string()
+            ),
+        );
+
+        assert_eq!(
+            GENERIC.export("test").to_ts_string(),
+            format!("interface test<A> {}", GENERIC.to_ts_string())
         );
     }
 }

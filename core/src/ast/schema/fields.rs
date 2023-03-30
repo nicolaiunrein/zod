@@ -109,19 +109,19 @@ impl Formatter for NamedField {
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TupleField {
-    value: Ref,
+    value: FieldValue,
     optional: bool,
 }
 
 impl TupleField {
     pub const fn new<T: RequestType>() -> Self {
         Self {
-            value: Ref::new_req::<T>(),
+            value: FieldValue::Resolved(Ref::new_req::<T>()),
             optional: false,
         }
     }
 
-    pub const fn value(&self) -> Ref {
+    pub const fn value(&self) -> FieldValue {
         self.value
     }
 
