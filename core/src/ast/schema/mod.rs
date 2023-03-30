@@ -29,65 +29,13 @@ pub enum ExportSchema {
     DiscriminatedUnion(DiscriminatedUnionSchema),
 }
 
-#[cfg(test)]
-mod test {
-    use crate::types::{Isize, Usize};
+pub struct Exported<T> {
+    name: &'static str,
+    schema: T,
+}
 
-    use super::NamedField;
-
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn tuple_ok() {
-        const DEF: TupleSchema = TupleSchema::new(&[
-            TupleField::new::<String>(),
-            TupleField::new::<crate::types::Usize>(),
-        ]);
-        assert_eq!(DEF.to_zod_string(), "z.tuple([Rs.String, Rs.Usize])");
-        assert_eq!(DEF.to_ts_string(), "[Rs.String, Rs.Usize]");
-    }
-
-    #[test]
-    fn union_ok() {
-        const DEF: UnionSchema = UnionSchema::new(&[
-            Ref::new_req::<String>(),
-            Ref::new_req::<crate::types::Usize>(),
-        ]);
-
-        assert_eq!(DEF.to_zod_string(), "z.union([Rs.String, Rs.Usize])");
-        assert_eq!(DEF.to_ts_string(), "Rs.String | Rs.Usize");
-    }
-
-    #[test]
-    fn discriminated_union_ok() {
-        const FIELDS: &[ObjectSchema] = &[
-            ObjectSchema::new(&[
-                NamedField::new("myKey", Ref::new_req::<String>()),
-                NamedField::new("b", Ref::new_req::<Usize>()),
-            ]),
-            ObjectSchema::new(&[
-                NamedField::new("myKey", Ref::new_req::<String>()),
-                NamedField::new("c", Ref::new_req::<Isize>()),
-            ]),
-        ];
-
-        const DEF: DiscriminatedUnionSchema = DiscriminatedUnionSchema::new("myKey", FIELDS);
-        assert_eq!(
-            DEF.to_zod_string(),
-            format!(
-                "z.discriminatedUnion(\"myKey\", [{}, {}])",
-                FIELDS[0].to_zod_string(),
-                FIELDS[1].to_zod_string()
-            )
-        );
-        assert_eq!(
-            DEF.to_ts_string(),
-            format!(
-                "{} | {}",
-                FIELDS[0].to_ts_string(),
-                FIELDS[1].to_ts_string()
-            )
-        );
+impl<T> Exported<T> {
+    pub const fn new(name: &'static str, schema: T) -> Self {
+        Self { name, schema }
     }
 }

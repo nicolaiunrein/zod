@@ -1,4 +1,4 @@
-use super::NamedField;
+use super::{Exported, NamedField};
 use crate::ast::{Delimited, Formatter};
 
 /// Representation of a `z.object({ ... })`
@@ -10,6 +10,10 @@ pub struct ObjectSchema {
 impl ObjectSchema {
     pub const fn new(fields: &'static [NamedField]) -> Self {
         Self { fields }
+    }
+
+    pub const fn export(self, name: &'static str) -> Exported<Self> {
+        Exported::new(name, self)
     }
 
     pub fn generics(&self) -> impl Iterator<Item = &'static str> {
@@ -28,23 +32,21 @@ impl ObjectSchema {
     }
 }
 
-impl Formatter for (&'static str, ObjectSchema) {
+impl Formatter for Exported<ObjectSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = self.0;
-        let schema = self.1;
-        f.write_fmt(format_args!("const {name} = "))?;
-        if schema.is_generic() {
+        f.write_fmt(format_args!("const {} = ", self.name))?;
+        if self.schema.is_generic() {
             f.write_str("(")?;
 
-            schema
+            self.schema
                 .generics()
                 .comma_separated(f, |f, g| f.write_fmt(format_args!("{g}: z.ZodTypeAny")))?;
 
             f.write_str(") => ")?;
-            schema.fmt_zod(f)?;
+            self.schema.fmt_zod(f)?;
         } else {
             f.write_str("z.lazy(() => ")?;
-            schema.fmt_zod(f)?;
+            self.schema.fmt_zod(f)?;
             f.write_str(")")?;
         }
         f.write_str(";")?;
@@ -52,14 +54,11 @@ impl Formatter for (&'static str, ObjectSchema) {
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = self.0;
-        let schema = self.1;
-
         f.write_str("interface ")?;
-        f.write_str(name)?;
+        f.write_str(self.name)?;
 
         // todo
-        let mut generics = schema.generics().peekable();
+        let mut generics = self.schema.generics().peekable();
         if generics.peek().is_some() {
             f.write_str("<")?;
             while let Some(gen) = generics.next() {
@@ -71,7 +70,7 @@ impl Formatter for (&'static str, ObjectSchema) {
             f.write_str(">")?;
         }
         f.write_str(" ")?;
-        schema.fmt_ts(f)?;
+        self.schema.fmt_ts(f)?;
         Ok(())
     }
 }
@@ -123,12 +122,12 @@ mod test {
     #[test]
     fn object_export_ok() {
         assert_eq!(
-            ("test", OBJECT).to_zod_string(),
+            OBJECT.export("test").to_zod_string(),
             format!("const test = z.lazy(() => {});", OBJECT.to_zod_string()),
         );
 
         assert_eq!(
-            ("test", OBJECT).to_ts_string(),
+            OBJECT.export("test").to_ts_string(),
             format!("interface test {}", OBJECT.to_ts_string())
         );
     }

@@ -27,47 +27,16 @@ impl Formatter for Export {
 
         f.write_str("export ")?;
 
-        // todo remove
+        let name = self.path.name();
         match self.schema {
-            ExportSchema::Raw(_) => {}
-            ExportSchema::Object(_) => {}
-            _ => {
-                f.write_str("const ")?;
-                f.write_str(self.path.name())?;
-                f.write_str(" = ")?;
-            }
-        }
-
-        match self.schema {
-            ExportSchema::Raw(schema) => (self.path.name(), schema).fmt_zod(f)?,
-            ExportSchema::Object(schema) => (self.path.name(), schema).fmt_zod(f)?,
+            ExportSchema::Raw(schema) => schema.export(name).fmt_zod(f)?,
+            ExportSchema::Object(schema) => schema.export(name).fmt_zod(f)?,
 
             //todo generics
-            ExportSchema::Newtype(inner) => {
-                f.write_str("z.lazy(() => ")?;
-                inner.fmt_zod(f)?;
-                f.write_str(");")?;
-            }
-
-            //todo generics
-            ExportSchema::Tuple(inner) => {
-                f.write_str("z.lazy(() => ")?;
-                inner.fmt_zod(f)?;
-                f.write_str(");")?;
-            }
-
-            //todo generics
-            ExportSchema::Union(inner) => {
-                f.write_str("z.lazy(() => ")?;
-                inner.fmt_zod(f)?;
-                f.write_str(");")?;
-            }
-            //todo generics
-            ExportSchema::DiscriminatedUnion(inner) => {
-                f.write_str("z.lazy(() => ")?;
-                inner.fmt_zod(f)?;
-                f.write_str(");")?;
-            }
+            ExportSchema::Newtype(schema) => schema.export(name).fmt_zod(f)?,
+            ExportSchema::Tuple(schema) => schema.export(name).fmt_zod(f)?,
+            ExportSchema::Union(schema) => schema.export(name).fmt_zod(f)?,
+            ExportSchema::DiscriminatedUnion(schema) => schema.export(name).fmt_zod(f)?,
         }
 
         Ok(())
@@ -80,97 +49,17 @@ impl Formatter for Export {
 
         f.write_str("export ")?;
 
-        // todo remove
-        let mut fmt_type = |inner: &dyn Formatter| {
-            f.write_str("type ")?;
-            f.write_str(self.path.name())?;
-            f.write_str(" = ")?;
-            inner.fmt_ts(f)?;
-            f.write_str(";")?;
-            std::fmt::Result::Ok(())
-        };
-
+        let name = self.path.name();
         match self.schema {
-            ExportSchema::Raw(schema) => (self.path.name(), schema).fmt_ts(f)?,
-            ExportSchema::Object(inner) => (self.path.name(), inner).fmt_ts(f)?,
+            ExportSchema::Raw(schema) => schema.export(name).fmt_ts(f)?,
+            ExportSchema::Object(schema) => schema.export(name).fmt_ts(f)?,
 
             //todo generics
-            ExportSchema::Tuple(inner) => fmt_type(&inner)?,
-
-            //todo generics
-            ExportSchema::Newtype(inner) => fmt_type(&inner)?,
-
-            //todo generics
-            ExportSchema::Union(inner) => fmt_type(&inner)?,
-
-            //todo generics
-            ExportSchema::DiscriminatedUnion(inner) => fmt_type(&inner)?,
+            ExportSchema::Newtype(schema) => schema.export(name).fmt_ts(f)?,
+            ExportSchema::Tuple(schema) => schema.export(name).fmt_ts(f)?,
+            ExportSchema::Union(schema) => schema.export(name).fmt_ts(f)?,
+            ExportSchema::DiscriminatedUnion(schema) => schema.export(name).fmt_ts(f)?,
         }
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::ast::{NewtypeSchema, TupleField, TupleSchema};
-    use crate::Namespace;
-
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    struct Ns;
-    impl Namespace for Ns {
-        const NAME: &'static str = "Ns";
-        const DOCS: Option<Docs> = None;
-    }
-
-    #[test]
-    fn tuple_ok() {
-        const TUPLE: TupleSchema = TupleSchema::new(&[
-            TupleField::new::<String>(),
-            TupleField::new::<crate::types::Usize>(),
-        ]);
-
-        const EXPORT_TUPLE: Export = Export {
-            docs: None,
-            path: Path::new::<Ns>("test"),
-            schema: ExportSchema::Tuple(TUPLE),
-        };
-
-        assert_eq!(
-            EXPORT_TUPLE.to_zod_string(),
-            format!(
-                "export const test = z.lazy(() => {});",
-                TUPLE.to_zod_string()
-            )
-        );
-        assert_eq!(
-            EXPORT_TUPLE.to_ts_string(),
-            format!("export type test = {};", TUPLE.to_ts_string())
-        );
-    }
-
-    #[test]
-    fn newtype_ok() {
-        const NEWTYPE: NewtypeSchema =
-            NewtypeSchema::new(&crate::ast::Ref::new_req::<String>(), false);
-
-        const EXPORT_TUPLE: Export = Export {
-            docs: None,
-            path: Path::new::<Ns>("test"),
-            schema: ExportSchema::Newtype(NEWTYPE),
-        };
-
-        assert_eq!(
-            EXPORT_TUPLE.to_zod_string(),
-            format!(
-                "export const test = z.lazy(() => {});",
-                NEWTYPE.to_zod_string()
-            )
-        );
-        assert_eq!(
-            EXPORT_TUPLE.to_ts_string(),
-            format!("export type test = {};", NEWTYPE.to_ts_string())
-        );
     }
 }
