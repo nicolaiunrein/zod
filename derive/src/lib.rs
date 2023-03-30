@@ -57,10 +57,7 @@ pub fn response(input: TokenStream) -> TokenStream {
         }
     };
 
-    let x = quote!(#response_type);
-
-    println!("{x}");
-    x.into()
+    quote!(#response_type).into()
 }
 
 #[proc_macro_error]

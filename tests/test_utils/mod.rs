@@ -16,14 +16,6 @@ pub fn compare_export<T: zod::RequestType>(expected_zod: &str, expected_ts: &str
     compare(&export.to_ts_string(), expected_ts);
 }
 
-pub fn compare_inlined<T: zod::RequestType>(expected_zod: &str, expected_ts: &str) {
-    // todo
-    // let inlined = <T as zod::RequestType>::inline();
-
-    // compare(&inlined.to_zod_string(), expected_zod);
-    // compare(&inlined.to_ts_string(), expected_ts);
-}
-
 fn expand(input: String) -> String {
     let mut out = String::new();
 
