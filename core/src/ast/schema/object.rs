@@ -27,8 +27,7 @@ impl ObjectSchema {
     pub fn is_generic(&self) -> bool {
         self.fields
             .iter()
-            .find(|f| f.value().get_generic().is_some())
-            .is_some()
+            .any(|f| f.value().get_generic().is_some())
     }
 }
 

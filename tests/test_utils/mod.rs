@@ -12,8 +12,8 @@ pub fn compare(input: impl AsRef<str>, expected: &str) {
 pub fn compare_export<T: zod::RequestType>(expected_zod: &str, expected_ts: &str) {
     let export = <T as zod::RequestType>::EXPORT;
 
-    compare(&export.to_zod_string(), expected_zod);
-    compare(&export.to_ts_string(), expected_ts);
+    compare(export.to_zod_string(), expected_zod);
+    compare(export.to_ts_string(), expected_ts);
 }
 
 fn expand(input: String) -> String {

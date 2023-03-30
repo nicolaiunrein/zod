@@ -54,8 +54,7 @@ impl ToTokens for RpcInput {
         let input_types = self
             .items
             .iter()
-            .map(|item| item.method_args.iter().map(|arg| &arg.ty))
-            .flatten()
+            .flat_map(|item| item.method_args.iter().map(|arg| &arg.ty))
             .collect::<Vec<_>>();
 
         let rpc_requests = self.items.iter().map(|item| {
@@ -212,7 +211,7 @@ impl TryFrom<ItemImpl> for RpcInput {
                     ImplItem::Method(method) => Some(method),
                     _ => None,
                 })
-                .map(|item| RpcItem::try_from(item))
+                .map(RpcItem::try_from)
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
@@ -278,6 +277,7 @@ impl TryFrom<ImplItemMethod> for RpcItem {
 struct ImplStreamItemAstExtractor<'a> {
     ns: &'a Ident,
     method: &'a Ident,
+    #[allow(clippy::borrowed_box)]
     args: &'a [&'a Box<Type>],
 }
 

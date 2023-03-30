@@ -110,7 +110,7 @@ pub fn rpc(_attrs: TokenStream, input: TokenStream) -> TokenStream {
     let input = match rpc::RpcInput::try_from(ast) {
         Ok(v) => v,
         Err(err) => {
-            return syn::Error::from(err).into_compile_error().into();
+            return err.into_compile_error().into();
         }
     };
 

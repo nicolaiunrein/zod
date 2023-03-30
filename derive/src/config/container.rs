@@ -24,11 +24,11 @@ impl From<serde_derive_internals::attr::TagType> for TagType {
         match value {
             serde_derive_internals::attr::TagType::External => TagType::External,
             serde_derive_internals::attr::TagType::Internal { tag } => TagType::Internal {
-                tag: tag.to_owned(),
+                tag,
             },
             serde_derive_internals::attr::TagType::Adjacent { tag, content } => TagType::Adjacent {
-                tag: tag.to_owned(),
-                content: content.to_owned(),
+                tag,
+                content,
             },
             serde_derive_internals::attr::TagType::None => TagType::None,
         }
@@ -67,7 +67,7 @@ impl ContainerConfig {
         namespace: syn::Path,
         derive: Derive,
     ) -> Result<Self, darling::Error> {
-        let docs = RustDocs::from_attributes(&orig).unwrap();
+        let docs = RustDocs::from_attributes(orig).unwrap();
 
         let name = match derive {
             Derive::Request => serde_attrs.name().deserialize_name(),

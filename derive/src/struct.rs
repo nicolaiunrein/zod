@@ -45,7 +45,7 @@ struct NewtypeSchema {
     derive: Derive,
 }
 
-impl<'a> ToTokens for NewtypeSchema {
+impl ToTokens for NewtypeSchema {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ty = &self.inner;
@@ -141,7 +141,7 @@ impl<'a> ToTokens for Struct<'a> {
         };
 
         Export {
-            config: &self.config,
+            config: self.config,
             schema,
         }
         .to_tokens(tokens);

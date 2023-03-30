@@ -16,8 +16,8 @@ pub(crate) struct Field {
 }
 
 impl Field {
-    pub(crate) fn new<'a>(
-        value: &'a SerdeField,
+    pub(crate) fn new(
+        value: &SerdeField,
         derive: Derive,
         generic: Option<Ident>,
     ) -> Result<Self, Error> {

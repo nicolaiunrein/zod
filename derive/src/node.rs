@@ -54,10 +54,10 @@ impl ZodType {
 
         let serde_ast = serde_derive_internals::ast::Container::from_ast(
             &cx,
-            &orig,
+            orig,
             serde_derive_internals::Derive::Deserialize,
         )
-        .ok_or_else(|| Error::NoSerde)?;
+        .ok_or(Error::NoSerde)?;
 
         let serde_attrs = serde_ast.attrs;
 
@@ -76,8 +76,7 @@ impl ZodType {
             Data::Enum(ref variants) => {
                 let dependencies = variants
                     .iter()
-                    .map(|v| v.fields.iter().map(|f| f.ty.clone()))
-                    .flatten()
+                    .flat_map(|v| v.fields.iter().map(|f| f.ty.clone()))
                     .collect::<Vec<_>>();
 
                 let definition = Enum {
@@ -99,7 +98,7 @@ impl ZodType {
                     style,
                     fields: FilteredFields::new(
                         fields
-                            .into_iter()
+                            .iter()
                             .map(|f| {
                                 Field::new(
                                     f,
@@ -145,7 +144,7 @@ impl ZodType {
     }
 }
 
-impl<'a> ToTokens for ZodType {
+impl ToTokens for ZodType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ident = self.ident.clone();

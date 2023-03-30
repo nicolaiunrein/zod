@@ -456,7 +456,7 @@ mod test {
 
     #[test]
     fn bigints_ok() {
-        let json = serde_json::to_value(&Usize(123123)).unwrap();
+        let json = serde_json::to_value(Usize(123123)).unwrap();
         assert_eq!(json, serde_json::json!("123123"));
 
         let num: Usize = serde_json::from_value(json).unwrap();

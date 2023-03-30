@@ -89,11 +89,7 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
             }
         }
 
-        for req in Self::AST
-            .into_iter()
-            .map(|inner| inner.into_iter())
-            .flatten()
-        {
+        for req in Self::AST.iter().flat_map(|inner| inner.iter()) {
             exports
                 .entry(req.path.ns())
                 .or_default()

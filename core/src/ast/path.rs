@@ -15,11 +15,11 @@ impl Path {
     }
 
     pub const fn ns(&self) -> &'static str {
-        &self.ns
+        self.ns
     }
 
     pub const fn name(&self) -> &'static str {
-        &self.name
+        self.name
     }
 }
 
