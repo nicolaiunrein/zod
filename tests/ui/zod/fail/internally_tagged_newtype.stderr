@@ -1,0 +1,21 @@
+error[E0080]: evaluation of constant value failed
+ --> tests/ui/zod/fail/internally_tagged_newtype.rs:5:5
+  |
+5 |     Inner(u8),
+  |     ^^^^^ the evaluated program panicked at 'zod: `internally tagged newtype variants are only supported for types compiling to zod objects.', $DIR/tests/ui/zod/fail/internally_tagged_newtype.rs:5:5
+  |
+  = note: this error originates in the macro `$crate::panic::panic_2021` which comes from the expansion of the macro `panic` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+note: erroneous constant used
+ --> tests/ui/zod/fail/internally_tagged_newtype.rs:5:5
+  |
+5 |     Inner(u8),
+  |     ^^^^^
+
+note: erroneous constant used
+ --> tests/ui/zod/fail/internally_tagged_newtype.rs:1:48
+  |
+1 | #[derive(serde::Serialize, serde::Deserialize, zod::RequestType)]
+  |                                                ^^^^^^^^^^^^^^^^
+  |
+  = note: this note originates in the derive macro `zod::RequestType` (in Nightly builds, run with -Z macro-backtrace for more info)

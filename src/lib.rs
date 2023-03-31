@@ -145,6 +145,12 @@ pub mod __private {
     pub use futures;
 }
 
+#[test]
+fn progress() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/zod/fail/internally_tagged_newtype.rs");
+}
+
 #[ignore]
 #[test]
 fn ui() {

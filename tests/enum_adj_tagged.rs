@@ -7,7 +7,7 @@ use zod::ResponseType;
 #[test]
 fn enum_unit() {
     test_case! {
-        #[serde(tag = "type")]
+        #[serde(tag = "type", content = "value")]
         enum Test {
             A,
             B,
