@@ -16,7 +16,7 @@ impl ObjectSchema {
         Exported::new(name, self)
     }
 
-    pub fn fields(&self) -> &'static [NamedField] {
+    pub const fn fields(&self) -> &'static [NamedField] {
         self.fields
     }
 

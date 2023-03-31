@@ -29,6 +29,28 @@ pub enum ExportSchema {
     DiscriminatedUnion(DiscriminatedUnionSchema),
 }
 
+impl ExportSchema {
+    pub const fn named_fields(self) -> Option<&'static [NamedField]> {
+        match self {
+            ExportSchema::Object(schema) => Some(schema.fields()),
+            _ => None,
+        }
+    }
+
+    pub const fn named_fields_or_panic(self) -> &'static [NamedField] {
+        match self {
+            ExportSchema::Object(schema) => schema.fields(),
+            ExportSchema::Raw(_) => panic!("ExportSchema::Raw does not have named fields"),
+            ExportSchema::Newtype(_) => panic!("ExportSchema::Newtype does not have named fields"),
+            ExportSchema::Tuple(_) => panic!("ExportSchema::Tuple does not have named fields"),
+            ExportSchema::Union(_) => panic!("ExportSchema::Union does not have named fields"),
+            ExportSchema::DiscriminatedUnion(_) => {
+                panic!("ExportSchema::DiscriminatedUnion does not have named fields")
+            }
+        }
+    }
+}
+
 pub struct Exported<T> {
     name: &'static str,
     schema: T,
