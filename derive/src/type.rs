@@ -84,7 +84,11 @@ impl ZodType {
                     .collect::<Vec<_>>();
 
                 let definition = EnumExport {
-                    variants,
+                    variants: variants
+                        .iter()
+                        .map(|v| crate::r#enum::MyVariant::new(v, &config))
+                        .collect(),
+
                     config: &config,
                 }
                 .expand();
