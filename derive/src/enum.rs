@@ -113,9 +113,11 @@ impl<'a> EnumExport<'a> {
         let variant_name = self.resolve_name(v.attrs.name());
 
         quote! {
-            #zod::core::ast::DiscriminatedVariant::InternallyTagged(#variant_name, &[
-                #(#fields),*
-            ])
+            #zod::core::ast::DiscriminatedVariant{
+                tag: #variant_name,
+                content_tag: ::core::option::Option::None,
+                fields: &[#(#fields),*]
+            }
         }
     }
 
@@ -144,7 +146,67 @@ impl<'a> EnumExport<'a> {
         };
 
         quote! {
-            #zod::core::ast::DiscriminatedVariant::InternallyTagged(#variant_name, #fields)
+            #zod::core::ast::DiscriminatedVariant{
+                tag: #variant_name,
+                content_tag: ::core::option::Option::None,
+                fields: #fields
+            }
+        }
+    }
+
+    fn adj_struct(&self, v: &Variant, content_tag: &str) -> TokenStream {
+        let zod = get_zod();
+        let fields = v.fields.iter().map(|f| {
+            let req_res = self.req_or_res();
+            let name = self.resolve_name(f.attrs.name());
+            let ty = f.ty;
+            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name))
+        });
+
+        let variant_name = self.resolve_name(v.attrs.name());
+
+        quote! {
+            #zod::core::ast::DiscriminatedVariant{
+                tag: #variant_name,
+                content_tag: ::core::option::Option::Some(#content_tag),
+                fields: &[#(#fields),*]
+            }
+        }
+    }
+
+    fn adj_tuple(&self, v: &Variant) -> TokenStream {
+        let zod = get_zod();
+        let fields = v.fields.iter().map(|f| {
+            let req_res = self.req_or_res();
+            let name = self.resolve_name(f.attrs.name());
+            let ty = f.ty;
+            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name))
+        });
+
+        let variant_name = self.resolve_name(v.attrs.name());
+
+        quote! {
+            #zod::core::ast::DiscriminatedVariant{
+                tag: #variant_name,
+                content_tag: ::core::option::Option::None,
+                fields: &[ #(#fields),*]
+            }
+        }
+    }
+
+    fn adj_newtype(&self, v: &Variant, content_tag: &str) -> TokenStream {
+        let zod = get_zod();
+        let req_res = self.req_or_res();
+        let ty = v.fields.first().unwrap().ty;
+        let field = quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#content_tag));
+        let variant_name = self.resolve_name(v.attrs.name());
+
+        quote! {
+            #zod::core::ast::DiscriminatedVariant{
+                tag: #variant_name,
+                content_tag: ::core::option::Option::None,
+                fields: &[#field]
+            }
         }
     }
 
@@ -157,16 +219,18 @@ impl<'a> EnumExport<'a> {
         let schema = match &self.config.tag {
             // The default
             TagType::External => {
-                let external_variants = self.variants.iter().map(|v| match v.style {
+                let variants = self.variants.iter().map(|v| match v.style {
                     Style::Struct => self.external_struct(v),
                     Style::Tuple => self.external_tuple(v),
                     Style::Newtype => self.external_newtype(v),
                     Style::Unit => self.external_unit(v),
                 });
 
-                quote!(#zod::core::ast::ExportSchema::Union(#zod::core::ast::UnionSchema::new(&[
-                    #(#external_variants),*
-                ])))
+                quote! {
+                    #zod::core::ast::ExportSchema::Union(
+                        #zod::core::ast::UnionSchema::new(&[#(#variants),*])
+                    )
+                }
             }
 
             TagType::Internal { tag } => {
@@ -190,7 +254,18 @@ impl<'a> EnumExport<'a> {
 
             // TODO
             TagType::Adjacent { tag, content } => {
-                quote!(#zod::core::ast::ExportSchema::DiscriminatedUnion(#zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[])))
+                let variants = self.variants.iter().map(|v| match v.style {
+                    Style::Struct => self.adj_struct(v, content),
+                    Style::Tuple => self.adj_tuple(v),
+                    Style::Newtype => self.adj_newtype(v, content),
+                    Style::Unit => self.internal_struct_or_unit(v),
+                });
+
+                quote! {
+                    #zod::core::ast::ExportSchema::DiscriminatedUnion(
+                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*])
+                    )
+                }
             }
         };
 

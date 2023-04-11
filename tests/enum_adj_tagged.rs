@@ -25,7 +25,7 @@ fn enum_unit() {
 #[test]
 fn enum_struct() {
     test_case! {
-        #[serde(tag = "type")]
+        #[serde(tag = "type", content = "content")]
         enum Test {
             A { s: String },
             B { num: Usize },
@@ -34,12 +34,12 @@ fn enum_struct() {
 
     assert_eq!(
         serde_json::to_string(&Test::A { s: String::new() }).unwrap(),
-        r#"{"type":"A","s":""}"#
+        r#"{"type":"A","content":{"s":""}}"#
     );
 
     compare_export::<Test>(
-        "export const Test = z.lazy(() => z.discriminatedUnion(\"type\", [z.object({ type: z.literal(\"A\"), s: Rs.String }), z.object({ type: z.literal(\"B\"), num: Rs.Usize }) ]));",
-        "export type Test = { type: \"A\", s: Rs.String} | { type: \"B\", num: Rs.Usize };",
+        "export const Test = z.lazy(() => z.discriminatedUnion(\"type\", [z.object({ type: z.literal(\"A\"), content: z.object({ s: Rs.String }) }), z.object({ type: z.literal(\"B\"), content: z.object({ num: Rs.Usize }) }) ]));",
+        "export type Test = { type: \"A\", content: { s: Rs.String } } | { type: \"B\", content: { num: Rs.Usize } };",
     );
 }
 
@@ -58,9 +58,9 @@ fn enum_newtype() {
         }
 
 
-        #[derive(serde::Serialize, serde::Deserialize, RequestType, ResponseType)]
+        #[derive(serde::Serialize, serde::Deserialize, RequestType, ResponseType )]
         #[zod(namespace = "Ns")]
-        #[serde(tag = "type")]
+        #[serde(tag = "type", content = "content")]
         enum Test {
             A(Both),
             B(AgeOnly),
@@ -74,11 +74,33 @@ fn enum_newtype() {
             age: 42
         }))
         .unwrap(),
-        r#"{"type":"A","name":"bob","age":42}"#
+        r#"{"type":"A","content":{"name":"bob","age":42}}"#
     );
 
     compare_export::<Test>(
-        r#"export const Test = z.lazy(() => z.discriminatedUnion("type", [z.object({ type: z.literal("A"), name: Rs.String, age: Rs.U8 }), z.object({ type: z.literal("B"), age: Rs.U8})]));"#,
-        r#"export type Test = { type: "A", name: Rs.String, age: Rs.U8 } | { type: "B", age: Rs.U8 };"#,
+        r#"export const Test = z.lazy(() => z.discriminatedUnion("type", [z.object({ type: z.literal("A"), content: Ns.Both }), z.object({ type: z.literal("B"), content: Ns.AgeOnly })]));"#,
+        r#"export type Test = { type: "A", content: Ns.Both } | { type: "B", content: Ns.AgeOnly };"#,
+    );
+}
+
+#[test]
+fn enum_tuple() {
+    test_case! {
+        #[serde(tag = "type", content = "content")]
+        enum Test {
+            A(Usize, String),
+            B(String, Usize),
+        }
+
+    }
+
+    assert_eq!(
+        serde_json::to_string(&Test::A(Usize(1), String::from("abc"))).unwrap(),
+        r#"{"type":"A","content":["1","abc"]}"#
+    );
+
+    compare_export::<Test>(
+        r#"export const Test = z.lazy(() => z.discriminatedUnion("type", [z.object({ type: z.literal("A"), content: z.tuple([Rs.Usize, Rs.String]) }), z.object({ type: z.literal("B"), content: z.tuple([Rs.String, Rs.Usize])})]));"#,
+        r#"export type Test = { type: "A", content: [Rs.Usize, Rs.String]} | { type: "B", content: [Rs.String, Rs.Usize]};"#,
     );
 }
