@@ -100,7 +100,7 @@ fn enum_tuple() {
     );
 
     compare_export::<Test>(
-        r#"export const Test = z.lazy(() => z.discriminatedUnion("type", [z.object({ type: z.literal("A"), content: z.tuple([Rs.Usize, Rs.String]) }), z.object({ type: z.literal("B"), content: z.tuple([Rs.String, Rs.Usize])})]));"#,
-        r#"export type Test = { type: "A", content: [Rs.Usize, Rs.String]} | { type: "B", content: [Rs.String, Rs.Usize]};"#,
+        r#"export const Test = z.lazy(() => z.discriminatedUnion("type", [z.object({ type: z.literal("A"), content: Rs.Tuple2(Rs.Usize, Rs.String) }), z.object({ type: z.literal("B"), content: Rs.Tuple2(Rs.String, Rs.Usize)})]));"#,
+        r#"export type Test = { type: "A", content: Rs.Tuple2<Rs.Usize, Rs.String>} | { type: "B", content: Rs.Tuple2<Rs.String, Rs.Usize>};"#,
     );
 }

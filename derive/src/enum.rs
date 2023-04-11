@@ -174,14 +174,14 @@ impl<'a> EnumExport<'a> {
         }
     }
 
-    fn adj_tuple(&self, v: &Variant) -> TokenStream {
+    fn adj_tuple(&self, v: &Variant, content_tag: &str) -> TokenStream {
         let zod = get_zod();
-        let fields = v.fields.iter().map(|f| {
-            let req_res = self.req_or_res();
-            let name = self.resolve_name(f.attrs.name());
-            let ty = f.ty;
-            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name))
-        });
+
+        let req_res = self.req_or_res();
+
+        let fields = v.fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>();
+
+        let field = quote!(#zod::core::ast::NamedField::#req_res::<(#(#fields),*,)>(#content_tag));
 
         let variant_name = self.resolve_name(v.attrs.name());
 
@@ -189,7 +189,7 @@ impl<'a> EnumExport<'a> {
             #zod::core::ast::DiscriminatedVariant{
                 tag: #variant_name,
                 content_tag: ::core::option::Option::None,
-                fields: &[ #(#fields),*]
+                fields: &[#field]
             }
         }
     }
@@ -256,7 +256,7 @@ impl<'a> EnumExport<'a> {
             TagType::Adjacent { tag, content } => {
                 let variants = self.variants.iter().map(|v| match v.style {
                     Style::Struct => self.adj_struct(v, content),
-                    Style::Tuple => self.adj_tuple(v),
+                    Style::Tuple => self.adj_tuple(v, content),
                     Style::Newtype => self.adj_newtype(v, content),
                     Style::Unit => self.internal_struct_or_unit(v),
                 });
