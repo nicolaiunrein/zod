@@ -76,7 +76,13 @@ impl<'a> EnumExport<'a> {
             let name = self.resolve_name(f.attrs.name());
             let req_res = self.req_or_res();
 
-            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name))
+            let optional = if f.attrs.default().is_none() {
+                quote!()
+            } else {
+                quote!(.optional())
+            };
+
+            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name) #optional)
         });
 
         let variant_name = self.resolve_name(v.0.attrs.name());
@@ -98,7 +104,14 @@ impl<'a> EnumExport<'a> {
         let fields = v.fields().map(|f| {
             let ty = f.ty;
             let req_res = self.req_or_res();
-            quote!(#zod::core::ast::TupleField::#req_res::<#ty>())
+
+            let optional = if f.attrs.default().is_none() {
+                quote!()
+            } else {
+                quote!(.optional())
+            };
+
+            quote!(#zod::core::ast::TupleField::#req_res::<#ty>() #optional)
         });
 
         let variant_name = self.resolve_name(v.0.attrs.name());
@@ -120,13 +133,14 @@ impl<'a> EnumExport<'a> {
             let variant_name = self.resolve_name(v.name());
             let req_res = self.req_or_res();
             let ty = field.ty;
+            let optional = !field.attrs.default().is_none();
 
             quote!(#zod::core::ast::Variant::ExternallyTagged(
                 #variant_name,
                 ::core::option::Option::Some(
                     #zod::core::ast::VariantValue::Newtype(
                         #zod::core::ast::NewtypeSchema::new(
-                            &#zod::core::ast::Ref::#req_res::<#ty>(), false
+                            &#zod::core::ast::Ref::#req_res::<#ty>(), #optional
                             )
                         )
                     )
@@ -299,11 +313,13 @@ impl<'a> EnumExport<'a> {
         let req_res = self.req_or_res();
         let ty = field.ty;
 
+        let optional = !field.attrs.default().is_none();
+
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
-                        &#zod::core::ast::Ref::#req_res::<#ty>(), false
+                        &#zod::core::ast::Ref::#req_res::<#ty>(), #optional
                     )
                 )
             )
@@ -312,7 +328,6 @@ impl<'a> EnumExport<'a> {
 
     fn untagged_unit(&self) -> TokenStream {
         let zod = get_zod();
-
         let req_res = self.req_or_res();
 
         quote! {
