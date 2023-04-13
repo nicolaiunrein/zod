@@ -50,6 +50,10 @@ pub(crate) struct EnumExport<'a> {
 }
 
 impl<'a> EnumExport<'a> {
+    fn variants(&self) -> impl Iterator<Item = &MyVariant> {
+        self.variants.iter().filter(|v| !v.skipped())
+    }
+
     fn resolve_name(&self, name: &serde_derive_internals::attr::Name) -> String {
         match self.config.derive {
             crate::config::Derive::Request => name.deserialize_name(),
@@ -251,8 +255,75 @@ impl<'a> EnumExport<'a> {
         }
     }
 
-    fn variants(&self) -> impl Iterator<Item = &MyVariant> {
-        self.variants.iter().filter(|v| !v.skipped())
+    fn untagged_struct(&self, v: &MyVariant) -> TokenStream {
+        let zod = get_zod();
+
+        let fields = v.fields().map(|f| {
+            let req_res = self.req_or_res();
+            let name = self.resolve_name(f.attrs.name());
+            let ty = f.ty;
+            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name))
+        });
+
+        quote! {
+            #zod::core::ast::Variant::Untagged(
+                #zod::core::ast::VariantValue::Object(
+                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
+                )
+            )
+        }
+    }
+
+    fn untagged_tuple(&self, v: &MyVariant) -> TokenStream {
+        let zod = get_zod();
+
+        let fields = v.fields().map(|f| {
+            let req_res = self.req_or_res();
+            let ty = f.ty;
+            quote!(#zod::core::ast::TupleField::#req_res::<#ty>())
+        });
+
+        quote! {
+            #zod::core::ast::Variant::Untagged(
+                #zod::core::ast::VariantValue::Tuple(
+                    #zod::core::ast::TupleSchema::new(&[#(#fields),*])
+                )
+            )
+        }
+    }
+
+    fn untagged_newtype(&self, v: &MyVariant) -> TokenStream {
+        let zod = get_zod();
+
+        let field = v.fields().next().expect("one field");
+        let req_res = self.req_or_res();
+        let ty = field.ty;
+
+        quote! {
+            #zod::core::ast::Variant::Untagged(
+                #zod::core::ast::VariantValue::Newtype(
+                    #zod::core::ast::NewtypeSchema::new(
+                        &#zod::core::ast::Ref::#req_res::<#ty>(), false
+                    )
+                )
+            )
+        }
+    }
+
+    fn untagged_unit(&self) -> TokenStream {
+        let zod = get_zod();
+
+        let req_res = self.req_or_res();
+
+        quote! {
+            #zod::core::ast::Variant::Untagged(
+                #zod::core::ast::VariantValue::Newtype(
+                    #zod::core::ast::NewtypeSchema::new(
+                        &#zod::core::ast::Ref::#req_res::<()>(), false
+                    )
+                )
+            )
+        }
     }
 
     pub(crate) fn expand(self) -> TokenStream {
@@ -291,10 +362,18 @@ impl<'a> EnumExport<'a> {
                 }
             }
 
-            // TODO
             // Untagged
             TagType::None => {
-                quote!(#zod::core::ast::ExportSchema::Union(#zod::core::ast::UnionSchema::new(&[])))
+                let variants = self.variants().map(|v| match v.style() {
+                    Style::Struct => self.untagged_struct(v),
+                    Style::Tuple => self.untagged_tuple(v),
+                    Style::Newtype => self.untagged_newtype(v),
+                    Style::Unit => self.untagged_unit(),
+                });
+
+                quote!(#zod::core::ast::ExportSchema::Union(#zod::core::ast::UnionSchema::new(&[
+                    #(#variants),*
+                ])))
             }
 
             // TODO

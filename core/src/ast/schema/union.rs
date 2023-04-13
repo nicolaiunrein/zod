@@ -18,6 +18,7 @@ pub enum VariantValue {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Variant {
     ExternallyTagged(&'static str, Option<VariantValue>),
+    Untagged(VariantValue),
 }
 
 impl Compiler for VariantValue {
@@ -50,6 +51,7 @@ impl Compiler for Variant {
                     Ok(())
                 }
             },
+            Variant::Untagged(value) => value.fmt_zod(f),
         }
     }
 
@@ -64,6 +66,7 @@ impl Compiler for Variant {
                     Ok(())
                 }
             },
+            Variant::Untagged(value) => value.fmt_ts(f),
         }
     }
 }
