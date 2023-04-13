@@ -4,8 +4,10 @@ use pretty_assertions::assert_eq;
 mod test_utils;
 use test_utils::*;
 
+const DOC: &str = "Hello World";
+
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum SingleVariantUnit {
@@ -13,7 +15,7 @@ enum SingleVariantUnit {
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum MultiVariantUnit {
@@ -22,7 +24,7 @@ enum MultiVariantUnit {
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum SingleVariantTuple {
@@ -30,7 +32,7 @@ enum SingleVariantTuple {
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum MultiVariantTuple {
@@ -39,7 +41,7 @@ enum MultiVariantTuple {
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum SingleVariantStruct {
@@ -47,7 +49,7 @@ enum SingleVariantStruct {
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 #[allow(dead_code)]
 enum MultiVariantStruct {
@@ -56,25 +58,24 @@ enum MultiVariantStruct {
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 struct Newtype(Usize);
 
-// TODO
-// /// Hello World
-// #[derive(Node, serde::Serialize)]
-// #[zod(namespace = "Ns")]
-// struct TupleStructMulti(Usize, String);
+/// Hello World
+#[derive(RequestType, serde::Serialize)]
+#[zod(namespace = "Ns")]
+struct TupleStructMulti(Usize, String);
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 struct StructSingle {
     num: Usize,
 }
 
 /// Hello World
-#[derive(Node, serde::Serialize)]
+#[derive(RequestType, serde::Serialize)]
 #[zod(namespace = "Ns")]
 struct StructMulti {
     num: Usize,
@@ -84,18 +85,14 @@ struct StructMulti {
 #[derive(zod::Namespace)]
 struct Ns;
 
-fn main() {}
-
-const DOC: &str = "Hello World";
-
 macro_rules! case {
     ($name: ident, $t: ident) => {
         paste! {
             #[test]
             fn  [<$name _schema>] () {
                 assert_eq!(
-                    $t::docs().map(|docs| docs.as_ref()),
-                    Some(DOC)
+                    $t::docs().map(|docs| docs.as_ref().to_string()),
+                    Some(DOC.to_string())
                 );
             }
         }
@@ -111,5 +108,4 @@ case!(enum_variant_struct_multi, MultiVariantStruct);
 case!(newtype, Newtype);
 case!(struct_single, StructSingle);
 case!(struct_multi, StructMulti);
-// TODO
-// case!(tuple_struct_multi, TupleStructMulti, "z.number", "number");
+case!(tuple_struct_multi, TupleStructMulti);
