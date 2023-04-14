@@ -1,8 +1,10 @@
+use crate::docs::RustDocs;
+use crate::utils::get_zod;
 use darling::FromAttributes;
+use proc_macro2::TokenStream;
+use quote::quote;
 use serde_derive_internals::attr::Container;
 use syn::{Attribute, Type};
-
-use crate::docs::RustDocs;
 
 use super::Derive;
 
@@ -41,6 +43,30 @@ pub(crate) struct ContainerConfig {
     pub(crate) namespace: syn::Path,
     pub(crate) tag: TagType,
     pub(crate) derive: Derive,
+}
+
+impl ContainerConfig {
+    pub(crate) fn resolve_name(&self, name: &serde_derive_internals::attr::Name) -> String {
+        match self.derive {
+            crate::config::Derive::Request => name.deserialize_name(),
+            crate::config::Derive::Response => name.serialize_name(),
+        }
+    }
+
+    pub(crate) fn req_or_res(&self) -> TokenStream {
+        match self.derive {
+            crate::config::Derive::Request => quote!(new_req),
+            crate::config::Derive::Response => quote!(new_res),
+        }
+    }
+
+    pub(crate) fn trait_name(&self) -> TokenStream {
+        let zod = get_zod();
+        match self.derive {
+            crate::config::Derive::Request => quote!(#zod::core::RequestType),
+            crate::config::Derive::Response => quote!(#zod::core::ResponseType),
+        }
+    }
 }
 
 #[cfg(test)]

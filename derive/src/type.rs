@@ -86,7 +86,7 @@ impl ZodType {
                 let definition = EnumExport {
                     variants: variants
                         .iter()
-                        .map(|v| crate::r#enum::MyVariant::new(v, &config))
+                        .map(|v| crate::r#enum::Variant::new(v, &config))
                         .collect(),
 
                     config: &config,
