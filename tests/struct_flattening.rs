@@ -13,13 +13,13 @@ fn serde_flatten_struct() {
             false_value: bool
         }
 
-        #[derive(serde::Deserialize, serde::Serialize, Node)]
+        #[derive(serde::Deserialize, serde::Serialize, RequestType)]
         #[zod(namespace = "Ns")]
         struct Nested {
             true_value: bool
         }
 
-        #[derive(serde::Deserialize, serde::Serialize, Node)]
+        #[derive(serde::Deserialize, serde::Serialize, RequestType)]
         #[zod(namespace = "Ns")]
         struct Base{
             false_value: bool

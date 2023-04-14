@@ -78,7 +78,9 @@ impl ToTokens for Field {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct FilteredFields(Vec<Field>);
+pub(crate) struct FilteredFields {
+    fields: Vec<Field>,
+}
 
 impl FilteredFields {
     pub(crate) fn new(
@@ -90,17 +92,18 @@ impl FilteredFields {
             .map(|(ty, config)| Field::new(ty, config, generics))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let inner = inner.into_iter().filter(|f| !f.config.ignored).collect();
-        Ok(Self(inner))
+        let fields = inner.into_iter().filter(|f| !f.config.ignored).collect();
+        Ok(Self { fields })
     }
+
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Field> {
-        self.0.iter()
+        self.fields.iter()
     }
 }
 
 impl ToTokens for FilteredFields {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let inner = &self.0;
+        let inner = &self.fields;
         tokens.extend(quote!(#(#inner),*));
     }
 }
