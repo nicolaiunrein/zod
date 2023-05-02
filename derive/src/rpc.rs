@@ -48,7 +48,11 @@ impl ToTokens for RpcInput {
                     quote!()
                 };
 
-                quote!(#field_ident {args: (#(#types),* #maybe_comma) })
+                quote!{
+                    #field_ident {
+                        args: (#(#types),* #maybe_comma)
+                    }
+                }
             })
             .collect::<Vec<_>>();
 
@@ -69,7 +73,7 @@ impl ToTokens for RpcInput {
 
             match &item.kind {
                 RpcItemKind::Method(output) => {
-                    quote! {
+                    quote_spanned! { ident.span() =>
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
@@ -104,6 +108,29 @@ impl ToTokens for RpcInput {
             }
         });
 
+        let output_types = self.items.iter().map(|item| {
+            match &item.kind {
+                RpcItemKind::Method(output) => quote!(<#output as #zod::core::ResponseTypeVisitor>::register(ctx)),
+                RpcItemKind::Stream(output) => {
+
+                    let arg_types = item
+                        .method_args
+                        .iter()
+                        .map(|arg| &arg.ty)
+                        .collect::<Vec<_>>();
+
+                    let item_ast = ImplStreamItemAstExtractor {
+                        ns: &self.ident,
+                        method: &item.ident,
+                        args: &arg_types,
+                        span: output.span(),
+                    };
+
+                    quote!(#item_ast.register(ctx))
+                }                                                                                  
+            }
+        });
+
         let match_entries = self.items.iter().map(|item| {
             let ident = &item.ident;
             let args = item.method_args.iter().enumerate().map(|(i, _)| {
@@ -113,8 +140,9 @@ impl ToTokens for RpcInput {
 
             match &item.kind {
                 RpcItemKind::Method(_) => {
-                    quote! {
-                        Self::Req:: #ident { args } => {
+                    quote_spanned! { ident.span() => 
+                            #[allow(unused_variables)]
+                            Self::Req:: #ident { args } => {
                             let res = self.#ident(#(#args),*).await;
                             let _ = sender.unbounded_send(#zod::core::rpc::Response::method(id, res));
                             None
@@ -122,9 +150,10 @@ impl ToTokens for RpcInput {
                     }
                 }
                 RpcItemKind::Stream(_) => {
-                    quote! {
+                    quote_spanned! { ident.span() => 
+                        #[allow(unused_variables)]
                         Self::Req:: #ident { args } => {
-                            let mut stream = self.#ident(#(#args),*);
+                            let stream = self.#ident(#(#args),*);
                             let jh = tokio::spawn(async move {
                                 #zod::__private::futures::pin_mut!(stream);
                                 while let Some(evt) = stream.next().await {
@@ -155,6 +184,7 @@ impl ToTokens for RpcInput {
                 }
 
                 impl #zod::core::RequestTypeVisitor for #req_name {
+                    #[allow(unused_variables, unused_mut)]
                     fn register(ctx: &mut #zod::core::DependencyMap)
                     where
                         Self: 'static,
@@ -163,14 +193,13 @@ impl ToTokens for RpcInput {
                     }
                 }
 
-                //todo
                 impl #zod::core::ResponseTypeVisitor for #req_name {
-                    fn register(_ctx: &mut #zod::core::DependencyMap)
+                    #[allow(unused_variables, unused_mut)]
+                    fn register(ctx: &mut #zod::core::DependencyMap)
                     where
                         Self: 'static,
                     {
-
-                        // #(<#response_types as #zod::core::ResponseTypeVisitor>::register(ctx));*
+                        #(#output_types);*
                     }
                 }
 
@@ -296,13 +325,23 @@ impl<'a> ToTokens for ImplStreamItemAstExtractor<'a> {
 
         let output = quote_spanned! {span =>
             {
+
                 struct StreamExtractor<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> {
                     _inner: &'static dyn Fn(&mut #ns, #(#args),*) -> S,
                 }
 
                 impl<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> StreamExtractor<I, S> {
+                    #[allow(dead_code)]
                     const fn get_type_ref(&self) -> #zod::core::ast::Ref {
                         #zod::core::ast::Ref::new_res::<I>()
+                    }
+
+                    #[allow(dead_code)]
+                    fn register(&self, ctx: &mut #zod::core::DependencyMap)
+                    where
+                        Self: 'static,
+                    {
+                        <I as #zod::core::ResponseTypeVisitor>::register(ctx);
                     }
                 }
 
