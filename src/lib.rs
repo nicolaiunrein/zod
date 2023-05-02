@@ -141,15 +141,11 @@ pub mod __private {
 }
 
 #[test]
-fn progress() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/zod/fail/*.rs");
-}
-
-#[ignore]
-#[test]
 fn ui() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/zod/fail/*.rs");
-    t.compile_fail("tests/ui/rpc/fail/*.rs");
+    // t.compile_fail("tests/ui/rpc/fail/*.rs");
+    // t.compile_fail("tests/ui/rpc/fail/async*.rs");
+    t.compile_fail("tests/ui/rpc/fail/multiple*.rs");
+    t.compile_fail("tests/ui/rpc/fail/sync*.rs");
 }

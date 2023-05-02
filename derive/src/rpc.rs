@@ -94,7 +94,7 @@ impl ToTokens for RpcInput {
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
-                            output: #item_ast.get(),
+                            output: #item_ast.get_type_ref(),
                             kind: #zod::core::ast::rpc::RpcRequestKind::Stream,
                         }
                     }
@@ -160,6 +160,7 @@ impl ToTokens for RpcInput {
                     }
                 }
 
+                //todo
                 impl #zod::core::ResponseTypeVisitor for #req_name {
                     fn register(ctx: &mut #zod::core::DependencyMap)
                     where
@@ -290,17 +291,17 @@ impl<'a> ToTokens for ImplStreamItemAstExtractor<'a> {
 
         let output = quote! {
             {
-                struct Helper<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> {
+                struct StreamExtractor<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> {
                     _inner: &'static dyn Fn(&mut #ns, #(#args),*) -> S,
                 }
 
-                impl<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> Helper<I, S> {
-                    const fn get(&self) -> #zod::core::ast::Ref {
+                impl<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> StreamExtractor<I, S> {
+                    const fn get_type_ref(&self) -> #zod::core::ast::Ref {
                         #zod::core::ast::Ref::new_res::<I>()
                     }
                 }
 
-                Helper {
+                StreamExtractor {
                     _inner: &#ns::#method,
                 }
             }
