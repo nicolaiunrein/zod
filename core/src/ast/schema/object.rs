@@ -61,7 +61,7 @@ impl Compiler for Exported<ObjectSchema> {
         }
 
         for ext in self.schema.extends {
-            f.write_str(".extends(z.lazy(() => ")?;
+            f.write_str(".extend(z.lazy(() => ")?;
             ext.fmt_zod(f)?;
             f.write_str("))")?;
         }

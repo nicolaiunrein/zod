@@ -10,6 +10,7 @@ pub(crate) struct FieldConfig {
     pub(crate) name: Option<String>,
     pub(crate) ignored: bool,
     pub(crate) derive: Derive,
+    pub(crate) flatten: bool,
 }
 
 #[cfg(test)]
@@ -20,6 +21,7 @@ impl Default for FieldConfig {
             name: None,
             ignored: false,
             derive: Default::default(),
+            flatten: false,
         }
     }
 }
@@ -49,6 +51,7 @@ impl FieldConfig {
                 Some(name)
             },
             derive,
+            flatten: input.flatten(),
         })
     }
 }

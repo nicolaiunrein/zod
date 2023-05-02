@@ -32,8 +32,21 @@ pub(super) struct ObjectSchema {
 impl ToTokens for ObjectSchema {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
-        let fields = &self.fields;
-        tokens.extend(quote!(#zod::core::ast::ObjectSchema::new(&[#fields])));
+        let (ext, fields): (Vec<_>, Vec<_>) =
+            self.fields.iter().cloned().partition(|f| f.config.flatten);
+
+        let ext = ext.into_iter().map(|f| {
+            let ty = f.ty;
+
+            match f.config.derive {
+                Derive::Request => quote!(#zod::core::ast::Ref::new_req::<#ty>()),
+                Derive::Response => quote!(#zod::core::ast::Ref::new_res::<#ty>()),
+            }
+        });
+
+        tokens.extend(
+            quote!(#zod::core::ast::ObjectSchema::new(&[#(#fields),*]).with_extensions(&[#(#ext,)*])),
+        );
     }
 }
 

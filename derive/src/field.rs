@@ -93,6 +93,7 @@ impl FilteredFields {
             .collect::<Result<Vec<_>, _>>()?;
 
         let fields = inner.into_iter().filter(|f| !f.config.ignored).collect();
+
         Ok(Self { fields })
     }
 
