@@ -11,7 +11,7 @@ function websocketStore(url: string) {
   let reopenTimeoutHandler: any;
   let reopenCount = 0;
 
-  const subscriptions = new Set<([id, data]: [number, unknown]) => void>();
+  const subscriptions = new Set<([id, data]: [bigint, unknown]) => void>();
 
   function reopenTimeout() {
     const n = reopenCount;
@@ -109,7 +109,7 @@ function websocketStore(url: string) {
     send(value: string) {
       open_and_send(value);
     },
-    subscribe(subscription: (value: [number, unknown]) => void) {
+    subscribe(subscription: (value: [bigint, unknown]) => void) {
       subscriptions.add(subscription);
       return () => {
         subscriptions.delete(subscription);
@@ -127,7 +127,7 @@ type Store<T> = {
 };
 
 const CONNECTION = websocketStore(WS_ADDR);
-let req_id = 0;
+let req_id = 0n;
 
 function execute({
   req_id,
@@ -135,7 +135,7 @@ function execute({
   namespace,
   args,
 }: {
-  req_id: number;
+  req_id: bigint;
   namespace: string;
   method: string;
   args: any[];
@@ -151,7 +151,7 @@ export function subscribe<T>(
   method: string,
   args: IArguments
 ): Store<T> {
-  req_id += 1;
+  req_id += 1n;
   let id = req_id;
   let req = { req_id, namespace, method, args: [...args] };
 
@@ -178,12 +178,12 @@ export async function request<T>(
 ): Promise<T> {
   let unsubscribe: () => void | undefined;
   let promise = new Promise((resolve: (_: T) => void, _) => {
-    req_id += 1;
+    req_id += 1n;
     let id = req_id;
     let request = { req_id, namespace, method, args: [...args] };
     let start = performance.now();
 
-    unsubscribe = CONNECTION.subscribe(([res_id, data]: [number, any]) => {
+    unsubscribe = CONNECTION.subscribe(([res_id, data]: [bigint, any]) => {
       if (res_id == id) {
         console.log("Exec Response", {
           req_id,
