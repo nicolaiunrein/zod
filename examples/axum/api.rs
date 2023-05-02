@@ -67,6 +67,13 @@ impl Pixera {
     fn y(&mut self) -> std::pin::Pin<Box<dyn Stream<Item = String> + Send>> {
         futures::stream::once(async move { String::new() }).boxed()
     }
+
+    pub fn hello_stream(&mut self, num: Usize) -> impl Stream<Item = Usize> {
+        futures::stream::iter(0..).take(*num).then(|x| async move {
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            Usize::from(x * 10000)
+        })
+    }
 }
 
 #[zod::rpc]

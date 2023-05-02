@@ -2,24 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Remotely Example</title>
+    <title>Vite + Svelte + TS</title>
   </head>
   <body>
-    <div id="app">
-      <div>
-        <button type="button" id="btn">Click Me</button>
-        <p>Result from Rust: <span id="res" />...</p>
-      </div>
-      <div>
-          <label>
-        <input type="checkbox" id="stream-switch">
-        Stream subscribe
-        </input>
-          </label>
-        <p>Stream value from Rust: <span id="stream-value" />...</p>
-      </div>
-    </div>
+    <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
