@@ -24,6 +24,25 @@ pub trait RpcNamespace: crate::Namespace {
     ) -> Option<StreamHandle>;
 }
 
+pub struct RpcNamespaceName<T>(std::marker::PhantomData<T>);
+
+impl<'de, T> serde::Deserialize<'de> for RpcNamespaceName<T>
+where
+    T: RpcNamespace,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        if s == <T as crate::Namespace>::NAME {
+            Ok(RpcNamespaceName(std::marker::PhantomData))
+        } else {
+            Err(serde::de::Error::custom("abc"))
+        }
+    }
+}
+
 /// The sending half of a Response channel
 pub type ResponseSender = futures::channel::mpsc::UnboundedSender<Response>;
 

@@ -50,7 +50,7 @@ impl ToTokens for RpcInput {
 
                 quote!{
                     #field_ident {
-                        args: (#(#types),* #maybe_comma)
+                        args: (#(#types),* #maybe_comma),
                     }
                 }
             })
@@ -182,6 +182,8 @@ impl ToTokens for RpcInput {
                 pub enum #req_name {
                     #(#enum_variants),*
                 }
+
+
 
                 impl #zod::core::RequestTypeVisitor for #req_name {
                     #[allow(unused_variables, unused_mut)]

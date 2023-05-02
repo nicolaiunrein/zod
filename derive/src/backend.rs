@@ -37,9 +37,13 @@ impl ToTokens for BackendInput {
             })
             .collect::<Vec<_>>();
 
-        let variants_inner = variants
-            .iter()
-            .map(|(ident, ty)| quote!(#ident(<#ty as #zod::core::rpc::RpcNamespace>::Req)));
+        let variants_inner = variants.iter().map(|(ident, ty)| {
+            quote!(#ident{
+                #[serde(flatten)]
+                req: <#ty as #zod::core::rpc::RpcNamespace>::Req,
+                namespace: #zod::core::rpc::RpcNamespaceName<#ty>,
+            })
+        });
 
         let inner_match =
             variants
@@ -48,7 +52,7 @@ impl ToTokens for BackendInput {
                 .enumerate()
                 .map(|(index, ident)| {
                     let index = syn::Index::from(index);
-                    quote!(Inner::#ident(req) => {
+                    quote!(Inner::#ident{ req, .. } => {
                         if let Some(jh) = self.#index.process(req, sender, *id).await {
                             subscribers.insert(*id, jh);
                         }
@@ -57,6 +61,7 @@ impl ToTokens for BackendInput {
 
         let output = quote! {
             const _: () = {
+
 
                 #[#zod::__private::async_trait::async_trait]
                 impl #zod::core::rpc::server::Backend for #ident {
@@ -74,6 +79,7 @@ impl ToTokens for BackendInput {
                         match req {
                             #zod::core::rpc::Request::Exec { id, value } => {
                                 #[derive(Deserialize)]
+                                #[serde(untagged)]
                                 enum Inner {
                                     #(#variants_inner),*
                                 }
