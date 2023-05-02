@@ -41,7 +41,7 @@ impl ToTokens for BackendInput {
             quote!(#ident{
                 #[serde(flatten)]
                 req: <#ty as #zod::core::rpc::RpcNamespace>::Req,
-                namespace: #zod::core::rpc::RpcNamespaceName<#ty>,
+                ns: #zod::core::rpc::RpcNamespaceName<#ty>,
             })
         });
 

@@ -38,7 +38,9 @@ where
         if s == <T as crate::Namespace>::NAME {
             Ok(RpcNamespaceName(std::marker::PhantomData))
         } else {
-            Err(serde::de::Error::custom("abc"))
+            Err(serde::de::Error::custom(
+                "string does not match namespace name",
+            ))
         }
     }
 }

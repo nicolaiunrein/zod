@@ -132,28 +132,27 @@ let req_id = 0n;
 function execute({
   req_id,
   method,
-  namespace,
+  ns,
   args,
 }: {
   req_id: bigint;
-  namespace: string;
+  ns: string;
   method: string;
   args: any[];
 }): string {
-  return JSON.stringify(
-    { exec: { id: req_id, method, namespace, args } },
-    (_, v) => (typeof v == "bigint" ? v.toString() : v)
+  return JSON.stringify({ exec: { id: req_id, method, ns, args } }, (_, v) =>
+    typeof v == "bigint" ? v.toString() : v
   );
 }
 
 export function subscribe<T>(
-  namespace: string,
+  ns: string,
   method: string,
   args: IArguments
 ): Store<T> {
   req_id += 1n;
   let id = req_id;
-  let req = { req_id, namespace, method, args: [...args] };
+  let req = { req_id, ns, method, args: [...args] };
 
   let store = {
     subscribe(cb: (value: T) => void) {
@@ -172,7 +171,7 @@ export function subscribe<T>(
 }
 
 export async function request<T>(
-  namespace: string,
+  ns: string,
   method: string,
   args: IArguments
 ): Promise<T> {
@@ -180,7 +179,7 @@ export async function request<T>(
   let promise = new Promise((resolve: (_: T) => void, _) => {
     req_id += 1n;
     let id = req_id;
-    let request = { req_id, namespace, method, args: [...args] };
+    let request = { req_id, ns, method, args: [...args] };
     let start = performance.now();
 
     unsubscribe = CONNECTION.subscribe(([res_id, data]: [bigint, any]) => {
