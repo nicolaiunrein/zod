@@ -1,9 +1,11 @@
 use crate::config::Derive;
+use crate::error::Error;
 use crate::field::{Field, FilteredFields};
 use crate::utils::get_zod;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::spanned::Spanned;
 
 pub(super) enum Schema<'a> {
     Object(ObjectSchema),
@@ -72,13 +74,32 @@ impl<'a> ToTokens for NewtypeSchema<'a> {
 }
 
 pub(super) struct TupleSchema<'a> {
-    pub fields: &'a FilteredFields,
+    fields: &'a FilteredFields,
+}
+
+impl<'a> TupleSchema<'a> {
+    pub fn new(fields: &'a FilteredFields) -> Result<Self, Error> {
+        if let Some(first_required) = fields.iter().position(|f| !f.config.required) {
+            if let Some(err) = fields.iter().skip(first_required + 1).find_map(|f| {
+                if f.config.required {
+                    Some(Error::DefaultBeforeNonDefault(f.ty.span()))
+                } else {
+                    None
+                }
+            }) {
+                return Err(err);
+            }
+        }
+        Ok(Self { fields })
+    }
 }
 
 impl<'a> ToTokens for TupleSchema<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
-        let fields = self.fields.iter();
+        let fields = self.fields;
+
+        let fields = fields.iter();
 
         tokens.extend(quote! {
             #zod::core::ast::TupleSchema::new(&[#(#fields),*])

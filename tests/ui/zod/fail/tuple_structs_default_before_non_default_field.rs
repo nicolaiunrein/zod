@@ -1,14 +1,11 @@
 use zod::Namespace;
-use zod::Zod;
+use zod::RequestType;
 
-#[derive(Zod, serde::Deserialize)]
+#[derive(RequestType, serde::Deserialize)]
 #[zod(namespace = "Ns")]
 struct Test(#[serde(default)] String, String);
 
+#[derive(Namespace)]
 struct Ns {}
-
-impl Namespace for Ns {
-    const NAME: &'static str = "Ns";
-}
 
 fn main() {}

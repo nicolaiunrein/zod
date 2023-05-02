@@ -1,6 +1,7 @@
 use crate::config::ContainerConfig;
 use crate::config::TagType;
 use crate::utils::get_zod;
+use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
 mod variant;
@@ -16,8 +17,10 @@ impl<'a> EnumExport<'a> {
     fn variants(&self) -> impl Iterator<Item = &Variant> {
         self.variants.iter().filter(|v| !v.skipped())
     }
+}
 
-    pub(crate) fn expand(self) -> TokenStream {
+impl<'a> ToTokens for EnumExport<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let docs = &self.config.docs;
         let name = &self.config.name;
@@ -59,12 +62,12 @@ impl<'a> EnumExport<'a> {
             }
         };
 
-        quote! {
+        tokens.extend(quote! {
             #zod::core::ast::Export {
                 docs: #docs,
                 path: #zod::core::ast::Path::new::<#ns>(#name),
                 schema: #schema,
             }
-        }
+        })
     }
 }

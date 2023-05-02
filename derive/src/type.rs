@@ -50,7 +50,7 @@ impl ZodType {
             orig,
             serde_derive_internals::Derive::Deserialize,
         )
-        .ok_or(Error::NoSerde)?;
+        .ok_or(Error::NoSerde(orig.ident.span()))?;
 
         let serde_attrs = serde_ast.attrs;
 
@@ -90,9 +90,9 @@ impl ZodType {
                         .collect(),
 
                     config: &config,
-                }
-                .expand();
-                (dependencies, definition)
+                };
+
+                (dependencies, quote!(#definition))
             }
             Data::Struct(ref style, ref fields) => {
                 let fields = fields

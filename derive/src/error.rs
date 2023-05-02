@@ -3,7 +3,7 @@ use proc_macro2::Span;
 #[derive(thiserror::Error, Debug)]
 pub(crate) enum Error {
     #[error("todo")]
-    NoSerde,
+    NoSerde(Span),
 
     #[error("todo")]
     NonAsyncReturningDefault(Span),
@@ -16,6 +16,9 @@ pub(crate) enum Error {
 
     #[error("namespace methods must have a self argument")]
     NoSelf(Span),
+
+    #[error("non-default field follows default field")]
+    DefaultBeforeNonDefault(Span),
 }
 
 impl Error {
@@ -33,6 +36,17 @@ impl Error {
             got: "mut self",
         }
     }
+
+    fn span(&self) -> Span {
+        match self {
+            Error::NoSerde(span) => *span,
+            Error::NonAsyncReturningDefault(span) => *span,
+            Error::NamespaceLifetimes(span) => *span,
+            Error::WrongSelf { span, .. } => *span,
+            Error::NoSelf(span) => *span,
+            Error::DefaultBeforeNonDefault(span) => *span,
+        }
+    }
 }
 
 impl From<Error> for darling::Error {
@@ -42,7 +56,7 @@ impl From<Error> for darling::Error {
 }
 
 impl From<Error> for syn::Error {
-    fn from(_value: Error) -> Self {
-        todo!()
+    fn from(value: Error) -> Self {
+        syn::Error::new(value.span(), format!("zod: `{}`", value))
     }
 }

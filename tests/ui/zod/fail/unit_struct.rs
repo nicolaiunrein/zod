@@ -1,14 +1,11 @@
 use zod::Namespace;
-use zod::Zod;
+use zod::RequestType;
 
-#[derive(Zod)]
+#[derive(RequestType)]
 #[zod(namespace = "Ns")]
 struct Test;
 
+#[derive(Namespace)]
 struct Ns {}
-
-impl Namespace for Ns {
-    const NAME: &'static str = "Ns";
-}
 
 fn main() {}

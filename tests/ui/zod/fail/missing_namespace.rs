@@ -1,6 +1,6 @@
-use zod::Zod;
+use zod::RequestType;
 
-#[derive(Zod)]
+#[derive(RequestType)]
 struct Test(usize);
 
 fn main() {}

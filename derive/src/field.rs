@@ -92,7 +92,7 @@ impl FilteredFields {
             .map(|(ty, config)| Field::new(ty, config, generics))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let fields = inner.into_iter().filter(|f| !f.config.ignored).collect();
+        let fields: Vec<_> = inner.into_iter().filter(|f| !f.config.ignored).collect();
 
         Ok(Self { fields })
     }

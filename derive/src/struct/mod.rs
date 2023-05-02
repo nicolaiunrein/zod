@@ -23,10 +23,14 @@ impl<'a> ToTokens for StructExport<'a> {
         let ns = &self.config.namespace;
 
         let schema = match self.style {
-            Style::Tuple => Schema::Tuple(TupleSchema {
-                fields: &self.fields,
-            }),
-
+            Style::Tuple => match TupleSchema::new(&self.fields) {
+                Ok(schema) => Schema::Tuple(schema),
+                Err(err) => {
+                    let err = syn::Error::from(err);
+                    err.into_compile_error().to_tokens(tokens);
+                    return;
+                }
+            },
             Style::Struct => {
                 if self.config.transparent {
                     let field = self.fields.iter().next().expect("unreachable");

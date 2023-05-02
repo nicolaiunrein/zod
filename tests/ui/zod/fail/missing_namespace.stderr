@@ -1,7 +1,7 @@
 error: Missing field `namespace`
  --> tests/ui/zod/fail/missing_namespace.rs:3:10
   |
-3 | #[derive(Zod)]
-  |          ^^^
+3 | #[derive(RequestType)]
+  |          ^^^^^^^^^^^
   |
-  = note: this error originates in the derive macro `Zod` (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the derive macro `RequestType` (in Nightly builds, run with -Z macro-backtrace for more info)

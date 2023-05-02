@@ -134,21 +134,16 @@ pub use zod_core as core;
 #[doc(hidden)]
 pub mod __private {
     pub use async_trait;
-    pub use serde;
-
-    // #[cfg(features = "rpc")]
-    pub use serde_json;
-
-    // #[cfg(features = "rpc")]
-    pub use tokio;
-
     pub use futures;
+    pub use serde;
+    pub use serde_json;
+    pub use tokio;
 }
 
 #[test]
 fn progress() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/zod/fail/internally_tagged_newtype.rs");
+    t.compile_fail("tests/ui/zod/fail/*.rs");
 }
 
 #[ignore]
