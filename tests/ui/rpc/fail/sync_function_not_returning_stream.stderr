@@ -1,8 +1,10 @@
 error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:7:6
   |
-8 |     fn test(&mut self) -> String {
-  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+7 |   impl A {
+  |  ______^
+8 | |     fn test(&mut self) -> String {
+  | |________________________________^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -14,17 +16,21 @@ error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `process_stream`
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
+note: required by a bound in `StreamExtractor`
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
   |
+6 | #[rpc]
+  | ^^^^^^ required by this bound in `StreamExtractor`
+7 | impl A {
 8 |     fn test(&mut self) -> String {
-  |        ^^^^ required by this bound in `process_stream`
+  |                           ------ required by a bound in this
+  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:27
   |
 8 |     fn test(&mut self) -> String {
-  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+  |                           ^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -36,3 +42,48 @@ error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream
             Buffered<St>
             Either<A, B>
           and $N others
+note: required by a bound in `StreamExtractor`
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
+  |
+6 | #[rpc]
+  | ^^^^^^ required by this bound in `StreamExtractor`
+7 | impl A {
+8 |     fn test(&mut self) -> String {
+  |                           ------ required by a bound in this
+  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: the method `get_type_ref` exists for struct `StreamExtractor<_, String>`, but its trait bounds were not satisfied
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
+  |
+8 |     fn test(&mut self) -> String {
+  |        ^^^^               ------ method `get_type_ref` not found for this struct
+  |        |
+  |        method cannot be called on `StreamExtractor<_, String>` due to unsatisfied trait bounds
+  |
+ ::: $RUST/alloc/src/string.rs
+  |
+  | pub struct String {
+  | -----------------
+  | |
+  | doesn't satisfy `<_ as Stream>::Item = _`
+  | doesn't satisfy `std::string::String: futures_core::stream::Stream`
+  |
+note: the following trait bounds were not satisfied:
+      `<std::string::String as futures_core::stream::Stream>::Item = _`
+      `std::string::String: futures_core::stream::Stream`
+   --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
+    |
+6   | #[rpc]
+    | ^^^^^^ unsatisfied trait bound introduced here
+7   | impl A {
+8   |     fn test(&mut self) -> String {
+    |                           ^^^^^^
+    = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `next` found for struct `Pin<&mut std::string::String>` in the current scope
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
+  |
+6 | #[rpc]
+  | ^^^^^^ method not found in `Pin<&mut String>`
+  |
+  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)

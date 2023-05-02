@@ -97,6 +97,11 @@ impl Watchout {
             x.into()
         })
     }
+
+    pub async fn test(&mut self, _user: User<'static>, _n: Usize) -> Usize {
+        *self.shared_data += 1;
+        self.shared_data
+    }
 }
 
 #[derive(zod::Backend)]

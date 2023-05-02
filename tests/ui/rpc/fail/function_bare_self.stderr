@@ -1,4 +1,4 @@
-error: zod: expected `&mut self` got `self`.
+error: zod: `expected '&mut self' got 'self'.`
  --> tests/ui/rpc/fail/function_bare_self.rs:8:19
   |
 8 |     async fn test(self) {}

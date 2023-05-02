@@ -11,7 +11,7 @@ pub(crate) enum Error {
     #[error("namespace methods are not allowed to have lifetimes")]
     NamespaceLifetimes(Span),
 
-    #[error("expected `&mut self` got `{got}`.")]
+    #[error("expected '&mut self' got '{got}'.")]
     WrongSelf { span: Span, got: &'static str },
 
     #[error("namespace methods must have a self argument")]

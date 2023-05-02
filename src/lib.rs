@@ -144,8 +144,5 @@ pub mod __private {
 fn ui() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/zod/fail/*.rs");
-    // t.compile_fail("tests/ui/rpc/fail/*.rs");
-    // t.compile_fail("tests/ui/rpc/fail/async*.rs");
-    t.compile_fail("tests/ui/rpc/fail/multiple*.rs");
-    t.compile_fail("tests/ui/rpc/fail/sync*.rs");
+    t.compile_fail("tests/ui/rpc/fail/*.rs");
 }

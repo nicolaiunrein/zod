@@ -1,7 +1,8 @@
 use darling::ToTokens;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort_call_site;
-use quote::quote;
+use quote::{quote, quote_spanned};
+use syn::spanned::Spanned;
 use syn::{parse_quote, Ident, ImplItem, ImplItemMethod, ItemImpl, Type};
 
 use crate::error::Error;
@@ -77,7 +78,7 @@ impl ToTokens for RpcInput {
                         }
                     }
                 }
-                RpcItemKind::Stream(_) => {
+                RpcItemKind::Stream(output) => {
                     let arg_types = item
                         .method_args
                         .iter()
@@ -88,9 +89,10 @@ impl ToTokens for RpcInput {
                         ns: &self.ident,
                         method: &item.ident,
                         args: &arg_types,
+                        span: output.span(),
                     };
 
-                    quote! {
+                    quote_spanned! { item.ident.span() =>
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
@@ -139,7 +141,8 @@ impl ToTokens for RpcInput {
 
         let req_name = quote::format_ident!("{}Req", ident);
 
-        let output = quote! {
+        let output = quote_spanned! {
+            ident.span() =>
             const _: () = {
                 #[derive(#zod::__private::serde::Deserialize)]
                 #[serde(tag = "method")]
@@ -162,7 +165,7 @@ impl ToTokens for RpcInput {
 
                 //todo
                 impl #zod::core::ResponseTypeVisitor for #req_name {
-                    fn register(ctx: &mut #zod::core::DependencyMap)
+                    fn register(_ctx: &mut #zod::core::DependencyMap)
                     where
                         Self: 'static,
                     {
@@ -280,6 +283,7 @@ struct ImplStreamItemAstExtractor<'a> {
     method: &'a Ident,
     #[allow(clippy::borrowed_box)]
     args: &'a [&'a Box<Type>],
+    span: Span,
 }
 
 impl<'a> ToTokens for ImplStreamItemAstExtractor<'a> {
@@ -288,8 +292,9 @@ impl<'a> ToTokens for ImplStreamItemAstExtractor<'a> {
         let ns = &self.ns;
         let args = self.args;
         let method = self.method;
+        let span = self.span;
 
-        let output = quote! {
+        let output = quote_spanned! {span =>
             {
                 struct StreamExtractor<I: #zod::core::ResponseType, S: #zod::__private::futures::Stream<Item = I> + 'static> {
                     _inner: &'static dyn Fn(&mut #ns, #(#args),*) -> S,
