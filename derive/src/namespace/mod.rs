@@ -6,12 +6,10 @@ use quote::quote;
 #[derive(FromDeriveInput)]
 #[darling(attributes(namespace), forward_attrs(allow, doc, cfg))]
 pub(crate) struct Namespace {
-    pub vis: syn::Visibility,
     pub ident: syn::Ident,
     pub name: Option<String>,
     pub generics: syn::Generics,
     pub attrs: Vec<syn::Attribute>,
-    pub doc: Option<String>,
 }
 
 impl ToTokens for Namespace {
