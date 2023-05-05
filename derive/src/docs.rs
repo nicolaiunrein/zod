@@ -41,12 +41,12 @@ impl FromAttributes for RustDocs {
 impl ToTokens for RustDocs {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
-        let inner = if let Some(docs) = &self.inner {
+        let expanded = if let Some(docs) = &self.inner {
             quote!(Some(#zod::core::ast::Docs(#docs)))
         } else {
             quote!(None)
         };
 
-        tokens.extend(inner);
+        tokens.extend(expanded);
     }
 }

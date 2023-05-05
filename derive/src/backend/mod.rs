@@ -1,6 +1,7 @@
 use crate::utils::get_zod;
 use darling::ast::Data;
 use darling::{FromDeriveInput, FromField, ToTokens};
+use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Type;
 
@@ -15,54 +16,74 @@ pub(crate) struct BackendVariant {
     pub(crate) ty: Type,
 }
 
-impl ToTokens for BackendInput {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+impl BackendVariant {
+    fn expand_match_arm(&self, index: usize) -> TokenStream {
+        let ident = Self::format_ident(index);
+        let index = syn::Index::from(index);
+
+        quote!(Inner::#ident{ req, .. } => {
+            if let Some(jh) = self.#index.process(req, sender, *id).await {
+                subscribers.insert(*id, jh);
+            }
+        })
+    }
+
+    fn expand_enum_variant(&self, index: usize) -> TokenStream {
+        let ty = &self.ty;
         let zod = get_zod();
 
-        let ident = &self.ident;
+        let ident = Self::format_ident(index);
+        quote!(#ident{
+            #[serde(flatten)]
+            req: <#ty as #zod::core::rpc::RpcNamespace>::Req,
+            ns: #zod::core::rpc::RpcNamespaceName<#ty>,
+        })
+    }
 
-        let variants = match &self.data {
+    fn format_ident(index: usize) -> syn::Ident {
+        format_ident!("Ns{}", index)
+    }
+}
+
+impl BackendInput {
+    fn variants(&self) -> &darling::ast::Fields<BackendVariant> {
+        match &self.data {
             Data::Enum(_) => unreachable!(),
             Data::Struct(fields) => fields,
-        };
+        }
+    }
 
-        let types = variants.iter().map(|f| &f.ty).collect::<Vec<_>>();
+    fn variant_types(&self) -> Vec<&syn::Type> {
+        self.variants().iter().map(|f| &f.ty).collect()
+    }
 
-        let variants = types
+    fn match_arms(&self) -> Vec<TokenStream> {
+        self.variants()
             .iter()
             .enumerate()
-            .map(|(i, ty)| {
-                let ident = format_ident!("Ns{}", i);
-                (ident, ty)
-            })
-            .collect::<Vec<_>>();
+            .map(|(index, variant)| variant.expand_match_arm(index))
+            .collect()
+    }
 
-        let variants_inner = variants.iter().map(|(ident, ty)| {
-            quote!(#ident{
-                #[serde(flatten)]
-                req: <#ty as #zod::core::rpc::RpcNamespace>::Req,
-                ns: #zod::core::rpc::RpcNamespaceName<#ty>,
-            })
-        });
+    fn enum_variants(&self) -> Vec<TokenStream> {
+        self.variants()
+            .iter()
+            .enumerate()
+            .map(|(index, variant)| variant.expand_enum_variant(index))
+            .collect()
+    }
+}
 
-        let inner_match =
-            variants
-                .iter()
-                .map(|(ident, _)| ident)
-                .enumerate()
-                .map(|(index, ident)| {
-                    let index = syn::Index::from(index);
-                    quote!(Inner::#ident{ req, .. } => {
-                        if let Some(jh) = self.#index.process(req, sender, *id).await {
-                            subscribers.insert(*id, jh);
-                        }
-                    })
-                });
+impl ToTokens for BackendInput {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+        let ident = &self.ident;
+        let types = self.variant_types();
+        let match_arms = self.match_arms();
+        let enum_variants = self.enum_variants();
 
-        let output = quote! {
+        let expanded = quote! {
             const _: () = {
-
-
                 #[#zod::__private::async_trait::async_trait]
                 impl #zod::core::rpc::server::Backend for #ident {
                     const AST: &'static [&'static [#zod::core::ast::rpc::RpcRequest]] = &[
@@ -81,12 +102,12 @@ impl ToTokens for BackendInput {
                                 #[derive(Deserialize)]
                                 #[serde(untagged)]
                                 enum Inner {
-                                    #(#variants_inner),*
+                                    #(#enum_variants),*
                                 }
 
                                 match #zod::__private::serde_json::from_value::<Inner>(value) {
                                     Ok(inner) => match inner {
-                                        #(#inner_match),*
+                                        #(#match_arms),*
                                     },
 
                                     Err(err) => {
@@ -124,6 +145,6 @@ impl ToTokens for BackendInput {
             };
         };
 
-        tokens.extend(output);
+        tokens.extend(expanded);
     }
 }
