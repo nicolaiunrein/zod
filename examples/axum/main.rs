@@ -4,7 +4,7 @@ use axum::{extract::Extension, routing::get, Router, Server};
 use zod::{
     core::rpc::server::Backend,
     rpc::{
-        clients::WebsocketClient,
+        clients::WEBSOCKET_CLIENT,
         servers::{axum::websocket_handler, proxy::BackendProxy},
     },
     types::Usize,
@@ -21,14 +21,19 @@ async fn main() {
 
     match std::env::args().nth(1).as_deref() {
         Some("generate") => generate(),
+        Some("generate-client") => generate_client(),
         Some("serve") => serve().await,
-        _ => eprintln!("Call with serve or generate"),
+        _ => eprintln!("Call with serve, generate or generate-client"),
     }
 }
 
 fn generate() {
-    let content = MyBackend::generate::<WebsocketClient>();
+    let content = MyBackend::generate();
     println!("{content}");
+}
+
+fn generate_client() {
+    println!("{WEBSOCKET_CLIENT}")
 }
 
 async fn serve() {

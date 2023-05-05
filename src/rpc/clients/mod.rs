@@ -1,9 +1,2 @@
-use zod_core::ast::rpc::ClientCodegen;
+pub const WEBSOCKET_CLIENT: &str = include_str!("templates/websocket_client.ts");
 
-pub struct WebsocketClient;
-
-impl ClientCodegen for WebsocketClient {
-    fn get() -> String {
-        String::from(include_str!("./static/websocket_client.ts"))
-    }
-}

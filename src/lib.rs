@@ -100,15 +100,14 @@
 //! - [x] write detailed intro
 //! - [x] write rust-docs
 //! - [x] Consider to allow the use of generics otherwise force implementors to not have generics
-//! - [ ] RPC ui tests
+//! - [x] RPC ui tests
 //! - [ ] improve diagnostics on rpc (eg. correct spans, better compile time errors)
-//! - [ ] improve macro hygiene
-//!     - [ ] use crate_name in zod-derive
-//!     - [ ] const scope where possible
+//! - [x] improve macro hygiene
+//!     - [x] use crate_name in zod-derive
+//!     - [x] const scope where possible
 //!
 //! - [ ] add integration tests with jest
 //! - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
-//! - [ ] make rpc a feature or consider splitting the crates entirely
 //!
 //! ## Consideration?
 //! - flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.

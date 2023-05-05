@@ -1,17 +1,24 @@
 <script lang="ts">
- import {Watchout, Pixera} from "../api";
- import {onMount} from "svelte";
+  import { onMount } from "svelte";
+  import { connect } from "../client";
+  import { Watchout, Pixera } from "../api";
 
-  let count: number = 0
+  let client = connect("ws://localhost:8000/ws");
+
+  let watchout = Watchout.init(client);
+  let pixera = Pixera.init(client);
+
+  let count: BigInt = 0n
+
   const increment = async () => {
-    count = await Watchout.hello("abc", 123n);
+    count = await watchout.hello("abc", 123n);
   }
 
-  const x = Watchout.hello_stream(20n);
-  const y = Pixera.hello_stream(20n);
+  const x = watchout.hello_stream(20n);
+  const y = pixera.hello_stream(20n);
 
   onMount(async () => {
-    count = await Watchout.hello("abc", 123n);
+    count = await watchout.hello("abc", 123n);
   });
 
 </script>

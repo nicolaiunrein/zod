@@ -3,11 +3,30 @@ use std::fmt::Display;
 
 use crate::ast::rpc::RpcRequest;
 use crate::{
-    ast::rpc, ast::Export, rpc::Request, rpc::ResponseSender, Namespace, RequestTypeVisitor,
+    ast::Export, rpc::Request, rpc::ResponseSender, Namespace, RequestTypeVisitor,
     ResponseTypeVisitor,
 };
 
 use crate::types::Rs;
+
+const CLIENT_INTERFACE: &str = r#"export interface Client {
+    get_stream<T>(
+      ns: string,
+      method: string,
+      args: IArguments
+    ): {
+      subscribe(next: (value: T) => void): () => void;
+      close(): void;
+    };
+    call<T>(ns: string, method: string, args: IArguments): Promise<T>;
+  }"#;
+
+const STORE_SIG: &str = r#"
+type Store<T> = {
+    subscribe(next: (value: T) => void): () => void;
+    close(): void;
+};
+"#;
 
 /// a [JoinHandle](tokio::task::JoinHandle) to cancel a stream when it is dropped.
 pub struct StreamHandle(tokio::task::JoinHandle<()>);
@@ -39,36 +58,51 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
         subscribers: &mut SubscriberMap,
     );
 
-    fn generate<T>() -> String
+    fn generate() -> String
     where
-        T: rpc::ClientCodegen,
         Self: 'static,
     {
-        let mut out = T::get();
-        let mut exports = BTreeMap::<&str, HashSet<ExportOrReq>>::new();
-
-        #[derive(Hash, Eq, PartialEq)]
-        enum ExportOrReq {
-            Export(Export),
-            Req(RpcRequest),
-        }
+        let mut out = String::from("import { z } from \"zod\";\n\n");
+        let mut exports = BTreeMap::<&str, (HashSet<Export>, HashSet<RpcRequest>)>::new();
 
         struct NamespaceExporter {
             name: &'static str,
-            exports: Vec<ExportOrReq>,
+            exports: Vec<Export>,
+            requests: Vec<RpcRequest>,
+            is_rs: bool,
         }
 
         impl NamespaceExporter {
-            pub fn new(name: &'static str, mut exports: Vec<ExportOrReq>) -> Self {
-                exports.sort_by(|a, b| match (a, b) {
-                    (ExportOrReq::Export(a), ExportOrReq::Export(b)) => {
-                        a.path.name().cmp(b.path.name())
-                    }
-                    (ExportOrReq::Req(a), ExportOrReq::Req(b)) => a.path.name().cmp(b.path.name()),
-                    (ExportOrReq::Export(_), ExportOrReq::Req(_)) => std::cmp::Ordering::Less,
-                    (ExportOrReq::Req(_), ExportOrReq::Export(_)) => std::cmp::Ordering::Greater,
-                });
-                Self { name, exports }
+            pub fn new_rs((exports, requests): (HashSet<Export>, HashSet<RpcRequest>)) -> Self {
+                let mut exports: Vec<_> = exports.into_iter().collect();
+                let mut requests: Vec<_> = requests.into_iter().collect();
+
+                exports.sort_by(|a, b| a.path.name().cmp(b.path.name()));
+                requests.sort_by(|a, b| a.path.name().cmp(b.path.name()));
+
+                Self {
+                    name: Rs::NAME,
+                    exports,
+                    requests,
+                    is_rs: true,
+                }
+            }
+            pub fn new(
+                name: &'static str,
+                (exports, requests): (HashSet<Export>, HashSet<RpcRequest>),
+            ) -> Self {
+                let mut exports: Vec<_> = exports.into_iter().collect();
+                let mut requests: Vec<_> = requests.into_iter().collect();
+
+                exports.sort_by(|a, b| a.path.name().cmp(b.path.name()));
+                requests.sort_by(|a, b| a.path.name().cmp(b.path.name()));
+
+                Self {
+                    name,
+                    exports,
+                    requests,
+                    is_rs: false,
+                }
             }
         }
 
@@ -78,22 +112,37 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
                 f.write_str(self.name)?;
                 f.write_str(" {\n")?;
                 for export in self.exports.iter() {
-                    match export {
-                        ExportOrReq::Export(export) => export.fmt(f)?,
-                        ExportOrReq::Req(req) => req.fmt(f)?,
-                    }
+                    export.fmt(f)?;
                     f.write_str("\n")?;
                 }
+
+                if !self.requests.is_empty() {
+                    f.write_str("export function init(client: Rs.Client)")?;
+                    f.write_str("{")?;
+
+                    if self.requests.iter().any(|req| req.is_stream()) {
+                        f.write_str(STORE_SIG)?;
+                    }
+
+                    f.write_str("return {")?;
+                    for req in self.requests.iter() {
+                        req.fmt(f)?;
+                        f.write_str(",\n")?;
+                    }
+                    f.write_str("}}")?;
+                }
+
+                if self.is_rs {
+                    f.write_str(CLIENT_INTERFACE)?;
+                }
+
                 f.write_str("\n}\n")?;
                 Ok(())
             }
         }
 
         for req in Self::AST.iter().flat_map(|inner| inner.iter()) {
-            exports
-                .entry(req.path.ns())
-                .or_default()
-                .insert(ExportOrReq::Req(*req));
+            exports.entry(req.path.ns()).or_default().1.insert(*req);
         }
 
         for export in <Self as RequestTypeVisitor>::dependencies()
@@ -103,7 +152,8 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
             exports
                 .entry(export.path.ns())
                 .or_default()
-                .insert(ExportOrReq::Export(export));
+                .0
+                .insert(export);
         }
 
         for export in <Self as ResponseTypeVisitor>::dependencies()
@@ -113,17 +163,16 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
             exports
                 .entry(export.path.ns())
                 .or_default()
-                .insert(ExportOrReq::Export(export));
+                .0
+                .insert(export);
         }
 
         if let Some(exports) = exports.remove(Rs::NAME) {
-            out.push_str(
-                &NamespaceExporter::new(Rs::NAME, exports.into_iter().collect()).to_string(),
-            );
+            out.push_str(&NamespaceExporter::new_rs(exports).to_string());
         }
 
         for (name, exports) in exports.into_iter() {
-            out.push_str(&NamespaceExporter::new(name, exports.into_iter().collect()).to_string());
+            out.push_str(&NamespaceExporter::new(name, exports).to_string());
         }
 
         out

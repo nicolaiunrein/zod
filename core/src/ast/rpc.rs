@@ -3,11 +3,6 @@ use std::fmt::Display;
 
 use crate::ast::*;
 
-/// TODO
-pub trait ClientCodegen {
-    fn get() -> String;
-}
-
 /// The Kind of RpcRequest
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum RpcRequestKind {
@@ -22,6 +17,12 @@ pub struct RpcRequest {
     pub args: &'static [NamedField],
     pub output: Ref,
     pub kind: RpcRequestKind,
+}
+
+impl RpcRequest {
+    pub fn is_stream(&self) -> bool {
+        matches!(self.kind, RpcRequestKind::Stream)
+    }
 }
 
 impl Display for RpcRequest {
@@ -54,15 +55,13 @@ impl Display for RpcRequest {
         };
 
         let req = match self.kind {
-            RpcRequestKind::Method => "request",
-            RpcRequestKind::Stream => "subscribe",
+            RpcRequestKind::Method => "client.call",
+            RpcRequestKind::Stream => "client.get_stream",
         };
 
         f.write_str("// @ts-ignore\n")?;
 
-        f.write_fmt(format_args!(
-            "export {asyncness}function {name}({ts_args}): {res} {{\n"
-        ))?;
+        f.write_fmt(format_args!("{asyncness} {name}({ts_args}): {res} {{\n"))?;
 
         f.write_str("    // phantom usage\n")?;
 
@@ -78,7 +77,7 @@ impl Display for RpcRequest {
             "    return {req}(\"{ns}\", \"{name}\", arguments);\n"
         ))?;
 
-        f.write_str("};\n")?;
+        f.write_str("}")?;
         Ok(())
     }
 }
@@ -93,7 +92,7 @@ mod test {
     fn method_ok() {
         let expected = "\
 // @ts-ignore
-export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
+async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
     // phantom usage
     name;
     age;
@@ -124,7 +123,7 @@ export async function test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.B
     fn stream_ok() {
         let expected = "\
 // @ts-ignore
-export function test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
+test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
     // phantom usage
     name;
     age;
