@@ -29,40 +29,40 @@ pub(crate) enum RpcItemKind {
     Stream(Box<Type>),
 }
 
-impl ToTokens for RpcInput {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        let ident = &self.ident;
-
-        let enum_variants = self
+impl RpcInput {
+    fn enum_variants(&self) -> Vec<TokenStream> {
+        self
             .items
             .iter()
             .map(|item| {
                 let field_ident = &item.ident;
                 let types = item.method_args.iter().map(|arg| &arg.ty);
 
-                // todo
-                let maybe_comma = if item.method_args.len() == 1 {
-                    quote!(,)
+                let args = if item.method_args.is_empty() {
+                    quote!(())
                 } else {
-                    quote!()
+                    quote!((#(#types,)*))
                 };
 
-                quote!{
-                    #field_ident {
-                        args: (#(#types),* #maybe_comma),
-                    }
-                }
+                quote!(#field_ident { args: #args })
             })
-            .collect::<Vec<_>>();
+            .collect()
+    }
 
-        let input_types = self
+    fn input_types(&self) -> Vec<&Box<syn::Type>> {
+        self
             .items
             .iter()
             .flat_map(|item| item.method_args.iter().map(|arg| &arg.ty))
-            .collect::<Vec<_>>();
+            .collect()
 
-        let rpc_requests = self.items.iter().map(|item| {
+    }
+
+    fn rpc_requests(&self) -> Vec<TokenStream> {
+        let ident = &self.ident;
+        let zod =get_zod();
+
+        self.items.iter().map(|item| {
             let name = item.ident.to_string();
 
             let args = item.method_args.iter().map(|arg| {
@@ -106,32 +106,13 @@ impl ToTokens for RpcInput {
                     }
                 }
             }
-        });
+        }).collect()
+    }
 
-        let output_types = self.items.iter().map(|item| {
-            match &item.kind {
-                RpcItemKind::Method(output) => quote!(<#output as #zod::core::ResponseTypeVisitor>::register(ctx)),
-                RpcItemKind::Stream(output) => {
+    fn match_arms(&self) -> Vec<TokenStream> {
+        let zod = get_zod();
 
-                    let arg_types = item
-                        .method_args
-                        .iter()
-                        .map(|arg| &arg.ty)
-                        .collect::<Vec<_>>();
-
-                    let item_ast = ImplStreamItemAstExtractor {
-                        ns: &self.ident,
-                        method: &item.ident,
-                        args: &arg_types,
-                        span: output.span(),
-                    };
-
-                    quote!(#item_ast.register(ctx))
-                }                                                                                  
-            }
-        });
-
-        let match_entries = self.items.iter().map(|item| {
+        self.items.iter().map(|item| {
             let ident = &item.ident;
             let args = item.method_args.iter().enumerate().map(|(i, _)| {
                 let index = syn::Index::from(i);
@@ -166,7 +147,48 @@ impl ToTokens for RpcInput {
                     }
                 }
             }
-        });
+        }).collect()
+
+    }
+
+    fn output_types(&self) -> Vec<TokenStream> {
+        let zod = get_zod();
+
+        self.items.iter().map(|item| {
+            match &item.kind {
+                RpcItemKind::Method(output) => quote!(<#output as #zod::core::ResponseTypeVisitor>::register(ctx)),
+                RpcItemKind::Stream(output) => {
+
+                    let arg_types = item
+                        .method_args
+                        .iter()
+                        .map(|arg| &arg.ty)
+                        .collect::<Vec<_>>();
+
+                    let item_ast = ImplStreamItemAstExtractor {
+                        ns: &self.ident,
+                        method: &item.ident,
+                        args: &arg_types,
+                        span: output.span(),
+                    };
+
+                    quote!(#item_ast.register(ctx))
+                }                                                                                  
+            }
+        }).collect()
+
+    }
+}
+
+impl ToTokens for RpcInput {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let zod = get_zod();
+        let ident = &self.ident;
+        let enum_variants = self.enum_variants();
+        let input_types = self.input_types();
+        let rpc_requests = self.rpc_requests();
+        let match_arms = self.match_arms();
+        let output_types = self.output_types();
 
         let req_name = quote::format_ident!("{}Req", ident);
 
@@ -182,8 +204,6 @@ impl ToTokens for RpcInput {
                 pub enum #req_name {
                     #(#enum_variants),*
                 }
-
-
 
                 impl #zod::core::RequestTypeVisitor for #req_name {
                     #[allow(unused_variables, unused_mut)]
@@ -220,7 +240,7 @@ impl ToTokens for RpcInput {
                         id: usize,
                     ) -> Option<#zod::core::rpc::server::StreamHandle> {
                         match req {
-                            #(#match_entries),*
+                            #(#match_arms),*
                         }
                     }
                 }
@@ -237,9 +257,8 @@ impl TryFrom<ItemImpl> for RpcInput {
     fn try_from(input: ItemImpl) -> Result<Self, Self::Error> {
         let self_ty = input.self_ty;
         let ident: Ident = parse_quote!(#self_ty);
-        Ok(Self {
-            ident,
-            items: input
+        let items = 
+            input
                 .items
                 .into_iter()
                 .filter_map(|item| match item {
@@ -247,7 +266,11 @@ impl TryFrom<ItemImpl> for RpcInput {
                     _ => None,
                 })
                 .map(RpcItem::try_from)
-                .collect::<Result<Vec<_>, _>>()?,
+                .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self {
+            ident,
+            items
         })
     }
 }
@@ -279,7 +302,7 @@ impl TryFrom<ImplItemMethod> for RpcItem {
                     return Err(Error::NamespaceLifetimes(lifetime.span()).into());
                 }
                 (None, None) => return Err(Error::owned_self(receiver.self_token.span).into()),
-                (None, Some((and, _))) => return Err(Error::shared_self(and.span).into()),
+                (None, Some((ampersand, _))) => return Err(Error::shared_self(ampersand.span).into()),
                 (Some(_), None) => return Err(Error::mut_self(receiver.self_token.span).into()),
             }
         } else {

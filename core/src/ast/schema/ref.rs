@@ -21,6 +21,15 @@ impl Ref {
 
         Self { path, args }
     }
+
+    pub const fn new_stream_res<F, S, I>(_: &'static F) -> Self
+    where
+        F: Fn() -> S,
+        S: futures::Stream<Item = I>,
+        I: ResponseType,
+    {
+        Self::new_res::<I>()
+    }
 }
 
 impl Compiler for Ref {
@@ -48,5 +57,25 @@ impl Compiler for Ref {
             f.write_str(">")?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn new_stream_res_ok() {
+        struct MyStruct;
+
+        impl MyStruct {
+            fn test() -> impl futures::Stream<Item = u8> {
+                futures::stream::once(async { 0 })
+            }
+        }
+
+        let x = Ref::new_stream_res(&|| MyStruct::test());
+
+        assert_eq!(x, Ref::new_res::<u8>())
     }
 }
