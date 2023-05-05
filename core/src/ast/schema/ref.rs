@@ -69,12 +69,13 @@ mod test {
         struct MyStruct;
 
         impl MyStruct {
-            fn test() -> impl futures::Stream<Item = u8> {
+            fn test(_a: String) -> impl futures::Stream<Item = u8> {
                 futures::stream::once(async { 0 })
             }
         }
 
-        let x = Ref::new_stream_res(&|| MyStruct::test());
+        #[allow(unreachable_code)]
+        let x = Ref::new_stream_res(&|| MyStruct::test(todo!()));
 
         assert_eq!(x, Ref::new_res::<u8>())
     }

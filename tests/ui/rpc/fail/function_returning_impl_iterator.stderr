@@ -1,10 +1,8 @@
 error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:7:6
+ --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:8
   |
-7 |   impl A {
-  |  ______^
-8 | |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  | |_____________________________________________________________^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
+8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
+  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -16,21 +14,43 @@ error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::S
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `<AReq as ResponseTypeVisitor>::register::StreamExtractor`
+note: required by a bound in `DependencyMap::add_stream_output`
+ --> core/src/lib.rs
+  |
+  |         S: futures::Stream<Item = T>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `DependencyMap::add_stream_output`
+
+error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
  --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
   |
 6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ----------------------------------- required by a bound in this
+  | ^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
+  |
+  = help: the following other types implement trait `futures_core::stream::Stream`:
+            &mut S
+            Abortable<St>
+            AssertUnwindSafe<S>
+            Box<S>
+            Buffer<S, Item>
+            BufferUnordered<St>
+            Buffered<St>
+            Either<A, B>
+          and $N others
+note: required by a bound in `zod::zod_core::ast::Ref::new_stream_res`
+ --> core/src/ast/schema/ref.rs
+  |
+  |         S: futures::Stream<Item = I>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Ref::new_stream_res`
   = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:27
+ --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:8
   |
+6 | #[rpc]
+  | ------ required by a bound introduced by this call
+7 | impl A {
 8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
+  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -42,55 +62,22 @@ error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::S
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `<AReq as ResponseTypeVisitor>::register::StreamExtractor`
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
+  = note: required for `Pin<&mut impl Iterator<Item = u8>>` to implement `futures_core::stream::Stream`
+note: required by a bound in `StreamExt::next`
+ --> $CARGO/futures-util-0.3.26/src/stream/stream/mod.rs
   |
-6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ----------------------------------- required by a bound in this
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
+  | pub trait StreamExt: Stream {
+  |                      ^^^^^^ required by this bound in `StreamExt::next`
 
-error[E0599]: the method `register` exists for struct `StreamExtractor<_, impl Iterator<Item = u8>>`, but its trait bounds were not satisfied
+error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
  --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
   |
 6 | #[rpc]
   | ^^^^^^
   | |
-  | this is an associated function, not a method
-  | help: use associated function syntax instead: `<AReq as ResponseTypeVisitor>::register::StreamExtractor<_, impl Iterator<Item = u8>>::register(#[rpc])`
-7 | impl A {
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ----------------------------------- method `register` not found for this struct
-  |
-  = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
-note: the candidate is defined in the trait `ResponseTypeVisitor`
- --> core/src/lib.rs
-  |
-  | /     fn register(_: &mut DependencyMap)
-  | |     where
-  | |         Self: 'static;
-  | |______________________^
-note: the following trait bounds were not satisfied:
-      `<impl Iterator<Item = u8> as futures_core::stream::Stream>::Item = _`
-      `impl Iterator<Item = u8>: futures_core::stream::Stream`
-   --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
-    |
-6   | #[rpc]
-    | ^^^^^^ unsatisfied trait bound introduced here
-7   | impl A {
-8   |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:7:6
-  |
-7 |   impl A {
-  |  ______^
-8 | |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  | |_____________________________________________________________^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
+  | the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
+  | this call returns `impl Iterator<Item = u8>`
+  | help: remove the `.await`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -102,71 +89,6 @@ error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::S
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `_::<impl RpcNamespace for A>::AST::StreamExtractor`
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
-  |
-6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ----------------------------------- required by a bound in this
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:27
-  |
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
-  |
-  = help: the following other types implement trait `futures_core::stream::Stream`:
-            &mut S
-            Abortable<St>
-            AssertUnwindSafe<S>
-            Box<S>
-            Buffer<S, Item>
-            BufferUnordered<St>
-            Buffered<St>
-            Either<A, B>
-          and $N others
-note: required by a bound in `_::<impl RpcNamespace for A>::AST::StreamExtractor`
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
-  |
-6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ----------------------------------- required by a bound in this
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: the method `get_type_ref` exists for struct `StreamExtractor<_, impl Iterator<Item = u8>>`, but its trait bounds were not satisfied
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:8
-  |
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |        ^^^^               ----------------------------------- method `get_type_ref` not found for this struct
-  |        |
-  |        method cannot be called on `StreamExtractor<_, impl Iterator<Item = u8>>` due to unsatisfied trait bounds
-  |
-note: the following trait bounds were not satisfied:
-      `<impl Iterator<Item = u8> as futures_core::stream::Stream>::Item = _`
-      `impl Iterator<Item = u8>: futures_core::stream::Stream`
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:6:1
-  |
-6 | #[rpc]
-  | ^^^^^^ unsatisfied trait bound introduced here
-7 | impl A {
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: `std::option::Option<u8>` is not a future
- --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:8
-  |
-8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-  |        ^^^^
-  |        |
-  |        `std::option::Option<u8>` is not a future
-  |        help: remove the `.await`
-  |
-  = help: the trait `std::future::Future` is not implemented for `std::option::Option<u8>`
-  = note: std::option::Option<u8> must be a future or must implement `IntoFuture` to be awaited
-  = note: required for `std::option::Option<u8>` to implement `std::future::IntoFuture`
+  = note: required for `Pin<&mut impl Iterator<Item = u8>>` to implement `futures_core::stream::Stream`
+  = note: required for `Next<'_, Pin<&mut impl Iterator<Item = u8>>>` to implement `std::future::Future`
+  = note: required for `Next<'_, Pin<&mut impl Iterator<Item = u8>>>` to implement `std::future::IntoFuture`

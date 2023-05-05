@@ -1,10 +1,8 @@
 error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:7:6
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
   |
-7 |   impl A {
-  |  ______^
-8 | |     fn test(&mut self) -> String {
-  | |________________________________^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+8 |     fn test(&mut self) -> String {
+  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -16,21 +14,43 @@ error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `<AReq as ResponseTypeVisitor>::register::StreamExtractor`
+note: required by a bound in `DependencyMap::add_stream_output`
+ --> core/src/lib.rs
+  |
+  |         S: futures::Stream<Item = T>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `DependencyMap::add_stream_output`
+
+error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
  --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
   |
 6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> String {
-  |                           ------ required by a bound in this
+  | ^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+  |
+  = help: the following other types implement trait `futures_core::stream::Stream`:
+            &mut S
+            Abortable<St>
+            AssertUnwindSafe<S>
+            Box<S>
+            Buffer<S, Item>
+            BufferUnordered<St>
+            Buffered<St>
+            Either<A, B>
+          and $N others
+note: required by a bound in `zod::zod_core::ast::Ref::new_stream_res`
+ --> core/src/ast/schema/ref.rs
+  |
+  |         S: futures::Stream<Item = I>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Ref::new_stream_res`
   = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:27
+ --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
   |
+6 | #[rpc]
+  | ------ required by a bound introduced by this call
+7 | impl A {
 8 |     fn test(&mut self) -> String {
-  |                           ^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -42,63 +62,22 @@ error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `<AReq as ResponseTypeVisitor>::register::StreamExtractor`
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
+  = note: required for `Pin<&mut std::string::String>` to implement `futures_core::stream::Stream`
+note: required by a bound in `StreamExt::next`
+ --> $CARGO/futures-util-0.3.26/src/stream/stream/mod.rs
   |
-6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> String {
-  |                           ------ required by a bound in this
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
+  | pub trait StreamExt: Stream {
+  |                      ^^^^^^ required by this bound in `StreamExt::next`
 
-error[E0599]: the method `register` exists for struct `StreamExtractor<_, String>`, but its trait bounds were not satisfied
+error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
  --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
   |
 6 | #[rpc]
   | ^^^^^^
   | |
-  | this is an associated function, not a method
-  | help: use associated function syntax instead: `<AReq as ResponseTypeVisitor>::register::StreamExtractor<_, std::string::String>::register(#[rpc])`
-7 | impl A {
-8 |     fn test(&mut self) -> String {
-  |                           ------ method `register` not found for this struct
-  |
- ::: $RUST/alloc/src/string.rs
-  |
-  | pub struct String {
-  | -----------------
-  | |
-  | doesn't satisfy `<_ as Stream>::Item = _`
-  | doesn't satisfy `std::string::String: futures_core::stream::Stream`
-  |
-  = note: found the following associated functions; to be used as methods, functions must have a `self` parameter
-note: the candidate is defined in the trait `ResponseTypeVisitor`
- --> core/src/lib.rs
-  |
-  | /     fn register(_: &mut DependencyMap)
-  | |     where
-  | |         Self: 'static;
-  | |______________________^
-note: the following trait bounds were not satisfied:
-      `<std::string::String as futures_core::stream::Stream>::Item = _`
-      `std::string::String: futures_core::stream::Stream`
-   --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
-    |
-6   | #[rpc]
-    | ^^^^^^ unsatisfied trait bound introduced here
-7   | impl A {
-8   |     fn test(&mut self) -> String {
-    |                           ^^^^^^
-    = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:7:6
-  |
-7 |   impl A {
-  |  ______^
-8 | |     fn test(&mut self) -> String {
-  | |________________________________^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+  | the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
+  | this call returns `std::string::String`
+  | help: remove the `.await`
   |
   = help: the following other types implement trait `futures_core::stream::Stream`:
             &mut S
@@ -110,72 +89,6 @@ error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream
             Buffered<St>
             Either<A, B>
           and $N others
-note: required by a bound in `_::<impl RpcNamespace for A>::AST::StreamExtractor`
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
-  |
-6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> String {
-  |                           ------ required by a bound in this
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `std::string::String: futures_core::stream::Stream` is not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:27
-  |
-8 |     fn test(&mut self) -> String {
-  |                           ^^^^^^ the trait `futures_core::stream::Stream` is not implemented for `std::string::String`
-  |
-  = help: the following other types implement trait `futures_core::stream::Stream`:
-            &mut S
-            Abortable<St>
-            AssertUnwindSafe<S>
-            Box<S>
-            Buffer<S, Item>
-            BufferUnordered<St>
-            Buffered<St>
-            Either<A, B>
-          and $N others
-note: required by a bound in `_::<impl RpcNamespace for A>::AST::StreamExtractor`
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
-  |
-6 | #[rpc]
-  | ^^^^^^ required by this bound in `StreamExtractor`
-7 | impl A {
-8 |     fn test(&mut self) -> String {
-  |                           ------ required by a bound in this
-  = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: the method `get_type_ref` exists for struct `StreamExtractor<_, String>`, but its trait bounds were not satisfied
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
-  |
-8 |     fn test(&mut self) -> String {
-  |        ^^^^               ------ method `get_type_ref` not found for this struct
-  |        |
-  |        method cannot be called on `StreamExtractor<_, String>` due to unsatisfied trait bounds
-  |
- ::: $RUST/alloc/src/string.rs
-  |
-  | pub struct String {
-  | -----------------
-  | |
-  | doesn't satisfy `<_ as Stream>::Item = _`
-  | doesn't satisfy `std::string::String: futures_core::stream::Stream`
-  |
-note: the following trait bounds were not satisfied:
-      `<std::string::String as futures_core::stream::Stream>::Item = _`
-      `std::string::String: futures_core::stream::Stream`
-   --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:6:1
-    |
-6   | #[rpc]
-    | ^^^^^^ unsatisfied trait bound introduced here
-7   | impl A {
-8   |     fn test(&mut self) -> String {
-    |                           ^^^^^^
-    = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: no method named `next` found for struct `Pin<&mut std::string::String>` in the current scope
- --> tests/ui/rpc/fail/sync_function_not_returning_stream.rs:8:8
-  |
-8 |     fn test(&mut self) -> String {
-  |        ^^^^ method not found in `Pin<&mut String>`
+  = note: required for `Pin<&mut std::string::String>` to implement `futures_core::stream::Stream`
+  = note: required for `Next<'_, Pin<&mut std::string::String>>` to implement `std::future::Future`
+  = note: required for `Next<'_, Pin<&mut std::string::String>>` to implement `std::future::IntoFuture`

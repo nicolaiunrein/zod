@@ -211,6 +211,15 @@ impl DependencyMap {
     pub fn resolve(self) -> HashSet<ast::Export> {
         self.0.into_values().collect()
     }
+
+    pub fn add_stream_output<F, S, T>(&mut self, _: F)
+    where
+        F: Fn() -> S,
+        S: futures::Stream<Item = T>,
+        T: ResponseType + 'static,
+    {
+        Self::add_self_as_res::<T>(self);
+    }
 }
 
 /// helper macro to generate the implementation of the [RequestTypeVisitor::register] method
@@ -244,4 +253,24 @@ macro_rules! visit_res_dependencies {
 pub trait Namespace {
     const NAME: &'static str;
     const DOCS: Option<Docs>;
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn register_stream_output_ok() {
+        let mut map = DependencyMap(Default::default());
+        struct X;
+
+        impl X {
+            fn test(&mut self) -> impl futures::Stream<Item = String> {
+                futures::stream::empty()
+            }
+        }
+
+        #[allow(unreachable_code)]
+        map.add_stream_output(|| X::test(todo!()));
+    }
 }
