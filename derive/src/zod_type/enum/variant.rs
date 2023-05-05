@@ -3,8 +3,8 @@ use quote::{quote, quote_spanned};
 use serde_derive_internals::ast::{self, Style};
 use syn::spanned::Spanned;
 
-use crate::config::ContainerConfig;
 use crate::utils::get_zod;
+use crate::zod_type::config::ContainerConfig;
 
 pub(crate) struct Variant<'a>(&'a ast::Variant<'a>, &'a ContainerConfig);
 
@@ -15,8 +15,8 @@ impl<'a> Variant<'a> {
 
     pub(crate) fn skipped(&self) -> bool {
         match self.1.derive {
-            crate::config::Derive::Request => self.0.attrs.skip_deserializing(),
-            crate::config::Derive::Response => self.0.attrs.skip_serializing(),
+            crate::zod_type::Derive::Request => self.0.attrs.skip_deserializing(),
+            crate::zod_type::Derive::Response => self.0.attrs.skip_serializing(),
         }
     }
 
@@ -57,8 +57,8 @@ impl<'a> Variant<'a> {
 
     fn fields(&self) -> impl Iterator<Item = &serde_derive_internals::ast::Field> {
         self.0.fields.iter().filter(|f| !match self.1.derive {
-            crate::config::Derive::Request => f.attrs.skip_deserializing(),
-            crate::config::Derive::Response => f.attrs.skip_serializing(),
+            crate::zod_type::Derive::Request => f.attrs.skip_deserializing(),
+            crate::zod_type::Derive::Response => f.attrs.skip_serializing(),
         })
     }
 

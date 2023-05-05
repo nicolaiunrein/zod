@@ -1,18 +1,30 @@
-use crate::config::ContainerConfig;
-use crate::config::Derive;
-use crate::config::FieldConfig;
+mod config;
+mod r#enum;
+mod field;
+mod r#struct;
+
 use crate::error::Error;
-use crate::field::FilteredFields;
-use crate::r#enum::EnumExport;
-use crate::r#struct::StructExport;
 use crate::utils::get_zod;
+use config::ContainerConfig;
+use config::FieldConfig;
 use darling::FromDeriveInput;
 use darling::ToTokens;
+use field::FilteredFields;
 use proc_macro2::TokenStream;
 use quote::quote;
+use r#enum::EnumExport;
+use r#struct::StructExport;
 use serde_derive_internals::ast::Data;
 use syn::Type;
 use syn::{Attribute, Generics};
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(test, derive(Default))]
+pub(crate) enum Derive {
+    #[cfg_attr(test, default)]
+    Request,
+    Response,
+}
 
 #[derive(FromDeriveInput)]
 #[darling(
@@ -37,10 +49,7 @@ pub(crate) struct ZodType {
 }
 
 impl ZodType {
-    pub(crate) fn from_derive_input(
-        orig: &syn::DeriveInput,
-        derive: Derive,
-    ) -> darling::Result<Self> {
+    pub(crate) fn new(orig: &syn::DeriveInput, derive: Derive) -> darling::Result<Self> {
         let input = ZodTypeDeriveInput::from_derive_input(orig)?;
 
         let cx = serde_derive_internals::Ctxt::new();
@@ -86,7 +95,7 @@ impl ZodType {
                 let definition = EnumExport {
                     variants: variants
                         .iter()
-                        .map(|v| crate::r#enum::Variant::new(v, &config))
+                        .map(|v| r#enum::Variant::new(v, &config))
                         .collect(),
 
                     config: &config,
@@ -167,7 +176,7 @@ impl ToTokens for ZodType {
             })
             .collect::<Vec<_>>();
 
-        tokens.extend(quote! {
+        let expanded = quote! {
             impl #impl_generics #impl_trait for #ident #ty_generics #where_clause {
                 const ARGS: &'static [#zod::core::ast::Ref] = &[
                     #(#args),*
@@ -183,6 +192,8 @@ impl ToTokens for ZodType {
                     #register
                 }
             }
-        })
+        };
+
+        tokens.extend(expanded)
     }
 }

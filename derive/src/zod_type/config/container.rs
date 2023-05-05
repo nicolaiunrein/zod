@@ -6,7 +6,7 @@ use quote::quote;
 use serde_derive_internals::attr::Container;
 use syn::{Attribute, Type};
 
-use super::Derive;
+use crate::zod_type::Derive;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub(crate) enum TagType {
@@ -48,23 +48,23 @@ pub(crate) struct ContainerConfig {
 impl ContainerConfig {
     pub(crate) fn resolve_name(&self, name: &serde_derive_internals::attr::Name) -> String {
         match self.derive {
-            crate::config::Derive::Request => name.deserialize_name(),
-            crate::config::Derive::Response => name.serialize_name(),
+            Derive::Request => name.deserialize_name(),
+            Derive::Response => name.serialize_name(),
         }
     }
 
     pub(crate) fn req_or_res(&self) -> TokenStream {
         match self.derive {
-            crate::config::Derive::Request => quote!(new_req),
-            crate::config::Derive::Response => quote!(new_res),
+            Derive::Request => quote!(new_req),
+            Derive::Response => quote!(new_res),
         }
     }
 
     pub(crate) fn trait_name(&self) -> TokenStream {
         let zod = get_zod();
         match self.derive {
-            crate::config::Derive::Request => quote!(#zod::core::RequestType),
-            crate::config::Derive::Response => quote!(#zod::core::ResponseType),
+            Derive::Request => quote!(#zod::core::RequestType),
+            Derive::Response => quote!(#zod::core::ResponseType),
         }
     }
 }

@@ -1,7 +1,7 @@
-use crate::config::Derive;
 use crate::error::Error;
-use crate::field::{Field, FilteredFields};
 use crate::utils::get_zod;
+use crate::zod_type::field::{Field, FilteredFields};
+use crate::zod_type::Derive;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;

@@ -1,10 +1,12 @@
-use crate::config::{Derive, FieldConfig};
 use crate::error::Error;
+use crate::zod_type::config::FieldConfig;
 use darling::ToTokens;
 use quote::quote;
 use syn::{Ident, Type};
 
 use crate::utils::get_zod;
+
+use super::Derive;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Field {

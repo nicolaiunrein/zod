@@ -1,6 +1,5 @@
-use crate::config::ContainerConfig;
-use crate::config::TagType;
 use crate::utils::get_zod;
+use crate::zod_type::config::{ContainerConfig, TagType};
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;

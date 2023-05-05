@@ -1,8 +1,8 @@
 mod schema;
 
-use crate::config::ContainerConfig;
-use crate::field::FilteredFields;
 use crate::utils::get_zod;
+use crate::zod_type::config::ContainerConfig;
+use crate::zod_type::field::FilteredFields;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -64,8 +64,8 @@ impl<'a> ToTokens for StructExport<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::config::FieldConfig;
     use crate::test_utils::compare;
+    use crate::zod_type::config::FieldConfig;
     use syn::parse_quote;
 
     #[test]

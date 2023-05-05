@@ -1,49 +1,34 @@
 mod backend;
-mod config;
 mod docs;
-mod r#enum;
 mod error;
-mod field;
 mod namespace;
-mod r#struct;
 mod test_utils;
-mod r#type;
 mod utils;
+mod zod_type;
 
 mod rpc;
 
 use backend::BackendInput;
-use config::Derive;
 use darling::FromDeriveInput;
 use namespace::Namespace;
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
 use quote::quote;
-use r#type::ZodType;
+use zod_type::ZodType;
 
 #[proc_macro_error]
 #[proc_macro_derive(RequestType, attributes(zod))]
 pub fn request(input: TokenStream) -> TokenStream {
-    let parsed = match syn::parse(input) {
-        Ok(parsed) => parsed,
-        Err(err) => {
-            return err.into_compile_error().into();
-        }
-    };
-
-    let request_type = match ZodType::from_derive_input(&parsed, Derive::Request) {
-        Ok(input) => input,
-        Err(err) => {
-            return err.write_errors().into();
-        }
-    };
-
-    quote!(#request_type).into()
+    req_res(input, zod_type::Derive::Request)
 }
 
 #[proc_macro_error]
 #[proc_macro_derive(ResponseType, attributes(zod))]
 pub fn response(input: TokenStream) -> TokenStream {
+    req_res(input, zod_type::Derive::Response)
+}
+
+fn req_res(input: TokenStream, derive: zod_type::Derive) -> TokenStream {
     let parsed = match syn::parse(input) {
         Ok(parsed) => parsed,
         Err(err) => {
@@ -51,7 +36,7 @@ pub fn response(input: TokenStream) -> TokenStream {
         }
     };
 
-    let response_type = match ZodType::from_derive_input(&parsed, Derive::Response) {
+    let response_type = match ZodType::new(&parsed, derive) {
         Ok(input) => input,
         Err(err) => {
             return err.write_errors().into();

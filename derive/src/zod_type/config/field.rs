@@ -2,7 +2,7 @@ use serde_derive_internals::attr;
 
 use crate::error::Error;
 
-use super::Derive;
+use crate::zod_type::Derive;
 
 #[derive(Clone, Debug)]
 pub(crate) struct FieldConfig {
