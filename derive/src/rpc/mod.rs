@@ -38,7 +38,9 @@ impl RpcInput {
                 let types = item.method_args.iter().map(|arg| &arg.ty);
 
                 let args = if item.method_args.is_empty() {
-                    quote!(())
+                    // In serde empty sequences cannot be deserialized to the unit type at the moment.
+                    // See: https://github.com/serde-rs/serde/issues/2340
+                    quote!([(); 0]) 
                 } else {
                     quote!((#(#types,)*))
                 };

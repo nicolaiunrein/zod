@@ -20,9 +20,10 @@ impl BackendVariant {
     fn expand_match_arm(&self, index: usize) -> TokenStream {
         let ident = Self::format_ident(index);
         let index = syn::Index::from(index);
+        let zod = get_zod();
 
         quote!(Inner::#ident{ req, .. } => {
-            if let Some(jh) = self.#index.process(req, sender, *id).await {
+            if let Some(jh) = #zod::core::rpc::RpcNamespace::process(&mut self.#index, req, sender, *id).await {
                 subscribers.insert(*id, jh);
             }
         })
@@ -99,7 +100,7 @@ impl ToTokens for BackendInput {
                     ) {
                         match req {
                             #zod::core::rpc::Request::Exec { id, value } => {
-                                #[derive(Deserialize)]
+                                #[derive(#zod::__private::serde::Deserialize)]
                                 #[serde(untagged)]
                                 enum Inner {
                                     #(#enum_variants),*

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use zod::{core::rpc::RpcNamespace, core::types::Usize, Namespace, RequestType, ResponseType};
+use zod::{core::types::Usize, Namespace, RequestType, ResponseType};
 
 #[derive(Namespace)]
 pub struct Watchout {
