@@ -14,7 +14,7 @@ impl Display for Export {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("    ")?;
         self.fmt_ts(f)?;
-        f.write_str("\n")?;
+        f.write_str("\n\n")?;
         f.write_str("    ")?;
         self.fmt_zod(f)?;
         Ok(())

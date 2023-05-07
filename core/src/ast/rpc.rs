@@ -41,6 +41,13 @@ impl Display for RpcRequest {
             .collect::<Vec<_>>()
             .join(", ");
 
+        let arg_names = self
+            .args
+            .iter()
+            .map(|arg| arg.name())
+            .collect::<Vec<_>>()
+            .join(", ");
+
         let name = self.path.name();
         let ns = self.path.ns();
 
@@ -49,33 +56,41 @@ impl Display for RpcRequest {
             RpcRequestKind::Stream => "",
         };
 
-        let res = match self.kind {
-            RpcRequestKind::Method => format!("Promise<{}>", self.output.to_ts_string()),
-            RpcRequestKind::Stream => format!("Store<{}>", self.output.to_ts_string()),
-        };
+        let inner_res = self.output.to_ts_string();
 
-        let req = match self.kind {
-            RpcRequestKind::Method => "client.call",
-            RpcRequestKind::Stream => "client.get_stream",
+        let res = match self.kind {
+            RpcRequestKind::Method => format!("Promise<{}>", inner_res),
+            RpcRequestKind::Stream => format!("Rs.Stream<{}>", inner_res),
         };
 
         f.write_str("// @ts-ignore\n")?;
 
         f.write_fmt(format_args!("{asyncness} {name}({ts_args}): {res} {{\n"))?;
 
-        f.write_str("    // phantom usage\n")?;
+        f.write_fmt(format_args!(
+            "    z.lazy(() => z.tuple([{zod_args}])).parse([{arg_names}]);\n"
+        ))?;
 
-        for arg in self.args {
-            f.write_fmt(format_args!("    {};\n", arg.name()))?;
+        match self.kind {
+            RpcRequestKind::Method => {
+                f.write_fmt(format_args!(
+                    "    return {inner_res}.parse(await client.call(\"{ns}\", \"{name}\", arguments));\n"
+                ))?;
+            }
+            RpcRequestKind::Stream => {
+                f.write_fmt(format_args!(
+                    "    return {{
+      subscribe(cb) {{
+        return client
+          .get_stream(\"{ns}\", \"{name}\", [{arg_names}])
+          .subscribe((val) => {{
+            cb({inner_res}.parse(val));
+          }});
+      }}
+}}"
+                ))?;
+            }
         }
-
-        f.write_fmt(format_args!(
-            "    z.lazy(() => z.tuple([{zod_args}])).parse([...arguments]);\n"
-        ))?;
-
-        f.write_fmt(format_args!(
-            "    return {req}(\"{ns}\", \"{name}\", arguments);\n"
-        ))?;
 
         f.write_str("}")?;
         Ok(())
@@ -97,7 +112,7 @@ async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
     name;
     age;
     z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([...arguments]);
-    return request(\"Ns\", \"test\", arguments);
+    return call(\"Ns\", \"test\", arguments);
 };
 ";
 
@@ -123,7 +138,7 @@ async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
     fn stream_ok() {
         let expected = "\
 // @ts-ignore
-test(name: Rs.String, age: Rs.U16): Store<Rs.Option<Rs.Bool>> {
+test(name: Rs.String, age: Rs.U16): Rs.Stream<Rs.Option<Rs.Bool>> {
     // phantom usage
     name;
     age;

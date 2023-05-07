@@ -16,6 +16,9 @@
 
   const x = watchout.hello_stream(20n);
   const y = pixera.hello_stream(20n);
+  const s = pixera.debug_stream();
+
+  s.subscribe(xx => console.log(xx))
 
   onMount(async () => {
     count = await watchout.hello("abc", 123n);
@@ -28,4 +31,5 @@
 </button>
 <p>Watchout: {$x}</p>
 <p>Pixera: {$y}</p>
+<p>S: {$s}</p>
 

@@ -118,10 +118,9 @@ export const connect = (addr: string, reopenTimeouts = DEFAULT_TIMEOUTS) => {
     };
   }
 
-  type Store<T> = {
+  interface Stream<T> {
     subscribe(subscriber: (value: T) => void): () => void;
-    close(): void;
-  };
+  }
 
   const CONNECTION = websocketStore(addr);
   let req_id = 0n;
@@ -172,7 +171,7 @@ export const connect = (addr: string, reopenTimeouts = DEFAULT_TIMEOUTS) => {
         })
         .finally(() => unsubscribe && unsubscribe());
     },
-    get_stream<T>(ns: string, method: string, args: IArguments): Store<T> {
+    get_stream<T>(ns: string, method: string, args: IArguments): Stream<T> {
       req_id += 1n;
       let id = req_id;
       let req = { req_id, ns, method, args: [...args] };

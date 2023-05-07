@@ -9,22 +9,18 @@ use crate::{
 
 use crate::types::Rs;
 
-const CLIENT_INTERFACE: &str = r#"export interface Client {
-    get_stream<T>(
+const CLIENT_DEF: &str = r#"export interface Client {
+    get_stream(
       ns: string,
       method: string,
-      args: IArguments
-    ): {
-      subscribe(next: (value: T) => void): () => void;
-      close(): void;
-    };
-    call<T>(ns: string, method: string, args: IArguments): Promise<T>;
+      args: unknown[]
+    ): Stream<unknown>;
+    call(ns: string, method: string, args: unknown[]): Promise<unknown>;
   }"#;
 
-const STORE_SIG: &str = r#"
-type Store<T> = {
+const STREAM_DEF: &str = r#"
+export interface Stream<T> {
     subscribe(next: (value: T) => void): () => void;
-    close(): void;
 };
 "#;
 
@@ -113,30 +109,27 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
                 f.write_str(" {\n")?;
                 for export in self.exports.iter() {
                     export.fmt(f)?;
-                    f.write_str("\n")?;
+                    f.write_str("\n\n")?;
                 }
 
                 if !self.requests.is_empty() {
                     f.write_str("export function init(client: Rs.Client)")?;
                     f.write_str("{")?;
 
-                    if self.requests.iter().any(|req| req.is_stream()) {
-                        f.write_str(STORE_SIG)?;
-                    }
-
                     f.write_str("return {")?;
                     for req in self.requests.iter() {
                         req.fmt(f)?;
-                        f.write_str(",\n")?;
+                        f.write_str(",\n\n")?;
                     }
                     f.write_str("}}")?;
                 }
 
                 if self.is_rs {
-                    f.write_str(CLIENT_INTERFACE)?;
+                    f.write_str(CLIENT_DEF)?;
+                    f.write_str(STREAM_DEF)?;
                 }
 
-                f.write_str("\n}\n")?;
+                f.write_str("\n}\n\n")?;
                 Ok(())
             }
         }
