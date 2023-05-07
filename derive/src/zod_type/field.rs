@@ -21,8 +21,7 @@ impl Field {
             Type::Path(p) => p
                 .path
                 .get_ident()
-                .map(|ident| generics.iter().find(|gen| gen == &&ident))
-                .flatten()
+                .and_then(|ident| generics.iter().find(|gen| gen == &&ident))
                 .map(|i| Ident::clone(i)),
 
             _ => None,

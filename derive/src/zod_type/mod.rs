@@ -115,7 +115,7 @@ impl ZodType {
                 }
                 Data::Struct(ref style, ref fields) => {
                     let fields = fields
-                        .into_iter()
+                        .iter()
                         .map(|f| Ok((f.ty, FieldConfig::new(&f.attrs, derive)?)))
                         .collect::<Result<_, crate::error::Error>>()?;
 

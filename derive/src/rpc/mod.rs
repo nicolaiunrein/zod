@@ -50,11 +50,11 @@ impl RpcInput {
             .collect()
     }
 
-    fn input_types(&self) -> Vec<&Box<syn::Type>> {
+    fn input_types(&self) -> Vec<&syn::Type> {
         self
             .items
             .iter()
-            .flat_map(|item| item.method_args.iter().map(|arg| &arg.ty))
+            .flat_map(|item| item.method_args.iter().map(|arg| &*arg.ty))
             .collect()
 
     }

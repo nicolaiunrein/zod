@@ -63,7 +63,7 @@ impl<'a> Variant<'a> {
     }
 
     fn name(&self) -> &serde_derive_internals::attr::Name {
-        &self.0.attrs.name()
+        self.0.attrs.name()
     }
 
     fn span(&self) -> Span {
@@ -74,7 +74,7 @@ impl<'a> Variant<'a> {
         self.0.style
     }
 
-    fn named_fields<'b>(&'b self) -> impl Iterator<Item = TokenStream> + 'b {
+    fn named_fields(&self) -> impl Iterator<Item = TokenStream> + '_ {
         self.fields().map(|f| {
             let zod = get_zod();
             let req_res = self.1.req_or_res();
@@ -91,7 +91,7 @@ impl<'a> Variant<'a> {
         })
     }
 
-    fn tuple_fields<'b>(&'b self) -> impl Iterator<Item = TokenStream> + 'b {
+    fn tuple_fields(&self) -> impl Iterator<Item = TokenStream> + '_ {
         self.fields().map(|f| {
             let zod = get_zod();
             let ty = f.ty;
