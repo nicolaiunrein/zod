@@ -85,40 +85,51 @@ impl ZodType {
             })
             .collect::<Vec<_>>();
 
-        let (dependencies, definition) = match serde_ast.data {
-            Data::Enum(ref variants) => {
-                let dependencies = variants
-                    .iter()
-                    .flat_map(|v| v.fields.iter().map(|f| f.ty.clone()))
-                    .collect::<Vec<_>>();
+        let zod = get_zod();
 
-                let definition = EnumExport {
-                    variants: variants
+        let (dependencies, definition) = if let Some(alias) = config.type_alias {
+            let export = match derive {
+                Derive::Request => quote!(<#alias as #zod::core::RequestType>::EXPORT),
+                Derive::Response => quote!(<#alias as #zod::core::ResponseType>::EXPORT),
+            };
+
+            (vec![], export)
+        } else {
+            match serde_ast.data {
+                Data::Enum(ref variants) => {
+                    let dependencies = variants
                         .iter()
-                        .map(|v| r#enum::Variant::new(v, &config))
-                        .collect(),
+                        .flat_map(|v| v.fields.iter().map(|f| f.ty.clone()))
+                        .collect::<Vec<_>>();
 
-                    config: &config,
-                };
+                    let definition = EnumExport {
+                        variants: variants
+                            .iter()
+                            .map(|v| r#enum::Variant::new(v, &config))
+                            .collect(),
 
-                (dependencies, quote!(#definition))
-            }
-            Data::Struct(ref style, ref fields) => {
-                let fields = fields
-                    .into_iter()
-                    .map(|f| Ok((f.ty, FieldConfig::new(&f.attrs, derive)?)))
-                    .collect::<Result<_, crate::error::Error>>()?;
+                        config: &config,
+                    };
 
-                let fields = FilteredFields::new(fields, &generic_idents)?;
-                let dependencies = fields.iter().map(|f| f.ty.clone()).collect();
+                    (dependencies, quote!(#definition))
+                }
+                Data::Struct(ref style, ref fields) => {
+                    let fields = fields
+                        .into_iter()
+                        .map(|f| Ok((f.ty, FieldConfig::new(&f.attrs, derive)?)))
+                        .collect::<Result<_, crate::error::Error>>()?;
 
-                let struct_export = StructExport {
-                    style,
-                    fields,
-                    config: &config,
-                };
+                    let fields = FilteredFields::new(fields, &generic_idents)?;
+                    let dependencies = fields.iter().map(|f| f.ty.clone()).collect();
 
-                (dependencies, quote!(#struct_export))
+                    let struct_export = StructExport {
+                        style,
+                        fields,
+                        config: &config,
+                    };
+
+                    (dependencies, quote!(#struct_export))
+                }
             }
         };
 

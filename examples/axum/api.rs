@@ -21,6 +21,25 @@ pub struct MyEntity {
     value: String,
 }
 
+#[derive(Serialize, Deserialize, RequestType, ResponseType, Debug, Clone)]
+#[zod(namespace = "Watchout")]
+#[serde(from = "MyEntity", into = "String")]
+pub struct Newtype {
+    value: String,
+}
+
+impl From<Newtype> for String {
+    fn from(value: Newtype) -> Self {
+        value.value
+    }
+}
+
+impl From<MyEntity> for Newtype {
+    fn from(value: MyEntity) -> Self {
+        Self { value: value.value }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, RequestType, Debug)]
 #[zod(namespace = "Watchout")]
 pub struct Generic<'a, T: RequestType, V: RequestType> {
@@ -78,6 +97,10 @@ impl Pixera {
 
 #[zod::rpc]
 impl Watchout {
+    pub async fn newtype(&mut self, value: Newtype) -> Newtype {
+        value
+    }
+
     pub async fn nested(&mut self, _value: MyEntity) -> Usize {
         *self.shared_data += 1;
         self.shared_data

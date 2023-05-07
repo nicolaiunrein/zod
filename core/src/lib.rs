@@ -222,6 +222,14 @@ impl DependencyMap {
     }
 }
 
+impl std::ops::Deref for DependencyMap {
+    type Target = BTreeMap<TypeId, ast::Export>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// helper macro to generate the implementation of the [RequestTypeVisitor::register] method
 #[macro_export]
 macro_rules! visit_req_dependencies {

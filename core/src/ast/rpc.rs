@@ -74,7 +74,7 @@ impl Display for RpcRequest {
         match self.kind {
             RpcRequestKind::Method => {
                 f.write_fmt(format_args!(
-                    "    return {inner_res}.parse(await client.call(\"{ns}\", \"{name}\", arguments));\n"
+                    "    return {inner_res}.parse(await client.call(\"{ns}\", \"{name}\", [{arg_names}]));\n"
                 ))?;
             }
             RpcRequestKind::Stream => {
