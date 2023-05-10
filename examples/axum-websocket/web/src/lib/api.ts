@@ -25,7 +25,9 @@ export namespace Rs {
     call(ns: string, method: string, args: unknown[]): Promise<unknown>;
   }
   export interface Stream<T> {
-    subscribe(next: (value: T) => void): () => void;
+    subscribe(
+      next: (value: { data: T } | { err: any } | { loading: true }) => void
+    ): () => void;
   }
 }
 
@@ -49,6 +51,24 @@ export namespace Chat {
   export function init(client: Rs.Client) {
     return {
       // @ts-ignore
+      count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
+        z.lazy(() => z.tuple([Rs.Usize])).parse([n]);
+        return {
+          subscribe(cb) {
+            return client
+              .get_stream("Chat", "count_to", [n])
+              .subscribe((val) => {
+                if ("data" in val) {
+                  cb({ data: Rs.Usize.parse(val.data) });
+                } else if ("err" in val) {
+                  cb({ err: val.err });
+                }
+              });
+          },
+        };
+      },
+
+      // @ts-ignore
       messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
         z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
         return {
@@ -56,7 +76,11 @@ export namespace Chat {
             return client
               .get_stream("Chat", "messages", [len])
               .subscribe((val) => {
-                cb(Rs.VecDeque(Chat.Message).parse(val));
+                if ("data" in val) {
+                  cb({ data: Rs.VecDeque(Chat.Message).parse(val.data) });
+                } else if ("err" in val) {
+                  cb({ err: val.err });
+                }
               });
           },
         };

@@ -84,6 +84,17 @@ impl Chat {
             futures::future::ready(Some(history.clone()))
         })
     }
+
+    pub fn count_to(&mut self, n: Usize) -> impl Stream<Item = Usize> {
+        futures::stream::repeat(())
+            .enumerate()
+            .take(*n)
+            .map(|(index, _)| index.into())
+            .then(|evt| async move {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                evt
+            })
+    }
 }
 
 #[derive(zod::Backend)]
