@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::ast::Ref;
 use crate::types::Usize;
 use crate::RequestType;
@@ -158,6 +160,14 @@ impl_wrapper!("Box", Box<T>);
 impl_generic!({
     ty: Vec<T>,
     name: "Vec",
+    generics: [T],
+    ts: "T[]",
+    zod: "z.array(T)"
+});
+
+impl_generic!({
+    ty: VecDeque<T>,
+    name: "VecDeque",
     generics: [T],
     ts: "T[]",
     zod: "z.array(T)"
