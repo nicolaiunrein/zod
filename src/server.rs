@@ -1,9 +1,19 @@
+//! Definition and helpers to implement an RPC server
+
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
     SinkExt, Stream, StreamExt,
 };
 use pin_project_lite::pin_project;
 use zod_core::rpc::{server::Backend, Request, Response};
+
+#[async_trait::async_trait]
+pub trait Server {
+    async fn serve<T>(self, backend: T) -> Result<(), Box<dyn std::error::Error>>
+    where
+        T: Backend + Send,
+        Self: Sized;
+}
 
 #[derive(Clone, Debug)]
 pub struct BackendProxy {

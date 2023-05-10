@@ -1,14 +1,8 @@
 mod api;
 use api::MyBackend;
 use axum::{extract::Extension, routing::get, Router, Server};
-use zod::{
-    core::rpc::server::Backend,
-    rpc::{
-        clients::WEBSOCKET_CLIENT,
-        servers::{axum::websocket_handler, proxy::BackendProxy},
-    },
-    types::Usize,
-};
+use zod::{core::rpc::server::Backend, server::BackendProxy, types::Usize};
+use zod_axum::websocket_handler;
 
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
@@ -21,19 +15,14 @@ async fn main() {
 
     match std::env::args().nth(1).as_deref() {
         Some("generate") => generate(),
-        Some("generate-client") => generate_client(),
         Some("serve") => serve().await,
-        _ => eprintln!("Call with serve, generate or generate-client"),
+        _ => eprintln!("Call with serve or generate"),
     }
 }
 
 fn generate() {
     let content = MyBackend::generate();
     println!("{content}");
-}
-
-fn generate_client() {
-    println!("{WEBSOCKET_CLIENT}")
 }
 
 async fn serve() {

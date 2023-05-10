@@ -113,7 +113,7 @@ impl ToTokens for BackendInput {
 
                                     Err(err) => {
                                         let _ = sender
-                                            .unbounded_send(zod_core::rpc::Response::error(id, err))
+                                            .unbounded_send(#zod::core::rpc::Response::error(id, err))
                                             .ok();
                                     }
                                 }

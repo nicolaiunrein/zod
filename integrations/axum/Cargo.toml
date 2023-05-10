@@ -1,0 +1,17 @@
+[package]
+name = "zod-axum"
+version = "0.1.0"
+edition = "2021"
+description = ""
+authors = ["Nicolai Unrein<info@auxcontrol.io>"]
+documentation = "https://docs.rs/zod-axum"
+repository = "https://github.com/nicolaiunrein/zod-axum"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+axum = { version = "0.6.18", features = ["ws", "tracing"] }
+futures = "0.3.28"
+serde_json = "1.0.96"
+tracing = "0.1.37"
+
+zod = { path = "../../", version = "0.1.0" } 

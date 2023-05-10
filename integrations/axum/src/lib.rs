@@ -8,24 +8,10 @@ use axum::{
 };
 use futures::{FutureExt, SinkExt, StreamExt};
 
-use super::proxy::{BackendProxy, ProxyConnection};
+use zod::server::{BackendProxy, ProxyConnection};
+use zod::core::rpc;
 
-pub struct RpcResponse(zod_core::rpc::Response);
-
-impl IntoResponse for RpcResponse {
-    fn into_response(self) -> Response<BoxBody> {
-        let body: Body = serde_json::to_string(&self.0)
-            .expect("failed to serialize body")
-            .into();
-        let mut resp = Response::new(boxed(body));
-        resp.headers_mut().insert(
-            http::header::CONTENT_TYPE,
-            HeaderValue::from_static("application/json"),
-        );
-
-        resp
-    }
-}
+pub struct RpcResponse(zod::core::rpc::Response);
 
 pub async fn websocket_handler(
     ws: axum::extract::WebSocketUpgrade,
@@ -35,6 +21,23 @@ pub async fn websocket_handler(
     ws.on_upgrade(|socket| websocket(socket, con))
 }
 
+impl IntoResponse for RpcResponse {
+    fn into_response(self) -> Response<BoxBody> {
+        let body: Body = serde_json::to_string(&self.0)
+            .expect("failed to serialize body")
+            .into();
+
+        let mut res = Response::new(boxed(body));
+
+        res.headers_mut().insert(
+            http::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
+
+        res
+    }
+}
+
 async fn websocket(stream: WebSocket, con: ProxyConnection) {
     let (mut sender, mut receiver) = stream.split();
     let (tx, mut rx) = con.split();
@@ -42,9 +45,9 @@ async fn websocket(stream: WebSocket, con: ProxyConnection) {
     let fut1 = async move {
         while let Some(Ok(message)) = receiver.next().await {
             if let Message::Text(json) = message {
-                let req = serde_json::from_str(&json).map_err(|err| crate::rpc::Response::Error {
+                let req = serde_json::from_str(&json).map_err(|err| rpc::Response::Error {
                     id: None,
-                    data: crate::rpc::Error::from(err),
+                    data: rpc::Error::from(err),
                 });
                 if let Err(err) = tx.send(req) {
                     tracing::warn!(?err);

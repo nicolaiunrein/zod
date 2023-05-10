@@ -1,0 +1,21 @@
+[package]
+name = "zod-example-axum"
+version = "0.1.0"
+edition = "2021"
+description = ""
+authors = ["Nicolai Unrein<info@auxcontrol.io>"]
+documentation = "https://docs.rs/zod"
+repository = "https://github.com/nicolaiunrein/zod"
+license = "MIT OR Apache-2.0"
+publish = false
+
+
+[dependencies]
+axum = "0.6.18"
+futures = "0.3.28"
+serde = { version = "1.0.162", features = ["derive"] }
+tokio = "1.28.0"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+
+zod = { path = "../..", version = "0.1.0" } 
+zod-axum = { path = "../../integrations/axum", version = "0.1.0" }

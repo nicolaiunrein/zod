@@ -125,8 +125,7 @@ pub use zod_core::ResponseType;
 
 pub use zod_derive::*;
 
-#[cfg(feature = "rpc")]
-pub mod rpc;
+pub mod server;
 
 pub use zod_core as core;
 
