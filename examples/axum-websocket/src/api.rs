@@ -21,7 +21,47 @@ pub struct User {
 #[zod(namespace = "Chat")]
 pub struct Message {
     user: User,
+    color: Color,
     content: String,
+}
+
+#[derive(RequestType, ResponseType, serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[zod(namespace = "Chat")]
+#[serde(try_from = "String", into = "String")]
+struct Color {
+    red: u8,
+    green: u8,
+    blue: u8,
+}
+
+impl From<Color> for String {
+    fn from(value: Color) -> Self {
+        format!(
+            "#{red:02x}{green:02x}{blue:02x}",
+            red = value.red,
+            green = value.green,
+            blue = value.blue
+        )
+    }
+}
+
+impl TryFrom<String> for Color {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if !value.starts_with('#') {
+            return Err(String::from("Colors must start with a '#'"));
+        }
+
+        if value.len() == 7 {
+            let red = u8::from_str_radix(&value[1..=2], 16).map_err(|err| err.to_string())?;
+            let green = u8::from_str_radix(&value[3..=4], 16).map_err(|err| err.to_string())?;
+            let blue = u8::from_str_radix(&value[5..=6], 16).map_err(|err| err.to_string())?;
+            return Ok(Self { red, green, blue });
+        }
+
+        return Err(String::from("Invalid color format"));
+    }
 }
 
 #[zod::rpc]

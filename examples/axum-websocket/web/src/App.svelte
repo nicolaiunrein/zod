@@ -15,15 +15,15 @@ $: history = $messages || [];
 
 
 async function send() {
-    await chat.send({user: {name}, content: current_msg});
+    await chat.send({user: {name}, content: current_msg, color });
     current_msg = "";
 }
 
 function onKeydown(e: KeyboardEvent) {
     if (e.key == "Enter") {
         send()
-        }
     }
+}
 
 </script>
 
@@ -64,10 +64,10 @@ function onKeydown(e: KeyboardEvent) {
          <div class="flex items-end">
             <div class="flex flex-col space-y-2 text max-w-xs mx-2 order-2 items-start">
                <div>
-               <span class="rounded-lg inline-block rounded-bl-none bg-gray-200 border-4 text-gray-600 relative" style="border-color: {color}">
-               <div class="absolute w-full h-full opacity-20"  style="background-color: {color}">
+               <span class="rounded-lg inline-block rounded-bl-none bg-gray-200 border-4 text-gray-600 relative" style="border-color: {msg.color}">
+               <div class="absolute w-full h-full opacity-20"  style="background-color: {msg.color}">
                </div>
-               <div class="text-xs px-4 py-1 text-white bold"  style="background-color: {color}">{msg.user.name}</div>
+               <div class="text-xs px-4 py-1 text-white bold"  style="background-color: {msg.color}">{msg.user.name}</div>
                <div class="px-4 py-2 inline-block text-gray-600 relative">
                 {msg.content}
                </div>

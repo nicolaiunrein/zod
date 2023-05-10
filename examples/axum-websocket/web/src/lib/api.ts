@@ -32,11 +32,12 @@ export namespace Rs {
 export namespace Chat {
   export interface Message {
     user: Chat.User;
+    color: Rs.String;
     content: Rs.String;
   }
 
   export const Message = z.lazy(() =>
-    z.object({ user: Chat.User, content: Rs.String })
+    z.object({ user: Chat.User, color: Rs.String, content: Rs.String })
   );
 
   export interface User {
@@ -47,18 +48,6 @@ export namespace Chat {
 
   export function init(client: Rs.Client) {
     return {
-      // @ts-ignore
-      counter(): Rs.Stream<Rs.Usize> {
-        z.lazy(() => z.tuple([])).parse([]);
-        return {
-          subscribe(cb) {
-            return client.get_stream("Chat", "counter", []).subscribe((val) => {
-              cb(Rs.Usize.parse(val));
-            });
-          },
-        };
-      },
-
       // @ts-ignore
       messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
         z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
