@@ -19,7 +19,18 @@ pub trait Server {
 
 #[derive(Clone, Debug)]
 pub struct BackendProxy {
-    tx: UnboundedSender<(usize, Result<Request, Response>, UnboundedSender<Response>)>,
+    event_tx: UnboundedSender<Event>,
+}
+
+pub enum Event {
+    Disconnect {
+        connection_id: usize,
+    },
+    Request {
+        connection_id: usize,
+        request: Result<Request, Response>,
+        response_channel: UnboundedSender<Response>,
+    },
 }
 
 impl BackendProxy {
@@ -31,54 +42,93 @@ impl BackendProxy {
         let mut subscribers = Default::default();
 
         tokio::spawn(async move {
-            while let Some((connection_id, req, mut res)) = rx.next().await {
-                tracing::debug!(?req, "Incoming Request");
-                match req {
-                    Ok(req) => {
-                        backend
-                            .forward_request(connection_id, req, res, &mut subscribers)
-                            .await
-                    }
-                    Err(err) => {
-                        if let Err(err) = res.send(err).await {
-                            tracing::warn!(?err);
+            while let Some(event) = rx.next().await {
+                match event {
+                    Event::Request {
+                        connection_id,
+                        request,
+                        mut response_channel,
+                    } => {
+                        tracing::debug!(?request, "Incoming Request");
+                        match request {
+                            Ok(req) => {
+                                backend
+                                    .forward_request(
+                                        connection_id,
+                                        req,
+                                        response_channel,
+                                        &mut subscribers,
+                                    )
+                                    .await
+                            }
+                            Err(err) => {
+                                if let Err(err) = response_channel.send(err).await {
+                                    tracing::warn!(?err);
+                                }
+                            }
                         }
+                    }
+                    Event::Disconnect { connection_id } => {
+                        println!("disconnecting {connection_id}");
+                        subscribers.retain(|k, _| k.0 != connection_id);
+                        println!("active = {}", subscribers.len())
                     }
                 }
             }
         });
 
-        Self { tx }
+        Self { event_tx: tx }
     }
 
     pub fn connect(&self) -> ProxyConnection {
         static NEXT_ID: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
         let connection_id = NEXT_ID.fetch_add(1, atomic::Ordering::SeqCst);
         let (res_tx, res_rx) = unbounded();
-        ProxyConnection {
+        ProxyConnection::new(ProxyConnectionInner {
             connection_id,
-            tx: self.tx.clone(),
+            tx: self.event_tx.clone(),
             res_tx,
             res_rx,
-        }
+        })
     }
 }
 
-pub struct ProxyConnection {
+pub struct ProxyConnectionInner {
     connection_id: usize,
-    tx: UnboundedSender<(usize, Result<Request, Response>, UnboundedSender<Response>)>,
+    tx: UnboundedSender<Event>,
     res_tx: UnboundedSender<Response>,
     res_rx: UnboundedReceiver<Response>,
 }
 
+pub struct ProxyConnection {
+    inner: Option<ProxyConnectionInner>,
+}
+
 impl ProxyConnection {
-    pub fn split(self) -> (ProxyTx, ProxyRx) {
-        let ProxyConnection {
+    pub fn new(inner: ProxyConnectionInner) -> Self {
+        Self { inner: Some(inner) }
+    }
+}
+
+impl Drop for ProxyConnection {
+    fn drop(&mut self) {
+        if let Some(inner) = self.inner.take() {
+            let _ = inner.tx.unbounded_send(Event::Disconnect {
+                connection_id: inner.connection_id,
+            });
+        }
+    }
+}
+
+impl ProxyConnection {
+    pub fn split(mut self) -> (ProxyTx, ProxyRx) {
+        let ProxyConnectionInner {
+            connection_id,
             tx,
             res_tx,
             res_rx,
-            connection_id,
-        } = self;
+        } = self.inner.take().unwrap();
+
         (
             ProxyTx {
                 connection_id,
@@ -92,14 +142,26 @@ impl ProxyConnection {
 
 pub struct ProxyTx {
     connection_id: usize,
-    tx: UnboundedSender<(usize, Result<Request, Response>, UnboundedSender<Response>)>,
+    tx: UnboundedSender<Event>,
     res_tx: UnboundedSender<Response>,
 }
 
+impl Drop for ProxyTx {
+    fn drop(&mut self) {
+        let _ = self.tx.unbounded_send(Event::Disconnect {
+            connection_id: self.connection_id,
+        });
+    }
+}
+
 impl ProxyTx {
-    pub fn send(&self, req: Result<Request, Response>) -> Result<(), ClientError> {
+    pub fn send(&self, request: Result<Request, Response>) -> Result<(), ClientError> {
         self.tx
-            .unbounded_send((self.connection_id, req, self.res_tx.clone()))
+            .unbounded_send(Event::Request {
+                connection_id: self.connection_id,
+                request,
+                response_channel: self.res_tx.clone(),
+            })
             .map_err(|_| ClientError::Disconnected)
     }
 }
