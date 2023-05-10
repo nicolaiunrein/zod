@@ -27,14 +27,10 @@ pub struct Message {
 #[zod::rpc]
 impl Chat {
     pub async fn send(&mut self, msg: Message) {
-        let mut active_counter = 0;
+        self.subscribers.retain(|sub| !sub.is_closed());
         for sub in self.subscribers.iter_mut() {
-            if sub.unbounded_send(msg.clone()).is_ok() {
-                active_counter += 1;
-            }
+            let _ = sub.unbounded_send(msg.clone());
         }
-
-        println!("{} / {} active", active_counter, self.subscribers.len());
     }
 
     pub fn messages(&mut self, len: Usize) -> impl Stream<Item = VecDeque<Message>> {
@@ -47,16 +43,6 @@ impl Chat {
             }
             futures::future::ready(Some(history.clone()))
         })
-    }
-
-    pub fn counter(&mut self) -> impl Stream<Item = Usize> {
-        futures::stream::repeat(())
-            .enumerate()
-            .map(|(index, _)| Usize(index))
-            .then(|x| async move {
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                x
-            })
     }
 }
 

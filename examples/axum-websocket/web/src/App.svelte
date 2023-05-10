@@ -19,6 +19,12 @@ async function send() {
     current_msg = "";
 }
 
+function onKeydown(e: KeyboardEvent) {
+    if (e.key == "Enter") {
+        send()
+        }
+    }
+
 </script>
 
 <div class="container mx-auto h-screen flex flex-col items-center px-12"> 
@@ -46,13 +52,22 @@ async function send() {
    {#each history as msg}
    {#if msg.user.name == name}
       <div class="chat-message">
+         <div class="flex items-end justify-end">
+            <div class="flex flex-col space-y-2 text max-w-xs mx-2 order-1 items-end">
+               <div><span class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-purple-300 text-gray-700">{msg.content}</span></div>
+            </div>
+         </div>
+      </div>
+      {:else}
+
+      <div class="chat-message">
          <div class="flex items-end">
             <div class="flex flex-col space-y-2 text max-w-xs mx-2 order-2 items-start">
                <div>
                <span class="rounded-lg inline-block rounded-bl-none bg-gray-200 border-4 text-gray-600 relative" style="border-color: {color}">
                <div class="absolute w-full h-full opacity-20"  style="background-color: {color}">
                </div>
-               <div class="text-xs px-4 py-1 text-white bold"  style="background-color: {color}">{name}</div>
+               <div class="text-xs px-4 py-1 text-white bold"  style="background-color: {color}">{msg.user.name}</div>
                <div class="px-4 py-2 inline-block text-gray-600 relative">
                 {msg.content}
                </div>
@@ -62,20 +77,12 @@ async function send() {
             </div>
          </div>
       </div>
-      {:else}
-      <div class="chat-message">
-         <div class="flex items-end justify-end">
-            <div class="flex flex-col space-y-2 text max-w-xs mx-2 order-1 items-end">
-               <div><span class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-purple-300 text-gray-700">{msg.content}</span></div>
-            </div>
-         </div>
-      </div>
       {/if}
    {/each}
    </div>
    <div class="border-t-2 border-gray-300 pt-4 mb-2 sm:mb-0">
       <div class="relative flex">
-         <input type="text" placeholder="Write your message!" class="w-full focus:outline-none focus:placeholder-gray-400 text-gray-600 placeholder-gray-600 bg-gray-300 rounded-md py-3 pl-4" bind:value={current_msg}>
+         <input type="text" placeholder="Write your message!" class="w-full focus:outline-none focus:placeholder-gray-400 text-gray-600 placeholder-gray-600 bg-gray-300 rounded-md py-3 pl-4" bind:value={current_msg} on:keydown={onKeydown}>
          <div class="absolute right-0 items-center inset-y-0 hidden sm:flex">
             <button type="button" class="inline-flex items-center justify-center rounded-lg px-4 py-3 transition duration-500 ease-in-out text-white bg-blue-600 enabled:hover:bg-blue-400 focus:outline-none disabled:opacity-50 enabled:hover:cursor-pointer" on:click={send} disabled={name == "" || current_msg == ""}>
                <span class="font-bold">Send</span>
