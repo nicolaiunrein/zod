@@ -29,8 +29,9 @@ impl BackendProxy {
         let mut subscribers = Default::default();
 
         tokio::spawn(async move {
-            while let Some((result, mut res)) = rx.next().await {
-                match result {
+            while let Some((req, mut res)) = rx.next().await {
+                tracing::debug!(?req, "Incoming Request");
+                match req {
                     Ok(req) => backend.forward_request(req, res, &mut subscribers).await,
                     Err(err) => {
                         if let Err(err) = res.send(err).await {
@@ -43,6 +44,7 @@ impl BackendProxy {
 
         Self { tx }
     }
+
     pub fn connect(&self) -> ProxyConnection {
         let (res_tx, res_rx) = unbounded();
         ProxyConnection {
