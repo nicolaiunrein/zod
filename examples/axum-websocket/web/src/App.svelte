@@ -15,7 +15,7 @@ $: history = $messages || [];
 
 
 async function send() {
-    await chat.send({user: {name}, content: current_msg, color });
+    await chat.send({user: {name}, content: current_msg, color: color + 234 });
     current_msg = "";
 }
 
