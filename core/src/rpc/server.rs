@@ -34,7 +34,7 @@ impl From<tokio::task::JoinHandle<()>> for StreamHandle {
 }
 
 /// A map of active subscriber ids to the [JoinHandle](tokio::task::JoinHandle) for stream abortion
-pub type SubscriberMap = HashMap<usize, StreamHandle>;
+pub type SubscriberMap = HashMap<(usize, usize), StreamHandle>;
 
 impl Drop for StreamHandle {
     fn drop(&mut self) {
@@ -49,6 +49,7 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
 
     async fn forward_request(
         &mut self,
+        connection_id: usize,
         req: Request,
         res: ResponseSender,
         subscribers: &mut SubscriberMap,

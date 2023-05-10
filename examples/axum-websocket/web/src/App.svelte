@@ -9,11 +9,10 @@ let current_msg = ""
 const client = connect("ws://localhost:8000/ws");
 const chat = Chat.init(client);
 
-/* const messages = chat.messages(10n); */
+const messages = chat.messages(10n);
 
-$: history = [];
+$: history = $messages || [];
 
-const counter = chat.counter();
 
 async function send() {
     await chat.send({user: {name}, content: current_msg});
@@ -24,7 +23,6 @@ async function send() {
 
 <div class="container mx-auto h-screen flex flex-col items-center px-12"> 
 <div class="p:2 sm:p-6 justify-between flex flex-col bg-gray-200 my-32 rounded-xl shadow-xl w-full flex-grow">
-{$counter}
    <div class="flex sm:items-center justify-between py-3 border-b-2 border-gray-300">
       <div class="relative flex items-center space-x-4">
          <div class="relative">

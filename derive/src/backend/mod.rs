@@ -24,7 +24,7 @@ impl BackendVariant {
 
         quote!(Inner::#ident{ req, .. } => {
             if let Some(jh) = #zod::core::rpc::RpcNamespace::process(&mut self.#index, req, sender, *id).await {
-                subscribers.insert(*id, jh);
+                subscribers.insert((connection_id, *id), jh);
             }
         })
     }
@@ -94,6 +94,7 @@ impl ToTokens for BackendInput {
 
                     async fn forward_request(
                         &mut self,
+                        connection_id: usize,
                         req: #zod::core::rpc::Request,
                         sender: #zod::core::rpc::ResponseSender,
                         subscribers: &mut #zod::core::rpc::server::SubscriberMap,
@@ -120,7 +121,7 @@ impl ToTokens for BackendInput {
                             },
 
                             #zod::core::rpc::Request::CancelStream { id } => {
-                                subscribers.remove(&id);
+                                subscribers.remove(&(connection_id, *id));
                             }
                         }
                     }

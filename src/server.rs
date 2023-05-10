@@ -1,5 +1,7 @@
 //! Definition and helpers to implement an RPC server
 
+use std::sync::atomic;
+
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
     SinkExt, Stream, StreamExt,
@@ -17,7 +19,7 @@ pub trait Server {
 
 #[derive(Clone, Debug)]
 pub struct BackendProxy {
-    tx: UnboundedSender<(Result<Request, Response>, UnboundedSender<Response>)>,
+    tx: UnboundedSender<(usize, Result<Request, Response>, UnboundedSender<Response>)>,
 }
 
 impl BackendProxy {
@@ -29,10 +31,14 @@ impl BackendProxy {
         let mut subscribers = Default::default();
 
         tokio::spawn(async move {
-            while let Some((req, mut res)) = rx.next().await {
+            while let Some((connection_id, req, mut res)) = rx.next().await {
                 tracing::debug!(?req, "Incoming Request");
                 match req {
-                    Ok(req) => backend.forward_request(req, res, &mut subscribers).await,
+                    Ok(req) => {
+                        backend
+                            .forward_request(connection_id, req, res, &mut subscribers)
+                            .await
+                    }
                     Err(err) => {
                         if let Err(err) = res.send(err).await {
                             tracing::warn!(?err);
@@ -46,8 +52,11 @@ impl BackendProxy {
     }
 
     pub fn connect(&self) -> ProxyConnection {
+        static NEXT_ID: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
+        let connection_id = NEXT_ID.fetch_add(1, atomic::Ordering::SeqCst);
         let (res_tx, res_rx) = unbounded();
         ProxyConnection {
+            connection_id,
             tx: self.tx.clone(),
             res_tx,
             res_rx,
@@ -56,27 +65,41 @@ impl BackendProxy {
 }
 
 pub struct ProxyConnection {
-    tx: UnboundedSender<(Result<Request, Response>, UnboundedSender<Response>)>,
+    connection_id: usize,
+    tx: UnboundedSender<(usize, Result<Request, Response>, UnboundedSender<Response>)>,
     res_tx: UnboundedSender<Response>,
     res_rx: UnboundedReceiver<Response>,
 }
 
 impl ProxyConnection {
     pub fn split(self) -> (ProxyTx, ProxyRx) {
-        let ProxyConnection { tx, res_tx, res_rx } = self;
-        (ProxyTx { tx, res_tx }, ProxyRx { res_rx })
+        let ProxyConnection {
+            tx,
+            res_tx,
+            res_rx,
+            connection_id,
+        } = self;
+        (
+            ProxyTx {
+                connection_id,
+                tx,
+                res_tx,
+            },
+            ProxyRx { res_rx },
+        )
     }
 }
 
 pub struct ProxyTx {
-    tx: UnboundedSender<(Result<Request, Response>, UnboundedSender<Response>)>,
+    connection_id: usize,
+    tx: UnboundedSender<(usize, Result<Request, Response>, UnboundedSender<Response>)>,
     res_tx: UnboundedSender<Response>,
 }
 
 impl ProxyTx {
     pub fn send(&self, req: Result<Request, Response>) -> Result<(), ClientError> {
         self.tx
-            .unbounded_send((req, self.res_tx.clone()))
+            .unbounded_send((self.connection_id, req, self.res_tx.clone()))
             .map_err(|_| ClientError::Disconnected)
     }
 }
