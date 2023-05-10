@@ -56,11 +56,12 @@ impl Display for RpcRequest {
             RpcRequestKind::Stream => "",
         };
 
-        let inner_res = self.output.to_ts_string();
+        let inner_res_ts = self.output.to_ts_string();
+        let inner_res_zod = self.output.to_zod_string();
 
         let res = match self.kind {
-            RpcRequestKind::Method => format!("Promise<{}>", inner_res),
-            RpcRequestKind::Stream => format!("Rs.Stream<{}>", inner_res),
+            RpcRequestKind::Method => format!("Promise<{}>", inner_res_ts),
+            RpcRequestKind::Stream => format!("Rs.Stream<{}>", inner_res_ts),
         };
 
         f.write_str("// @ts-ignore\n")?;
@@ -74,7 +75,7 @@ impl Display for RpcRequest {
         match self.kind {
             RpcRequestKind::Method => {
                 f.write_fmt(format_args!(
-                    "    return {inner_res}.parse(await client.call(\"{ns}\", \"{name}\", [{arg_names}]));\n"
+                    "    return {inner_res_zod}.parse(await client.call(\"{ns}\", \"{name}\", [{arg_names}]));\n"
                 ))?;
             }
             RpcRequestKind::Stream => {
@@ -84,7 +85,7 @@ impl Display for RpcRequest {
         return client
           .get_stream(\"{ns}\", \"{name}\", [{arg_names}])
           .subscribe((val) => {{
-            cb({inner_res}.parse(val));
+            cb({inner_res_zod}.parse(val));
           }});
       }}
 }}"
