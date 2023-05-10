@@ -2,7 +2,7 @@
 name = "zod-axum"
 version = "0.1.0"
 edition = "2021"
-description = ""
+description = "zod integration for axum servers"
 authors = ["Nicolai Unrein<info@auxcontrol.io>"]
 documentation = "https://docs.rs/zod-axum"
 repository = "https://github.com/nicolaiunrein/zod-axum"
