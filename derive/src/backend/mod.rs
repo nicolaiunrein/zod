@@ -2,7 +2,7 @@ use crate::utils::get_zod;
 use darling::ast::Data;
 use darling::{FromDeriveInput, FromField, ToTokens};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::Type;
 
 #[derive(FromDeriveInput)]
@@ -16,36 +16,6 @@ pub(crate) struct BackendVariant {
     pub(crate) ty: Type,
 }
 
-impl BackendVariant {
-    fn expand_match_arm(&self, index: usize) -> TokenStream {
-        let ident = Self::format_ident(index);
-        let index = syn::Index::from(index);
-        let zod = get_zod();
-
-        quote!(Inner::#ident{ req, .. } => {
-            if let Some(jh) = #zod::core::rpc::RpcNamespace::process(&mut self.#index, req, sender, *id).await {
-                subscribers.insert((connection_id, *id), jh);
-            }
-        })
-    }
-
-    fn expand_enum_variant(&self, index: usize) -> TokenStream {
-        let ty = &self.ty;
-        let zod = get_zod();
-
-        let ident = Self::format_ident(index);
-        quote!(#ident{
-            #[serde(flatten)]
-            req: <#ty as #zod::core::rpc::RpcNamespace>::Req,
-            ns: #zod::core::rpc::RpcNamespaceName<#ty>,
-        })
-    }
-
-    fn format_ident(index: usize) -> syn::Ident {
-        format_ident!("Ns{}", index)
-    }
-}
-
 impl BackendInput {
     fn variants(&self) -> &darling::ast::Fields<BackendVariant> {
         match &self.data {
@@ -57,22 +27,6 @@ impl BackendInput {
     fn variant_types(&self) -> Vec<&syn::Type> {
         self.variants().iter().map(|f| &f.ty).collect()
     }
-
-    fn match_arms(&self) -> Vec<TokenStream> {
-        self.variants()
-            .iter()
-            .enumerate()
-            .map(|(index, variant)| variant.expand_match_arm(index))
-            .collect()
-    }
-
-    fn enum_variants(&self) -> Vec<TokenStream> {
-        self.variants()
-            .iter()
-            .enumerate()
-            .map(|(index, variant)| variant.expand_enum_variant(index))
-            .collect()
-    }
 }
 
 impl ToTokens for BackendInput {
@@ -80,8 +34,10 @@ impl ToTokens for BackendInput {
         let zod = get_zod();
         let ident = &self.ident;
         let types = self.variant_types();
-        let match_arms = self.match_arms();
-        let enum_variants = self.enum_variants();
+        let indices = types
+            .iter()
+            .enumerate()
+            .map(|(index, _)| syn::Index::from(index));
 
         let expanded = quote! {
             const _: () = {
@@ -101,23 +57,34 @@ impl ToTokens for BackendInput {
                     ) {
                         match req {
                             #zod::core::rpc::Request::Exec { id, value } => {
-                                #[derive(#zod::__private::serde::Deserialize)]
-                                #[serde(untagged)]
-                                enum Inner {
-                                    #(#enum_variants),*
-                                }
 
-                                match #zod::__private::serde_json::from_value::<Inner>(value) {
-                                    Ok(inner) => match inner {
-                                        #(#match_arms),*
+                                match #zod::__private::serde_json::from_value::<#zod::core::rpc::AnyNsRequest>(value) {
+                                    Ok(req) => match req.ns.as_str() {
+                                        #(<#types as #zod::core::Namespace>::NAME => match #zod::__private::serde_json::from_value::<<#types as #zod::core::rpc::RpcNamespace>::Req>(req.inner) {
+                                            Ok(inner) => {
+                                                if let Some(jh) = #zod::core::rpc::RpcNamespace::process(&mut self.#indices, inner, sender, *id).await {
+                                                    subscribers.insert((connection_id, *id), jh);
+                                                }
+                                            },
+                                            Err(err) => {
+                                                let _ = sender
+                                                    .unbounded_send(#zod::core::rpc::Response::error(id, err))
+                                                    .ok();
+                                            }
+                                        }),*
+                                        ns => {
+                                                let _ = sender
+                                                    .unbounded_send(#zod::core::rpc::Response::error(id, #zod::core::rpc::Error::UnknownNamespace(::std::string::String::from(ns))))
+                                                    .ok();
+                                        }
                                     },
-
                                     Err(err) => {
                                         let _ = sender
                                             .unbounded_send(#zod::core::rpc::Response::error(id, err))
                                             .ok();
                                     }
-                                }
+
+                                };
                             },
 
                             #zod::core::rpc::Request::CancelStream { id } => {

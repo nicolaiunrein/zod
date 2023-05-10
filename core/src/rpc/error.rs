@@ -5,6 +5,9 @@ pub enum Error {
     #[serde(serialize_with = "ser_display")]
     #[serde(rename = "JsonError")]
     Json(#[from] serde_json::Error),
+
+    #[error("Unknown Namespace: {0}")]
+    UnknownNamespace(String),
 }
 
 fn ser_display<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>

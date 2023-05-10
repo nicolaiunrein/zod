@@ -26,6 +26,13 @@ pub trait RpcNamespace: crate::Namespace {
 
 pub struct RpcNamespaceName<T>(std::marker::PhantomData<T>);
 
+#[derive(serde::Serialize, Clone, Debug, serde::Deserialize)]
+pub struct AnyNsRequest {
+    pub ns: String,
+    #[serde(flatten)]
+    pub inner: serde_json::Value,
+}
+
 impl<'de, T> serde::Deserialize<'de> for RpcNamespaceName<T>
 where
     T: RpcNamespace,
