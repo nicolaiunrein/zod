@@ -1,7 +1,7 @@
 mod api;
-use api::MyBackend;
+use api::AppBackend;
 use axum::{extract::Extension, routing::get, Router, Server};
-use zod::{core::rpc::server::Backend, server::BackendProxy, types::Usize};
+use zod::{core::rpc::server::Backend, server::BackendProxy};
 use zod_axum::websocket_handler;
 
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -21,19 +21,12 @@ async fn main() {
 }
 
 fn generate() {
-    let content = MyBackend::generate();
+    let content = AppBackend::generate();
     println!("{content}");
 }
 
 async fn serve() {
-    let backend = MyBackend(
-        api::Watchout {
-            shared_data: Usize(0),
-        },
-        api::Pixera {
-            shared_data: Usize(0),
-        },
-    );
+    let backend = AppBackend(api::Chat::default());
     let proxy = BackendProxy::new(backend);
 
     let app = Router::new()

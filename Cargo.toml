@@ -19,7 +19,7 @@ members = [
     "core",
     "derive",
     "integrations/axum",
-    "examples/axum",
+    "examples/axum-websocket",
 ]
 
 [dependencies]
