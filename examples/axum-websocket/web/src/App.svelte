@@ -1,7 +1,17 @@
+<style>
+.item {
+  grid-column-start: 1;
+  grid-column-end: 2;
+  grid-row-start: 1;
+  grid-row-end: 2;
+}
+</style>
+
 <script lang="ts">
 import { Chat } from "./lib/api";
 import { connect } from "./lib/client";
 import { onMount } from "svelte";
+import { fly, fade } from "svelte/transition";
 
 let color = "#FF00FF";
 let name = "John Doe";
@@ -55,20 +65,47 @@ function onKeydown(e: KeyboardEvent) {
         connecting...
       </div>
     {:else}
-      <input type="checkbox" bind:checked="{count}" />
-      {#if count && $counterStore}
-        {#if "error" in $counterStore}
-          <span class="text-red-500">
-            {$counterStore.error.msg}
-          </span>
-        {:else if "data" in $counterStore}
-          <span class="font-bold text-4xl">
-            {$counterStore.data}
-          </span>
-        {:else if "loading" in $counterStore}
-          <span class="text-gray-500"> loading... </span>
-        {/if}
-      {/if}
+      <label
+        class="flex gap-5 text-xl text-gray-500 mb-12 border-b-2 border-slate-300">
+        Counter Example
+
+        <input type="checkbox" bind:checked="{count}" />
+        <div class="grid font-bold">
+          {#if count && $counterStore}
+            {#if "error" in $counterStore}
+              <span
+                class="text-red-500 item"
+                transition:fly="{{ duration: 200, y: 20 }}">
+                {$counterStore.error.msg}
+              </span>
+            {:else if "data" in $counterStore}
+              <span
+                class="text-teal-500 item"
+                out:fly="{{ duration: 200, y: 20 }}"
+                in:fade="{{ duration: 200 }}">
+                {$counterStore.data}
+              </span>
+            {:else if "loading" in $counterStore}
+              <span
+                class="item"
+                in:fly="{{ duration: 200, y: 20 }}"
+                out:fade="{{ duration: 200 }}">
+                loading...
+              </span>
+            {/if}
+          {:else}
+            <span
+              class="text-gray-400 item"
+              transition:fly="{{ duration: 200, y: 20 }}">
+              count...
+            </span>
+          {/if}
+        </div>
+      </label>
+      <div
+        class="flex gap-5 text-xl text-gray-500 mb-2 border-b-2 border-slate-300">
+        Chat Example
+      </div>
       <div
         class="flex sm:items-center justify-between py-3 border-b-2 border-gray-300">
         <div class="relative flex items-center space-x-4">
