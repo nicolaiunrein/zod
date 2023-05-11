@@ -28,7 +28,7 @@ pub struct Message {
 #[derive(RequestType, ResponseType, serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[zod(namespace = "Chat")]
 #[serde(try_from = "String", into = "String")]
-struct Color {
+pub struct Color {
     red: u8,
     green: u8,
     blue: u8,
@@ -94,6 +94,38 @@ impl Chat {
                 tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                 evt
             })
+    }
+
+    async fn get_random_color(&mut self) -> Color {
+        let random_u8 = |seed: u128| {
+            ((std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+                * 17
+                * seed)
+                % 255) as u8
+        };
+
+        Color {
+            red: random_u8(1),
+            green: random_u8(2),
+            blue: random_u8(3),
+        }
+    }
+
+    async fn get_lightness(&mut self, color: Color) -> f64 {
+        const RED_FACTOR: f64 = 0.299;
+        const GREEN_FACTOR: f64 = 0.587;
+        const BLUE_FACTOR: f64 = 0.114;
+
+        const MAX: f64 = RED_FACTOR + GREEN_FACTOR + BLUE_FACTOR;
+
+        let red = RED_FACTOR * (color.red as f64 / 255.0);
+        let green = GREEN_FACTOR * (color.green as f64 / 255.0);
+        let blue = BLUE_FACTOR * (color.blue as f64 / 255.0);
+
+        (red + green + blue).sqrt()
     }
 }
 

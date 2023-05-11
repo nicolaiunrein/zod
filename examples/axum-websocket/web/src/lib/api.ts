@@ -1,21 +1,25 @@
 import { z } from "zod";
 
 export namespace Rs {
-  export type String = string;
+    export type F64 = number;
 
-  export const String = z.string();
+    export const F64 = z.number();
 
-  export type Unit = null;
+    export type String = string;
 
-  export const Unit = z.null();
+    export const String = z.string();
 
-  export type Usize = BigInt;
+    export type Unit = null;
 
-  export const Usize = z.coerce.bigint().nonnegative().lt(2n ** 64n);
+    export const Unit = z.null();
 
-  export type VecDeque<T> = T[];
+    export type Usize = BigInt;
 
-  export const VecDeque = (T: z.ZodTypeAny) => z.array(T);
+    export const Usize = z.coerce.bigint().nonnegative().lt(2n ** 64n);
+
+    export type VecDeque<T> = T[];
+
+    export const VecDeque = (T: z.ZodTypeAny) => z.array(T);
 
 
   export interface Client {
@@ -38,59 +42,67 @@ export namespace Rs {
 }
 
 export namespace Chat {
-  export interface Message { user: Chat.User, color: Rs.String, content: Rs.String }
+    export interface Message { user: Chat.User, color: Rs.String, content: Rs.String }
 
-  export const Message = z.lazy(() => z.object({ user: Chat.User, color: Rs.String, content: Rs.String }));
+    export const Message = z.lazy(() => z.object({ user: Chat.User, color: Rs.String, content: Rs.String }));
 
-  export interface User { name: Rs.String }
+    export interface User { name: Rs.String }
 
-  export const User = z.lazy(() => z.object({ name: Rs.String }));
+    export const User = z.lazy(() => z.object({ name: Rs.String }));
 
-  export function init(client: Rs.Client) {
-    return {// @ts-ignore
-      count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
-        z.lazy(() => z.tuple([Rs.Usize])).parse([n]);
-        return {
-          subscribe(cb) {
-            return client
-              .get_stream("Chat", "count_to", [n])
+export function init(client: Rs.Client){return {// @ts-ignore
+ count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
+    z.lazy(() => z.tuple([Rs.Usize])).parse([n]);
+    return {
+      subscribe(cb) {
+        return client
+          .get_stream("Chat", "count_to", [n])
               .subscribe((val) => {
                 if ("data" in val) {
                   cb({ data: Rs.Usize.parse(val.data) });
-                } else {
+                } else  {
                   cb(val);
                 }
               });
-          }
-        }
-      },
+      }
+}},
 
-      // @ts-ignore
-      messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
-        z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
-        return {
-          subscribe(cb) {
-            return client
-              .get_stream("Chat", "messages", [len])
+// @ts-ignore
+async  get_lightness(color: Rs.String): Promise<Rs.F64> {
+    z.lazy(() => z.tuple([Rs.String])).parse([color]);
+    return Rs.F64.parse(await client.call("Chat", "get_lightness", [color]));
+},
+
+// @ts-ignore
+async  get_random_color(): Promise<Rs.String> {
+    z.lazy(() => z.tuple([])).parse([]);
+    return Rs.String.parse(await client.call("Chat", "get_random_color", []));
+},
+
+// @ts-ignore
+ messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
+    z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
+    return {
+      subscribe(cb) {
+        return client
+          .get_stream("Chat", "messages", [len])
               .subscribe((val) => {
                 if ("data" in val) {
                   cb({ data: Rs.VecDeque(Chat.Message).parse(val.data) });
-                } else {
+                } else  {
                   cb(val);
                 }
               });
-          }
-        }
-      },
+      }
+}},
 
-      // @ts-ignore
-      async send(msg: Chat.Message): Promise<Rs.Unit> {
-        z.lazy(() => z.tuple([Chat.Message])).parse([msg]);
-        return Rs.Unit.parse(await client.call("Chat", "send", [msg]));
-      },
+// @ts-ignore
+async  send(msg: Chat.Message): Promise<Rs.Unit> {
+    z.lazy(() => z.tuple([Chat.Message])).parse([msg]);
+    return Rs.Unit.parse(await client.call("Chat", "send", [msg]));
+},
 
-    }
-  }
+}}
 }
 
 

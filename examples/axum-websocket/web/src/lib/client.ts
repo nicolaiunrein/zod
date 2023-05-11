@@ -1,22 +1,27 @@
 import { Rs } from "./api";
 
 function stringify_request({
-  req_id,
+  id,
   method,
   ns,
   args,
 }: {
-  req_id: bigint;
+  id: bigint;
   ns: string;
   method: string;
   args: any[];
 }): string {
-  return JSON.stringify({ exec: { id: req_id, method, ns, args } }, (_, v) =>
+  return JSON.stringify({ exec: { id, method, ns, args } }, (_, v) =>
     typeof v == "bigint" ? v.toString() : v
   );
 }
 
-export const connect = async (addr: string, onDisconnect: () => void) => {
+interface ClientConfig {
+  addr: string,
+  onDisconnect: () => void,
+}
+
+export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
   return new Promise<Rs.Client>((resolve) => {
     let next_req_id = 0n;
     let socket = new WebSocket(addr);
@@ -65,27 +70,26 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
       resolve({
         async call(ns, method, args) {
           next_req_id += 1n;
-          let req_id = next_req_id;
+          let id = next_req_id;
 
           return new Promise((resolve, reject) => {
             let request = stringify_request({
-              req_id,
+              id,
               ns,
               method,
               args: [...args],
             });
 
-            pending.set(req_id, { resolve, reject });
+            pending.set(id, { resolve, reject });
             socket.send(request);
           });
         },
 
         get_stream(ns, method, args) {
-          console.log(`get_stream ${method}`);
           next_req_id += 1n;
-          let req_id = next_req_id;
+          let id = next_req_id;
           let request = stringify_request({
-            req_id,
+            id,
             ns,
             method,
             args: [...args],
@@ -93,7 +97,7 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
 
           let subscribers = new Map<Symbol, (evt: Rs.StreamEvent<unknown>) => void>;
 
-          pending.set(req_id, {
+          pending.set(id, {
             resolve: (data) => {
               subscribers.forEach(sub => {
                 sub({ data });
@@ -122,9 +126,9 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
               return () => {
                 subscribers.delete(sym);
                 if (subscribers.size == 0) {
-                  let request = JSON.stringify({ cancelStream: { id: req_id.toString() } });
+                  let request = JSON.stringify({ cancelStream: { id: id.toString() } });
                   socket.send(request);
-                  pending.delete(req_id);
+                  pending.delete(id);
                 }
               };
             },

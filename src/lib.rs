@@ -57,6 +57,7 @@
 //!
 //! - [ ] add integration tests with jest
 //! - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
+//! - [ ] add camelCasing for method names
 //!
 //! ## Consideration?
 //! - flattening a `std::collections::HashMap` onto a struct. This works in serde but not in zod because we represent the `HashMap` as a `z.map([..])` which represents a `Map` in ts/js.

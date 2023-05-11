@@ -13,9 +13,10 @@ import { connect } from "./lib/client";
 import { onMount } from "svelte";
 import { fly, fade } from "svelte/transition";
 
-let color = "#FF00FF";
+let color = "transparent";
 let name = "John Doe";
 let current_msg = "";
+let lightness = 0;
 
 let count = false;
 
@@ -23,35 +24,55 @@ let chat: ReturnType<typeof Chat.init> | undefined = undefined;
 
 $: messageStore = chat ? chat.messages(10n) : undefined;
 $: counterStore = chat && count ? chat.count_to(10n) : undefined;
+$: color == "transparent" && chat && getInitialColor();
+$: getLightness(color);
+$: fgColor = lightness > 0.8 ? "black" : "white";
 
 onMount(async () => {
   await reconnect();
 });
 
+function handleError(err: any) {
+  alert(JSON.stringify(err));
+}
+
 async function reconnect() {
-  const client = await connect("ws://localhost:8000/ws", () => {
+  const addr = "ws://localhost:8000/ws";
+
+  const onDisconnect = () => {
     chat = undefined;
     setTimeout(() => reconnect(), 2000);
-  });
+  };
+
+  const client = await connect({ addr, onDisconnect });
   chat = Chat.init(client);
 }
 
-async function send() {
-  if (chat == undefined) {
-    alert("Not Connected");
-  } else {
-    try {
-      await chat.send({ user: { name }, content: current_msg, color: color });
-      current_msg = "";
-    } catch (err) {
-      alert(JSON.stringify(err));
-    }
-  }
+async function sendMessage() {
+  if (!chat) return;
+
+  await chat
+    .send({ user: { name }, content: current_msg, color: color })
+    .then(() => (current_msg = ""))
+    .catch(handleError);
+}
+
+async function getInitialColor() {
+  if (!chat) return;
+  await chat
+    .get_random_color()
+    .then((value) => (color = value))
+    .catch(handleError);
+}
+
+async function getLightness(color: string) {
+  if (!chat) return;
+  lightness = await chat.get_lightness(color);
 }
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key == "Enter") {
-    send();
+    sendMessage();
   }
 }
 </script>
@@ -123,7 +144,8 @@ function onKeydown(e: KeyboardEvent) {
                   viewBox="0 0 24 24"
                   stroke-width="1.5"
                   stroke="currentColor"
-                  class="w-full h-full mx-auto text-white pointer-events-none">
+                  style="color: {fgColor};"
+                  class="w-full h-full mx-auto pointer-events-none">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -155,7 +177,9 @@ function onKeydown(e: KeyboardEvent) {
                     class="flex flex-col space-y-2 text max-w-xs mx-2 order-1 items-end">
                     <div>
                       <span
-                        class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-purple-300 text-gray-700"
+                        class="px-4 py-2 rounded-lg inline-block rounded-br-none
+                        "
+                        style="background-color: {color}; color: {fgColor}"
                         >{msg.content}</span>
                     </div>
                   </div>
@@ -204,7 +228,7 @@ function onKeydown(e: KeyboardEvent) {
             <button
               type="button"
               class="inline-flex items-center justify-center rounded-lg px-4 py-3 transition duration-500 ease-in-out text-white bg-blue-600 enabled:hover:bg-blue-400 focus:outline-none disabled:opacity-50 enabled:hover:cursor-pointer"
-              on:click="{send}"
+              on:click="{sendMessage}"
               disabled="{name == '' || current_msg == ''}">
               <span class="font-bold">Send</span>
               <svg
