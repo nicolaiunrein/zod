@@ -1,4 +1,7 @@
 import { Rs } from "./api";
+import type { Transport } from "./transport";
+
+const DEFAULT_TIMEOUT = 1000;
 
 interface ExecPayload {
   id: bigint;
@@ -7,136 +10,125 @@ interface ExecPayload {
   args: any[];
 }
 
-interface ClientConfig {
-  addr: string,
-  onDisconnect: () => void,
-}
-
-interface Resolver { resolve: (data: any) => void; reject: (error: any) => void }
-
 function stringify_request(payload: ExecPayload): string {
   return JSON.stringify({ exec: payload }, (_, v) =>
     typeof v == "bigint" ? v.toString() : v
   );
 }
 
-export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
-  return new Promise<Rs.Client>((resolve) => {
-    let next_req_id = 0n;
-    let pending = new Map<bigint, Resolver>();
+
+class IdProvider {
+  current = 0n;
+
+  get() {
+    this.current += 1n;
+    return this.current;
+  }
+}
+
+interface Config {
+  timeout: number
+}
 
 
-    const onMessage = (event: MessageEvent) => {
-      let res = JSON.parse(event.data);
-      if ("error" in res) {
-        const id = BigInt(res.error.id);
-        const promise = pending.get(id);
-        const data = res.error.data;
+export class Client implements Rs.Client {
+  transport: Transport;
+  next_id: IdProvider;
+  listeners: Map<bigint, (response: Rs.Response) => void>
+  config: Config;
 
-        if (promise !== undefined) {
-          promise.reject(data);
-          pending.delete(id);
+  constructor(transport: Transport, config?: Partial<Config>) {
+    this.transport = transport
+    this.transport.onResponse(msg => {
+      let res = JSON.parse(msg);
+      let parsed_response = Rs.Response.parse(res);
+      let id = "method" in parsed_response ? parsed_response.method.id : "stream" in parsed_response ? parsed_response.stream.id : parsed_response.error.id;
+
+      for (let [res_id, handler] of this.listeners) {
+        if (res_id == id) {
+          handler(parsed_response)
         }
-      } else if ("method" in res) {
-        const id = BigInt(res.method.id);
-        const promise = pending.get(id);
-        const data = res.method.data;
-
-        if (promise !== undefined) {
-          promise.resolve(data);
-          pending.delete(id);
-        }
-      } else if ("stream" in res) {
-        const id = BigInt(res.stream.id);
-        const promise = pending.get(id);
-        const data = res.stream.data;
-
-        if (promise !== undefined) {
-          promise.resolve(data);
-        }
-      } else {
-        throw "Unexpected Response"
       }
-    };
+    })
+    this.next_id = new IdProvider();
+    this.listeners = new Map();
+    this.config = {
+      timeout: config?.timeout || DEFAULT_TIMEOUT
+    }
+  }
+
+  async call(ns: string, method: string, args: any[]): Promise<unknown> {
+    let id = this.next_id.get();
+    let msg = stringify_request({ id, ns, method, args })
+
+    let res = new Promise<unknown>((resolve, reject) => {
+
+      this.listeners.set(id, (response: Rs.Response) => {
+        if ("method" in response) {
+          resolve(response.method.data)
+        } else if ("error" in response) {
+          reject(response.error.data)
+        }
+        this.listeners.delete(id)
+      })
+
+      setTimeout(() => {
+        if (this.listeners.delete(id)) {
+          reject("Timeout")
+        }
+      }, this.config.timeout)
+    })
+
+    this.transport.send(msg);
+    return await res;
+  }
 
 
-    const onOpen = () => {
-      resolve({
-        async call(ns, method, args) {
-          next_req_id += 1n;
-          let id = next_req_id;
 
-          return new Promise((resolve, reject) => {
-            let request = stringify_request({
-              id,
-              ns,
-              method,
-              args: [...args],
-            });
+  get_stream(ns: string, method: string, args: unknown[]): Rs.Stream<unknown> {
 
-            pending.set(id, { resolve, reject });
-            socket.send(request);
+    let id = this.next_id.get();
+    let msg = stringify_request({ id, ns, method, args })
+    let subscribers = new Map<Symbol, (value: Rs.StreamEvent<unknown>) => void>
+
+    this.listeners.set(id, res => {
+      if ("stream" in res) {
+        subscribers.forEach(subscriber => {
+          subscriber({ data: res.stream.data })
+        });
+      } else if ("error" in res) {
+        subscribers.forEach(subscriber => {
+          subscriber({ error: res.error.data as any })
+        });
+      }
+    })
+
+    // TODO:
+    // streams should show loading state when disconnected
+    // streams should re-subscribe on connect
+    return {
+      subscribe: (next) => {
+        next({ loading: true })
+        let sym = Symbol();
+        subscribers.set(sym, next);
+        if (subscribers.size == 1) {
+          this.transport.send(msg);
+          // TODO: bug!!! this will fill up... fix
+          this.transport.onOpen(() => {
+            this.transport.send(msg);
           });
-        },
+        }
+        return () => {
+          subscribers.delete(sym)
+          if (subscribers.size == 0) {
+            let request = JSON.stringify({ cancelStream: { id: id.toString() } });
+            this.transport.send(request)
+          }
+        }
+      },
+    }
 
-        get_stream(ns, method, args) {
-          next_req_id += 1n;
-          let id = next_req_id;
-          let request = stringify_request({
-            id,
-            ns,
-            method,
-            args,
-          });
 
-          let subscribers = new Map<Symbol, (evt: Rs.StreamEvent<unknown>) => void>;
+  }
 
-          pending.set(id, {
-            resolve: (data) => {
-              subscribers.forEach(sub => {
-                sub({ data });
-              })
-            },
-            reject: (error) => {
-              subscribers.forEach(sub => {
-                sub({ error });
-              })
-            },
-          });
-
-          let store = {
-            subscribe(
-              next: (
-                value: Rs.StreamEvent<unknown>
-              ) => void
-            ) {
-              next({ loading: true });
-
-              let sym = Symbol();
-
-              subscribers.set(sym, next);
-
-              return () => {
-                subscribers.delete(sym);
-                if (subscribers.size == 0) {
-                  let request = JSON.stringify({ cancelStream: { id: id.toString() } });
-                  socket.send(request);
-                  pending.delete(id);
-                }
-              };
-            },
-          };
-
-          socket.send(request);
-
-          return store;
-        },
-      });
-    };
-
-    let socket = new WebSocket(addr);
-    socket.onmessage = onMessage;
-    socket.onclose = onDisconnect;
-    socket.onopen = onOpen;
-  });
-};
+}

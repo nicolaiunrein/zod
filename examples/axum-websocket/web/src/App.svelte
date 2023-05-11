@@ -9,43 +9,30 @@
 
 <script lang="ts">
 import { Chat } from "./lib/api";
-import { connect } from "./lib/client";
-import { onMount } from "svelte";
 import { fly, fade } from "svelte/transition";
+import { Client } from "./lib/client";
+import { WebsocketTransport } from "./lib/transport";
 
 let color = "transparent";
+
 let name = "John Doe";
 let current_msg = "";
 let lightness = 0;
 
 let count = false;
 
-let chat: ReturnType<typeof Chat.init> | undefined = undefined;
+let transport = new WebsocketTransport("ws://localhost:8000/ws");
+let chat = Chat.init(new Client(transport));
 
-$: messageStore = chat ? chat.messages(10n) : undefined;
-$: counterStore = chat && count ? chat.count_to(10n) : undefined;
-$: color == "transparent" && chat && getInitialColor();
-$: getLightness(color);
+let messageStore = chat.messages(10n);
+
+$: counterStore = count ? chat.count_to(10n) : undefined;
+$: color == "transparent" && getInitialColor();
+$: color && color !== "transparent" && getLightness(color);
 $: fgColor = lightness > 0.8 ? "black" : "white";
-
-onMount(async () => {
-  await reconnect();
-});
 
 function handleError(err: any) {
   alert(JSON.stringify(err));
-}
-
-async function reconnect() {
-  const addr = "ws://localhost:8000/ws";
-
-  const onDisconnect = () => {
-    chat = undefined;
-    setTimeout(() => reconnect(), 2000);
-  };
-
-  const client = await connect({ addr, onDisconnect });
-  chat = Chat.init(client);
 }
 
 async function sendMessage() {
@@ -58,7 +45,6 @@ async function sendMessage() {
 }
 
 async function getInitialColor() {
-  if (!chat) return;
   await chat
     .get_random_color()
     .then((value) => (color = value))
@@ -66,7 +52,6 @@ async function getInitialColor() {
 }
 
 async function getLightness(color: string) {
-  if (!chat) return;
   lightness = await chat.get_lightness(color);
 }
 
