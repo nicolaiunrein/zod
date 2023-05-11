@@ -1,19 +1,10 @@
 import { Rs } from "./api";
 
-function stringify_request({
-  id,
-  method,
-  ns,
-  args,
-}: {
+interface ExecPayload {
   id: bigint;
   ns: string;
   method: string;
   args: any[];
-}): string {
-  return JSON.stringify({ exec: { id, method, ns, args } }, (_, v) =>
-    typeof v == "bigint" ? v.toString() : v
-  );
 }
 
 interface ClientConfig {
@@ -21,17 +12,21 @@ interface ClientConfig {
   onDisconnect: () => void,
 }
 
+interface Resolver { resolve: (data: any) => void; reject: (error: any) => void }
+
+function stringify_request(payload: ExecPayload): string {
+  return JSON.stringify({ exec: payload }, (_, v) =>
+    typeof v == "bigint" ? v.toString() : v
+  );
+}
+
 export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
   return new Promise<Rs.Client>((resolve) => {
     let next_req_id = 0n;
-    let socket = new WebSocket(addr);
+    let pending = new Map<bigint, Resolver>();
 
-    let pending = new Map<
-      bigint,
-      { resolve: (data: any) => void; reject: (error: any) => void }
-    >();
 
-    socket.onmessage = (event) => {
+    const onMessage = (event: MessageEvent) => {
       let res = JSON.parse(event.data);
       if ("error" in res) {
         const id = BigInt(res.error.id);
@@ -64,9 +59,8 @@ export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
       }
     };
 
-    socket.onclose = onDisconnect;
 
-    socket.onopen = () => {
+    const onOpen = () => {
       resolve({
         async call(ns, method, args) {
           next_req_id += 1n;
@@ -92,7 +86,7 @@ export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
             id,
             ns,
             method,
-            args: [...args],
+            args,
           });
 
           let subscribers = new Map<Symbol, (evt: Rs.StreamEvent<unknown>) => void>;
@@ -109,7 +103,6 @@ export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
               })
             },
           });
-
 
           let store = {
             subscribe(
@@ -140,5 +133,10 @@ export const connect = async ({ addr, onDisconnect }: ClientConfig) => {
         },
       });
     };
+
+    let socket = new WebSocket(addr);
+    socket.onmessage = onMessage;
+    socket.onclose = onDisconnect;
+    socket.onopen = onOpen;
   });
 };

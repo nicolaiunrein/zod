@@ -10,22 +10,55 @@ use crate::{
 use crate::types::Rs;
 
 const STATIC_TYPE_DEFS: &str = r#"
-  export interface Client {
-    get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
-    call(ns: string, method: string, args: unknown[]): Promise<unknown>;
-  }
-  export interface Stream<T> {
-    subscribe(
-      next: (value: StreamEvent<T>) => void
-    ): () => void;
-  }
 
-  export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
+    export const StreamResponse = z.object({
+        stream: z.object({
+            id: z.coerce.bigint().nonnegative().lt(2n ** 64n),
+            data: z.unknown()
+        }),
+    });
+    export type StreamResponse = z.infer<typeof StreamResponse>;
 
-  export interface ZodError {
-    kind: "JsonError",
-    msg: string
-  }
+    export const MethodResponse = z.object({
+        method: z.object({
+            id: z.coerce.bigint().nonnegative().lt(2n ** 64n),
+            data: z.unknown()
+        })
+    });
+    export type MethodResponse = z.infer<typeof MethodResponse>
+
+    export const ErrorResponse =
+        z.object({
+            error: z.object({
+                id: z.coerce.bigint().nonnegative().lt(2n ** 64n).optional(),
+                data: z.unknown()
+            })
+        });
+
+    export type ErrorResponse = z.infer<typeof ErrorResponse>
+
+    export const Response = z.union([
+        StreamResponse,
+        MethodResponse,
+        ErrorResponse
+    ])
+
+    export interface Client {
+      get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
+      call(ns: string, method: string, args: unknown[]): Promise<unknown>;
+    }
+    export interface Stream<T> {
+      subscribe(
+        next: (value: StreamEvent<T>) => void
+      ): () => void;
+    }
+  
+    export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
+  
+    export interface ZodError {
+      kind: "JsonError",
+      msg: string
+    }
 "#;
 
 /// a [JoinHandle](tokio::task::JoinHandle) to cancel a stream when it is dropped.
