@@ -84,9 +84,13 @@ impl Display for RpcRequest {
       subscribe(cb) {{
         return client
           .get_stream(\"{ns}\", \"{name}\", [{arg_names}])
-          .subscribe((val) => {{
-            cb({inner_res_zod}.parse(val));
-          }});
+              .subscribe((val) => {{
+                if (\"data\" in val) {{
+                  cb({{ data: {inner_res_zod}.parse(val.data) }});
+                }} else  {{
+                  cb(val);
+                }}
+              }});
       }}
 }}"
                 ))?;

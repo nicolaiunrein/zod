@@ -9,19 +9,23 @@ use crate::{
 
 use crate::types::Rs;
 
-const CLIENT_DEF: &str = r#"export interface Client {
-    get_stream(
-      ns: string,
-      method: string,
-      args: unknown[]
-    ): Stream<unknown>;
+const STATIC_TYPE_DEFS: &str = r#"
+  export interface Client {
+    get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
     call(ns: string, method: string, args: unknown[]): Promise<unknown>;
-  }"#;
+  }
+  export interface Stream<T> {
+    subscribe(
+      next: (value: StreamEvent<T>) => void
+    ): () => void;
+  }
 
-const STREAM_DEF: &str = r#"
-export interface Stream<T> {
-    subscribe(next: (value: T) => void): () => void;
-};
+  export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
+
+  export interface ZodError {
+    kind: "JsonError",
+    msg: string
+  }
 "#;
 
 /// a [JoinHandle](tokio::task::JoinHandle) to cancel a stream when it is dropped.
@@ -126,8 +130,7 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
                 }
 
                 if self.is_rs {
-                    f.write_str(CLIENT_DEF)?;
-                    f.write_str(STREAM_DEF)?;
+                    f.write_str(STATIC_TYPE_DEFS)?;
                 }
 
                 f.write_str("\n}\n\n")?;
