@@ -23,57 +23,6 @@
 //! We provide adapters for axum servers and native websockets on the client.
 //! It allows custom client/server implementations, making it compatible with all JavaScript frameworks and runtimes.
 //!
-//!
-//! ## Example
-//! ```rust,ignore
-//! # use zod::{Zod, Namespace};
-//! # use serde::{Serialize, Deserialize};
-//!
-//! #[derive(Namespace)]
-//! struct Ns;
-//!
-//! #[derive(Serialize, Deserialize, Zod)]
-//! #[zod(namespace = "Ns")]
-//! struct MyStruct {
-//!     port: u16,
-//!     data: MyData
-//! }
-//!
-//! #[derive(Serialize, Deserialize, Zod)]
-//! #[zod(namespace = "Ns")]
-//! enum MyData {
-//!     Hello(String),
-//!     World(Vec<usize>)
-//! }
-//!
-//! ```
-//! Deriving Zod implements the [ZodType](https://docs.rs/zod-core/ZodType) trait for you exposing a couple of methods to the
-//! typescript/schema representation of your rust types.
-//!
-//! Calling `MyStruct::schema()` will give you a string with a valid zod schema definition:
-//! ```ts
-//! z.object({ port: Rs.U16, data: Ns.MyData })
-//! ```
-//!
-//! Respectively `MyData::schema()` will give you:
-//!
-//! ```ts
-//! z.discriminatedUnion([
-//!    z.object({ Hello: Rs.String }),
-//!    z.object({ World: z.array(Rs.Usize) })
-//! ])
-//! ```
-//!
-//! There is also the `type_def` method which will give you a typescript type definition:
-//! ```ts
-//! { port: Rs.U16, data: Ns.MyData }
-//! ```
-//! and
-//!
-//! ```ts
-//! { Hello: Rs.String } | { World: [Rs.Usize] }
-//! ```
-//!
 //! ## TODO
 //! - [x] Codegen for struct style enums
 //! - [x] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
