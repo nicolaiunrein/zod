@@ -7,10 +7,12 @@ let color = "#FF00FF";
 let name = "John Doe";
 let current_msg = "";
 
+let count = false;
+
 let chat: ReturnType<typeof Chat.init> | undefined = undefined;
 
 $: messageStore = chat ? chat.messages(10n) : undefined;
-$: counterStore = chat ? chat.count_to(10n) : undefined;
+$: counterStore = chat && count ? chat.count_to(10n) : undefined;
 
 onMount(async () => {
   await reconnect();
@@ -53,21 +55,26 @@ function onKeydown(e: KeyboardEvent) {
         connecting...
       </div>
     {:else}
-      {#if $counterStore && "err" in $counterStore}
-        <span class="text-red-500">
-          {$counterStore.err.msg}
-        </span>
-      {:else if $counterStore && "data" in $counterStore}
-        {$counterStore.data}
-      {:else}
-        0
+      <input type="checkbox" bind:checked="{count}" />
+      {#if count && $counterStore}
+        {#if "error" in $counterStore}
+          <span class="text-red-500">
+            {$counterStore.error.msg}
+          </span>
+        {:else if "data" in $counterStore}
+          <span class="font-bold text-4xl">
+            {$counterStore.data}
+          </span>
+        {:else if "loading" in $counterStore}
+          <span class="text-gray-500"> loading... </span>
+        {/if}
       {/if}
       <div
         class="flex sm:items-center justify-between py-3 border-b-2 border-gray-300">
         <div class="relative flex items-center space-x-4">
           <div class="relative">
             <div
-              class="rounded-full overflow-hidden grid items-center justify-center w-10 h-10 sm:w-16 h-10 sm:h-16 border-2">
+              class="rounded-full overflow-hidden grid items-center justify-center w-10 sm:w-16 h-10 sm:h-16 border-2">
               <input
                 type="color"
                 class="h-full border-none outline-none cursor-pointer"

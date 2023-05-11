@@ -26,8 +26,15 @@ export namespace Rs {
   }
   export interface Stream<T> {
     subscribe(
-      next: (value: { data: T } | { err: any } | { loading: true }) => void
+      next: (value: StreamEvent<T>) => void
     ): () => void;
+  }
+
+  export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
+
+  export interface ZodError {
+    kind: "JsonError",
+    msg: string
   }
 }
 
@@ -60,8 +67,8 @@ export namespace Chat {
               .subscribe((val) => {
                 if ("data" in val) {
                   cb({ data: Rs.Usize.parse(val.data) });
-                } else if ("err" in val) {
-                  cb({ err: val.err });
+                } else {
+                  cb(val)
                 }
               });
           },
@@ -78,8 +85,8 @@ export namespace Chat {
               .subscribe((val) => {
                 if ("data" in val) {
                   cb({ data: Rs.VecDeque(Chat.Message).parse(val.data) });
-                } else if ("err" in val) {
-                  cb({ err: val.err });
+                } else if ("error" in val) {
+                  cb({ error: val.error });
                 }
               });
           },

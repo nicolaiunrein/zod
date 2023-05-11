@@ -54,9 +54,8 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
         if (promise !== undefined) {
           promise.resolve(data);
         }
-      } else if ("cancel" in res) {
-        const id = BigInt(res.stream.id);
-        pending.delete(id);
+      } else {
+        throw "Unexpected Response"
       }
     };
 
@@ -82,6 +81,7 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
         },
 
         get_stream(ns, method, args) {
+          console.log(`get_stream ${method}`);
           req_id += 1n;
           let id = req_id;
           let request = stringify_request({
@@ -91,28 +91,45 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
             args: [...args],
           });
 
+          let subscribers = new Map<Symbol, (evt: Rs.StreamEvent<unknown>) => void>;
+
+          pending.set(id, {
+            resolve: (data) => {
+              subscribers.forEach(sub => {
+                sub({ data });
+              })
+            },
+            reject: (error) => {
+              subscribers.forEach(sub => {
+                sub({ error });
+              })
+            },
+          });
+
+
           let store = {
             subscribe(
               next: (
-                value: { data: unknown } | { err: unknown } | { loading: true }
+                value: Rs.StreamEvent<unknown>
               ) => void
             ) {
               next({ loading: true });
 
-              pending.set(id, {
-                resolve: (data) => {
-                  next({ data });
-                },
-                reject: (err) => {
-                  next({ err });
-                },
-              });
-              socket.send(request);
+              let sym = Symbol();
+
+              subscribers.set(sym, next);
+
               return () => {
-                pending.delete(id);
+                subscribers.delete(sym);
+                if (subscribers.size == 0) {
+                  let request = JSON.stringify({ cancelStream: { id: id.toString() } });
+                  socket.send(request);
+                  pending.delete(id);
+                }
               };
             },
-            close() {},
+            close() {
+            },
           };
 
           socket.send(request);
