@@ -18,7 +18,7 @@ function stringify_request({
 
 export const connect = async (addr: string, onDisconnect: () => void) => {
   return new Promise<Rs.Client>((resolve) => {
-    let req_id = 0n;
+    let next_req_id = 0n;
     let socket = new WebSocket(addr);
 
     let pending = new Map<
@@ -64,26 +64,26 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
     socket.onopen = () => {
       resolve({
         async call(ns, method, args) {
-          req_id += 1n;
-          let id = req_id;
+          next_req_id += 1n;
+          let req_id = next_req_id;
 
           return new Promise((resolve, reject) => {
             let request = stringify_request({
-              req_id: id,
+              req_id,
               ns,
               method,
               args: [...args],
             });
 
-            pending.set(id, { resolve, reject });
+            pending.set(req_id, { resolve, reject });
             socket.send(request);
           });
         },
 
         get_stream(ns, method, args) {
           console.log(`get_stream ${method}`);
-          req_id += 1n;
-          let id = req_id;
+          next_req_id += 1n;
+          let req_id = next_req_id;
           let request = stringify_request({
             req_id,
             ns,
@@ -93,7 +93,7 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
 
           let subscribers = new Map<Symbol, (evt: Rs.StreamEvent<unknown>) => void>;
 
-          pending.set(id, {
+          pending.set(req_id, {
             resolve: (data) => {
               subscribers.forEach(sub => {
                 sub({ data });
@@ -122,13 +122,11 @@ export const connect = async (addr: string, onDisconnect: () => void) => {
               return () => {
                 subscribers.delete(sym);
                 if (subscribers.size == 0) {
-                  let request = JSON.stringify({ cancelStream: { id: id.toString() } });
+                  let request = JSON.stringify({ cancelStream: { id: req_id.toString() } });
                   socket.send(request);
-                  pending.delete(id);
+                  pending.delete(req_id);
                 }
               };
-            },
-            close() {
             },
           };
 
