@@ -22,7 +22,8 @@ let lightness = 0;
 let count = false;
 
 let transport = new WebsocketTransport("ws://localhost:8000/ws");
-let chat = Chat.init(new Client(transport));
+let client = new Client(transport);
+let chat = Chat.init(client);
 
 let messageStore = chat.messages(10n);
 
@@ -62,6 +63,7 @@ function onKeydown(e: KeyboardEvent) {
 }
 </script>
 
+<button class="bg-gray-100" on:click="{() => client.destroy()}">destroy</button>
 <div class="container mx-auto h-screen flex flex-col items-center px-12">
   <div
     class="p:2 sm:p-6 justify-between flex flex-col bg-gray-200 my-32 rounded-xl shadow-xl w-full flex-grow">

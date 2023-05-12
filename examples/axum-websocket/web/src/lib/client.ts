@@ -49,13 +49,20 @@ export class Client implements Rs.Client {
           handler(parsed_response)
         }
       }
-    })
+    });
+
     this.next_id = new IdProvider();
     this.listeners = new Map();
     this.config = {
       timeout: config?.timeout || DEFAULT_TIMEOUT
     }
   }
+
+  destroy() {
+    this.transport.destroy()
+  }
+
+
 
   async call(ns: string, method: string, args: any[]): Promise<unknown> {
     let id = this.next_id.get();
@@ -98,6 +105,7 @@ export class Client implements Rs.Client {
         });
       } else if ("error" in res) {
         subscribers.forEach(subscriber => {
+          // todo
           subscriber({ error: res.error.data as any })
         });
       }
@@ -110,11 +118,12 @@ export class Client implements Rs.Client {
       subscribe: (next) => {
         next({ loading: true })
         let sym = Symbol();
+        let destroy: (() => void) | undefined;
+
         subscribers.set(sym, next);
         if (subscribers.size == 1) {
           this.transport.send(msg);
-          // TODO: bug!!! this will fill up... fix
-          this.transport.onOpen(() => {
+          destroy = this.transport.onOpen(() => {
             this.transport.send(msg);
           });
         }
@@ -123,6 +132,9 @@ export class Client implements Rs.Client {
           if (subscribers.size == 0) {
             let request = JSON.stringify({ cancelStream: { id: id.toString() } });
             this.transport.send(request)
+            if (destroy !== undefined) {
+              destroy()
+            }
           }
         }
       },
