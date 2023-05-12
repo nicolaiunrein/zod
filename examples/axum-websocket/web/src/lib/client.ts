@@ -1,7 +1,7 @@
 import { Rs } from "./api";
 import type { Transport } from "./transport";
 
-const DEFAULT_TIMEOUT = 1000;
+const DEFAULT_RECEIVE_TIMEOUT = 10000;
 
 interface ExecPayload {
   id: bigint;
@@ -30,6 +30,17 @@ interface Config {
   timeout: number
 }
 
+class ReceiveTimeoutError extends Error {
+  name: string;
+  message: string;
+
+  constructor() {
+    super();
+    this.name = "ReceiveTimeoutError"
+    this.message = "Timeout receiving response";
+  }
+}
+
 
 export class Client implements Rs.Client {
   transport: Transport;
@@ -54,14 +65,13 @@ export class Client implements Rs.Client {
     this.next_id = new IdProvider();
     this.listeners = new Map();
     this.config = {
-      timeout: config?.timeout || DEFAULT_TIMEOUT
+      timeout: config?.timeout || DEFAULT_RECEIVE_TIMEOUT
     }
   }
 
   destroy() {
     this.transport.destroy()
   }
-
 
 
   async call(ns: string, method: string, args: any[]): Promise<unknown> {
@@ -81,13 +91,13 @@ export class Client implements Rs.Client {
 
       setTimeout(() => {
         if (this.listeners.delete(id)) {
-          reject("Timeout")
+          reject(new ReceiveTimeoutError())
         }
       }, this.config.timeout)
     })
 
-    this.transport.send(msg);
-    return await res;
+    let req = this.transport.send(msg);
+    return await Promise.all([req, res])
   }
 
 
@@ -97,6 +107,7 @@ export class Client implements Rs.Client {
     let id = this.next_id.get();
     let msg = stringify_request({ id, ns, method, args })
     let subscribers = new Map<Symbol, (value: Rs.StreamEvent<unknown>) => void>
+
 
     this.listeners.set(id, res => {
       if ("stream" in res) {
@@ -111,9 +122,6 @@ export class Client implements Rs.Client {
       }
     })
 
-    // TODO:
-    // streams should show loading state when disconnected
-    // streams should re-subscribe on connect
     return {
       subscribe: (next) => {
         next({ loading: true })
@@ -122,16 +130,20 @@ export class Client implements Rs.Client {
 
         subscribers.set(sym, next);
         if (subscribers.size == 1) {
-          this.transport.send(msg);
-          destroy = this.transport.onOpen(() => {
-            this.transport.send(msg);
+          this.transport.send(msg).catch(error => next({ error }));
+          destroy = this.transport.onStateChange((state) => {
+            if (state == "open") {
+              this.transport.send(msg).catch(error => next({ error }));
+            } else if (state == "close") {
+              next({ loading: true })
+            }
           });
         }
         return () => {
           subscribers.delete(sym)
           if (subscribers.size == 0) {
             let request = JSON.stringify({ cancelStream: { id: id.toString() } });
-            this.transport.send(request)
+            this.transport.send(request).catch((e) => console.error(`Error canceling stream ${e.message}`))
             if (destroy !== undefined) {
               destroy()
             }

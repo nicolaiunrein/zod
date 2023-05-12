@@ -69,8 +69,8 @@ export namespace Rs {
     export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
 
     export interface ZodError {
-        kind: "JsonError",
-        msg: string
+        name: "JsonError",
+        message: string
     }
 
 }
@@ -106,7 +106,7 @@ export namespace Chat {
             // @ts-ignore
             async get_lightness(color: Rs.String): Promise<Rs.F64> {
                 z.lazy(() => z.tuple([Rs.String])).parse([color]);
-                return Rs.F64.parse(await client.call("Chat", "get_lightness", [color]));
+                return Rs.F64.parse(await client.call("Chat", "get_lightness", [color]).catch(console.info));
             },
 
             // @ts-ignore

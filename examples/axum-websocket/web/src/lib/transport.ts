@@ -1,17 +1,24 @@
 const DEFAULT_CONNECT_TIMEOUT = 1000;
 const DEFAULT_SEND_TIMEOUT = 1000;
 
+type ConnectionState = "open" | "close";
+
 export interface Transport {
   send: (msg: string) => Promise<void>
   onResponse: (handler: ResponseHandler) => () => void;
-  onOpen: (handler: () => void) => () => void;
+  onStateChange: (handler: (state: ConnectionState) => void) => () => void;
   destroy: () => void
 }
 
-class TimeoutError implements Error {
-  name: "Timeout"
-  message: "Timeout sending request";
+class SendTimeoutError extends Error {
+  name: string;
+  message: string;
 
+  constructor() {
+    super()
+    this.name = "SendTimeoutError"
+    this.message = "Timeout sending request";
+  }
 }
 
 type ResponseHandler = (msg: string) => void;
@@ -48,6 +55,7 @@ export class WebsocketTransport implements Transport {
   events: {
     msg: EventEmitter<string>
     open: EventEmitter<undefined>
+    close: EventEmitter<undefined>
   }
   destroyed: boolean
 
@@ -61,6 +69,7 @@ export class WebsocketTransport implements Transport {
     this.events = {
       msg: new EventEmitter(),
       open: new EventEmitter(),
+      close: new EventEmitter(),
     };
     this.connect(addr)
   }
@@ -70,6 +79,7 @@ export class WebsocketTransport implements Transport {
 
     this.socket.onclose = () => {
       console.debug(`[zod-rpc] Disconnected from ${this.socket.url}`)
+      this.events.close.emit(undefined)
       setTimeout(() => {
         if (!this.destroyed) {
           this.connect(addr)
@@ -90,7 +100,12 @@ export class WebsocketTransport implements Transport {
     if (this.socket.readyState == WebSocket.OPEN) {
       this.socket.send(msg)
     } else {
-      await this.defer(msg);
+      try {
+        await this.defer(msg);
+
+      } catch (e) {
+        throw e;
+      }
     }
   }
 
@@ -98,9 +113,10 @@ export class WebsocketTransport implements Transport {
     return new Promise((resolve, reject) => {
       let sym = Symbol();
       this.queue.set(sym, { msg, resolve });
+
       setTimeout(() => {
         if (this.queue.delete(sym)) {
-          reject(TimeoutError)
+          reject(new SendTimeoutError())
         }
       }, this.config.send_timeout)
     })
@@ -120,9 +136,15 @@ export class WebsocketTransport implements Transport {
     return this.events.msg.addEventListener(handler);
   }
 
-  onOpen(handler: () => void): () => void {
-    return this.events.open.addEventListener(handler);
+  onStateChange(handler: (state: ConnectionState) => void): () => void {
+    const destroy_open = this.events.open.addEventListener(() => handler("open"));
+    const destroy_close = this.events.close.addEventListener(() => handler("close"));
+    return () => {
+      destroy_open();
+      destroy_close();
+    }
   }
+
 
   destroy() {
     this.destroyed = true;

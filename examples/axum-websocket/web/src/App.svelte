@@ -27,7 +27,7 @@ let chat = Chat.init(client);
 
 let messageStore = chat.messages(10n);
 
-$: counterStore = count ? chat.count_to(10n) : undefined;
+$: counterStore = count ? chat.count_to(100000n) : undefined;
 $: color == "transparent" && getInitialColor();
 $: color && color !== "transparent" && getLightness(color);
 $: fgColor = lightness > 0.8 ? "black" : "white";
@@ -84,7 +84,7 @@ function onKeydown(e: KeyboardEvent) {
               <span
                 class="text-red-500 item"
                 transition:fly="{{ duration: 200, y: 20 }}">
-                {$counterStore.error.msg}
+                {$counterStore.error.message}
               </span>
             {:else if "data" in $counterStore}
               <span

@@ -1,6 +1,6 @@
 /// Represent RPC Server Errors to be sent to the client
 #[derive(thiserror::Error, Debug, serde::Serialize)]
-#[serde(tag = "kind", content = "msg")]
+#[serde(tag = "name", content = "message")]
 pub enum Error {
     #[error("JsonError: {0}")]
     #[serde(serialize_with = "ser_display")]
