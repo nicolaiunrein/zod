@@ -1,7 +1,6 @@
 import { Rs } from "./api";
 import type { Transport } from "./transport";
 
-const DEFAULT_RECEIVE_TIMEOUT = 10000;
 
 interface ExecPayload {
   id: bigint;
@@ -26,29 +25,12 @@ class IdProvider {
   }
 }
 
-interface Config {
-  timeout: number
-}
-
-class ReceiveTimeoutError extends Error {
-  name: string;
-  message: string;
-
-  constructor() {
-    super();
-    this.name = "ReceiveTimeoutError"
-    this.message = "Timeout receiving response";
-  }
-}
-
-
 export class Client implements Rs.Client {
   transport: Transport;
   next_id: IdProvider;
   listeners: Map<bigint, (response: Rs.Response) => void>
-  config: Config;
 
-  constructor(transport: Transport, config?: Partial<Config>) {
+  constructor(transport: Transport) {
     this.transport = transport
     this.transport.onResponse(msg => {
       let res = JSON.parse(msg);
@@ -64,9 +46,6 @@ export class Client implements Rs.Client {
 
     this.next_id = new IdProvider();
     this.listeners = new Map();
-    this.config = {
-      timeout: config?.timeout || DEFAULT_RECEIVE_TIMEOUT
-    }
   }
 
   destroy() {
@@ -79,8 +58,14 @@ export class Client implements Rs.Client {
     let msg = stringify_request({ id, ns, method, args })
 
     let res = new Promise<unknown>((resolve, reject) => {
-
+      let destroy = this.transport.onStateChange(state => {
+        if (state == "close") {
+          this.listeners.delete(id)
+          reject("todo")
+        }
+      });
       this.listeners.set(id, (response: Rs.Response) => {
+        destroy();
         if ("method" in response) {
           resolve(response.method.data)
         } else if ("error" in response) {
@@ -88,12 +73,6 @@ export class Client implements Rs.Client {
         }
         this.listeners.delete(id)
       })
-
-      setTimeout(() => {
-        if (this.listeners.delete(id)) {
-          reject(new ReceiveTimeoutError())
-        }
-      }, this.config.timeout)
     })
 
     let req = this.transport.send(msg);
@@ -108,7 +87,6 @@ export class Client implements Rs.Client {
     let msg = stringify_request({ id, ns, method, args })
     let subscribers = new Map<Symbol, (value: Rs.StreamEvent<unknown>) => void>
 
-
     this.listeners.set(id, res => {
       if ("stream" in res) {
         subscribers.forEach(subscriber => {
@@ -116,7 +94,7 @@ export class Client implements Rs.Client {
         });
       } else if ("error" in res) {
         subscribers.forEach(subscriber => {
-          // todo
+          // TODO
           subscriber({ error: res.error.data as any })
         });
       }

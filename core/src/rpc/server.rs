@@ -43,6 +43,8 @@ const STATIC_TYPE_DEFS: &str = r#"
         ErrorResponse
     ])
 
+    export type Response = z.infer<typeof Response>;
+
     export interface Client {
       get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
       call(ns: string, method: string, args: unknown[]): Promise<unknown>;
@@ -56,8 +58,8 @@ const STATIC_TYPE_DEFS: &str = r#"
     export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
   
     export interface ZodError {
-      kind: "JsonError",
-      msg: string
+      name: "JsonError" | "UnknownNamespace",
+      message: string
     }
 "#;
 
