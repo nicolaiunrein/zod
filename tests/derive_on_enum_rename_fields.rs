@@ -1,8 +1,6 @@
 mod test_utils;
 use test_utils::*;
 
-fn main() {}
-
 #[test]
 fn rename_variant_struct() {
     test_case! {
