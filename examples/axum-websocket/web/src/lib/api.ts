@@ -5,9 +5,21 @@ export namespace Rs {
 
     export const F64 = z.number();
 
+    export type HashMap<K, V> = Map<K, V>;
+
+    export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(K, V);
+
     export type String = string;
 
     export const String = z.string();
+
+    export type U16 = number;
+
+    export const U16 = z.number().finite().int().nonnegative().lte(65535);
+
+    export type U8 = number;
+
+    export const U8 = z.number().finite().int().nonnegative().lte(255);
 
     export type Unit = null;
 
@@ -43,10 +55,7 @@ export namespace Rs {
         z.object({
             error: z.object({
                 id: z.coerce.bigint().nonnegative().lt(2n ** 64n).optional(),
-                data: z.object({
-                    name: z.string(),
-                    message: z.string()
-                })
+                data: z.unknown()
             })
         });
 
@@ -80,6 +89,11 @@ export namespace Chat {
 
     export const Message = z.lazy(() => z.object({ user: Chat.User, color: Rs.String, content: Rs.String }));
 
+    export type MyNewtype<T> = Rs.HashMap<Rs.String, T>;
+
+    export const MyNewtype = (T: z.ZodTypeAny) => z.lazy(() => Rs.HashMap(Rs.String, T));
+
+
     export interface User { name: Rs.String }
 
     export const User = z.lazy(() => z.object({ name: Rs.String }));
@@ -107,6 +121,11 @@ export namespace Chat {
                             });
                     }
                 }
+            },
+
+            // @ts-ignore
+            async debug(t: Chat.MyNewtype<Rs.U8>, t2: Chat.MyNewtype<Rs.U16>): Promise<Rs.Unit> {
+                return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "debug", z.lazy(() => z.tuple([Chat.MyNewtype(Rs.U8), Chat.MyNewtype(Rs.U16)])).parse([t, t2])));
             },
 
             // @ts-ignore

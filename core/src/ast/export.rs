@@ -33,8 +33,6 @@ impl Compiler for Export {
         match self.schema {
             ExportSchema::Raw(schema) => schema.export(name).fmt_zod(f)?,
             ExportSchema::Object(schema) => schema.export(name).fmt_zod(f)?,
-
-            //todo generics
             ExportSchema::Newtype(schema) => schema.export(name).fmt_zod(f)?,
             ExportSchema::Tuple(schema) => schema.export(name).fmt_zod(f)?,
             ExportSchema::Union(schema) => schema.export(name).fmt_zod(f)?,
@@ -55,8 +53,6 @@ impl Compiler for Export {
         match self.schema {
             ExportSchema::Raw(schema) => schema.export(name).fmt_ts(f)?,
             ExportSchema::Object(schema) => schema.export(name).fmt_ts(f)?,
-
-            //todo generics
             ExportSchema::Newtype(schema) => schema.export(name).fmt_ts(f)?,
             ExportSchema::Tuple(schema) => schema.export(name).fmt_ts(f)?,
             ExportSchema::Union(schema) => schema.export(name).fmt_ts(f)?,

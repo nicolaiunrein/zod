@@ -30,6 +30,10 @@ impl Ref {
     {
         Self::new_res::<I>()
     }
+
+    pub const fn args(&self) -> &'static [Ref] {
+        self.args
+    }
 }
 
 impl Compiler for Ref {

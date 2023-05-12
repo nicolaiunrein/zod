@@ -34,6 +34,10 @@ pub struct Color {
     blue: u8,
 }
 
+#[derive(RequestType, ResponseType, serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[zod(namespace = "Chat")]
+pub struct MyNewtype<T: RequestType + ResponseType>(std::collections::HashMap<String, T>);
+
 impl From<Color> for String {
     fn from(value: Color) -> Self {
         format!(
@@ -128,9 +132,11 @@ impl Chat {
         (red + green + blue).sqrt()
     }
 
-    fn pending(&mut self) {
+    async fn pending(&mut self) {
         futures::future::pending().await
     }
+
+    async fn debug(&mut self, t: MyNewtype<u8>, t2: MyNewtype<u16>) {}
 }
 
 #[derive(zod::Backend)]

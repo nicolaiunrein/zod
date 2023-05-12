@@ -39,6 +39,7 @@ impl Compiler for NewtypeSchema {
 
 impl Compiler for Exported<NewtypeSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // todo generics
         f.write_fmt(format_args!("const {} = z.lazy(() => ", self.name))?;
         self.schema.fmt_zod(f)?;
         f.write_str(");")?;
@@ -46,6 +47,7 @@ impl Compiler for Exported<NewtypeSchema> {
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // todo generics
         f.write_fmt(format_args!("type {} = ", self.name))?;
         self.schema.fmt_ts(f)?;
         f.write_str(";")?;
