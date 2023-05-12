@@ -2,16 +2,13 @@ use proc_macro2::Span;
 
 #[derive(thiserror::Error, Debug)]
 pub(crate) enum Error {
-    #[error("todo")]
-    NoSerde(Span),
-
-    #[error("todo")]
+    #[error("namespace methods must be async or return a stream")]
     NonAsyncReturningDefault(Span),
 
     #[error("namespace methods are not allowed to have lifetimes")]
     NamespaceLifetimes(Span),
 
-    #[error("expected '&mut self' got '{got}'.")]
+    #[error("expected `&mut self` got `{got}`.")]
     WrongSelf { span: Span, got: &'static str },
 
     #[error("namespace methods must have a self argument")]
@@ -39,7 +36,6 @@ impl Error {
 
     fn span(&self) -> Span {
         match self {
-            Error::NoSerde(span) => *span,
             Error::NonAsyncReturningDefault(span) => *span,
             Error::NamespaceLifetimes(span) => *span,
             Error::WrongSelf { span, .. } => *span,
@@ -51,12 +47,12 @@ impl Error {
 
 impl From<Error> for darling::Error {
     fn from(value: Error) -> Self {
-        darling::Error::custom(format!("zod: `{}`", value))
+        darling::Error::custom(format!("[zod]: {}", value))
     }
 }
 
 impl From<Error> for syn::Error {
     fn from(value: Error) -> Self {
-        syn::Error::new(value.span(), format!("zod: `{}`", value))
+        syn::Error::new(value.span(), format!("[zod]: {}", value))
     }
 }

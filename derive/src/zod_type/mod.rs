@@ -3,7 +3,6 @@ mod r#enum;
 mod field;
 mod r#struct;
 
-use crate::error::Error;
 use crate::utils::get_zod;
 use config::ContainerConfig;
 use config::FieldConfig;
@@ -59,7 +58,7 @@ impl ZodType {
             orig,
             serde_derive_internals::Derive::Deserialize,
         )
-        .ok_or(Error::NoSerde(orig.ident.span()))?;
+        .expect("failed to parse serde");
 
         let serde_attrs = serde_ast.attrs;
 

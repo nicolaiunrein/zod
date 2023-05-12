@@ -128,7 +128,7 @@ impl Chat {
         (red + green + blue).sqrt()
     }
 
-    async fn pending(&mut self) {
+    fn pending(&mut self) {
         futures::future::pending().await
     }
 }
