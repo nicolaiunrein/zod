@@ -87,13 +87,13 @@ impl RpcInput {
 
                     let method_ident = &item.ident;
                     let ns_ident = &self.ident;
-                    let todos = item.method_args.iter().map(|_| quote!(todo!()));
+                    let dummy_args = item.method_args.iter().map(|_| quote!(unreachable!()));
 
                     quote_spanned! { item.ident.span() =>
                         #zod::core::ast::rpc::RpcRequest {
                             path: #zod::core::ast::Path::new::<#ident>(#name),
                             args: &[#(#args),*],
-                            output: #zod::core::ast::Ref::new_stream_res(&|| #ns_ident::#method_ident(todo!(), #(#todos),*)),
+                            output: #zod::core::ast::Ref::new_stream_res(&|| #ns_ident::#method_ident(unreachable!(), #(#dummy_args),*)),
                             kind: #zod::core::ast::rpc::RpcRequestKind::Stream,
                         }
                     }
@@ -153,11 +153,11 @@ impl RpcInput {
                 RpcItemKind::Stream(_output) => {
                     let ns_ident = &self.ident;
                     let method_ident = &item.ident;
-                    let todos = item.method_args.iter().map(|_| quote!(todo!()));
+                    let dummy_args = item.method_args.iter().map(|_| quote!(unreachable!()));
 
                     quote_spanned!{ item.ident.span() => 
                         #[allow(unreachable_code)]
-                        ctx.add_stream_output(|| #ns_ident::#method_ident(todo!(), #(#todos),*))
+                        ctx.add_stream_output(|| #ns_ident::#method_ident(unreachable!(), #(#dummy_args),*))
                     }
                 }                                                                                  
             }

@@ -44,7 +44,7 @@ impl FieldConfig {
         Ok(Self {
             ignored,
             required,
-            // todo
+            // tuple field names are numbers
             name: if name.chars().all(|c| c.is_numeric()) {
                 None
             } else {
