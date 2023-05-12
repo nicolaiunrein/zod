@@ -1,4 +1,5 @@
-const DEFAULT_CONNECT_TIMEOUT = 1000;
+const DEFAULT_CONNECT_TIMEOUT = 2000;
+const DEFAULT_RECONNECT_INTERVAL = 1000;
 const DEFAULT_SEND_TIMEOUT = 1000;
 
 type ConnectionState = "open" | "close";
@@ -26,6 +27,7 @@ type ResponseHandler = (msg: string) => void;
 interface Config {
   connect_timeout: number,
   send_timeout: number
+  reconnect_interval: number
 }
 
 export class EventEmitter<T> {
@@ -63,6 +65,7 @@ export class WebsocketTransport implements Transport {
     this.destroyed = false;
     this.config = {
       connect_timeout: config?.connect_timeout || DEFAULT_CONNECT_TIMEOUT,
+      reconnect_interval: config?.reconnect_interval || DEFAULT_RECONNECT_INTERVAL,
       send_timeout: config?.send_timeout || DEFAULT_SEND_TIMEOUT
     }
     this.queue = new Map();
@@ -75,7 +78,13 @@ export class WebsocketTransport implements Transport {
   }
 
   connect(addr: string) {
+    console.log("[zod-rpc] Connecting...");
     this.socket = new WebSocket(addr)
+    setTimeout(() => {
+      if (this.socket.readyState == WebSocket.CONNECTING) {
+        this.socket.close();
+      }
+    }, this.config.connect_timeout);
 
     this.socket.onclose = () => {
       console.debug(`[zod-rpc] Disconnected from ${this.socket.url}`)
@@ -84,14 +93,20 @@ export class WebsocketTransport implements Transport {
         if (!this.destroyed) {
           this.connect(addr)
         }
-      }, this.config.connect_timeout)
+      }, this.config.reconnect_interval)
     };
 
-    this.socket.onopen = () => {
+    if (this.socket.readyState == WebSocket.OPEN) {
       console.debug(`[zod-rpc] Connected to ${this.socket.url}`)
       this.events.open.emit(undefined)
       this.processDefered(msg => this.socket.send(msg))
-    };
+    } else {
+      this.socket.onopen = () => {
+        console.debug(`[zod-rpc] Connected to ${this.socket.url}`)
+        this.events.open.emit(undefined)
+        this.processDefered(msg => this.socket.send(msg))
+      };
+    }
 
     this.socket.onmessage = evt => this.events.msg.emit(evt.data);
   }
