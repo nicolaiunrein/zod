@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Display;
 
 use crate::ast::rpc::RpcRequest;
+use crate::ast::rpc::CLIENT_NAME;
 use crate::{
     ast::Export, rpc::Request, rpc::ResponseSender, Namespace, RequestTypeVisitor,
     ResponseTypeVisitor,
@@ -151,6 +152,7 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
                 if !self.requests.is_empty() {
                     f.write_str("export function init(client: Rs.Client)")?;
                     f.write_str("{")?;
+                    f.write_fmt(format_args!("const {CLIENT_NAME} = client;\n\n"))?;
 
                     f.write_str("return {")?;
                     for req in self.requests.iter() {

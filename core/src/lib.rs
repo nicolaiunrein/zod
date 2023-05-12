@@ -279,6 +279,6 @@ mod test {
         }
 
         #[allow(unreachable_code)]
-        map.add_stream_output(|| X::test(todo!()));
+        map.add_stream_output(|| X::test(unreachable!()));
     }
 }

@@ -75,7 +75,7 @@ mod test {
         }
 
         #[allow(unreachable_code)]
-        let x = Ref::new_stream_res(&|| MyStruct::test(todo!()));
+        let x = Ref::new_stream_res(&|| MyStruct::test(unreachable!()));
 
         assert_eq!(x, Ref::new_res::<u8>())
     }

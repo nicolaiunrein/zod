@@ -2,6 +2,7 @@
 use std::fmt::Display;
 
 use crate::ast::*;
+pub(crate) const CLIENT_NAME: &str = "__zod_private_client_instance";
 
 /// The Kind of RpcRequest
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -66,33 +67,35 @@ impl Display for RpcRequest {
 
         f.write_str("// @ts-ignore\n")?;
 
-        f.write_fmt(format_args!("{asyncness} {name}({ts_args}): {res} {{\n"))?;
-
-        f.write_fmt(format_args!(
-            "    z.lazy(() => z.tuple([{zod_args}])).parse([{arg_names}]);\n"
-        ))?;
+        f.write_fmt(format_args!("{asyncness}{name}({ts_args}): {res} {{\n"))?;
 
         match self.kind {
             RpcRequestKind::Method => {
                 f.write_fmt(format_args!(
-                    "    return {inner_res_zod}.parse(await client.call(\"{ns}\", \"{name}\", [{arg_names}]));\n"
+                    "    return {inner_res_zod}.parse(await {CLIENT_NAME}.call(\"{ns}\", \"{name}\", z.lazy(() => z.tuple([{zod_args}])).parse([{arg_names}])));\n"
                 ))?;
             }
             RpcRequestKind::Stream => {
                 f.write_fmt(format_args!(
                     "    return {{
-      subscribe(next) {{
-        return client
-          .get_stream(\"{ns}\", \"{name}\", [{arg_names}])
-              .subscribe((val) => {{
-                if (\"data\" in val) {{
-                  next({{ data: {inner_res_zod}.parse(val.data) }});
-                }} else  {{
-                  next(val);
-                }}
-              }});
-      }}
-}}"
+        subscribe(next) {{
+            return {CLIENT_NAME}
+                .get_stream(\"{ns}\", \"{name}\", [{arg_names}])
+                .subscribe((evt) => {{
+                    if (\"data\" in evt) {{
+                        let result = {inner_res_zod}.safeParse(evt.data);
+                        if (result.success) {{
+                            next({{ data: result.data }});
+                        }} else {{
+                            next({{ error: result.error }})
+                        }}
+                    }} else {{
+                        next(evt);
+                    }}
+                }});
+        }}
+    }}
+"
                 ))?;
             }
         }
@@ -110,16 +113,11 @@ mod test {
 
     #[test]
     fn method_ok() {
-        let expected = "\
+        let expected = format!("\
 // @ts-ignore
-async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
-    // phantom usage
-    name;
-    age;
-    z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([...arguments]);
-    return call(\"Ns\", \"test\", arguments);
-};
-";
+async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {{
+    return Rs.Option(Rs.Bool).parse(await {CLIENT_NAME}.call(\"Ns\", \"test\", z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([name, age])));
+}}");
 
         struct Ns;
         impl Namespace for Ns {
@@ -141,16 +139,30 @@ async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {
 
     #[test]
     fn stream_ok() {
-        let expected = "\
+        let expected = format!(
+            "\
 // @ts-ignore
-test(name: Rs.String, age: Rs.U16): Rs.Stream<Rs.Option<Rs.Bool>> {
-    // phantom usage
-    name;
-    age;
-    z.lazy(() => z.tuple([Rs.String, Rs.U16])).parse([...arguments]);
-    return subscribe(\"Ns\", \"test\", arguments);
-};
-";
+test(name: Rs.String, age: Rs.U16): Rs.Stream<Rs.Option<Rs.Bool>> {{
+    return {{
+        subscribe(next) {{
+            return __zod_private_client_instance
+                .get_stream(\"Ns\", \"test\", [name, age])
+                .subscribe((evt) => {{
+                    if (\"data\" in evt) {{
+                        let result = Rs.Option(Rs.Bool).safeParse(evt.data);
+                        if (result.success) {{
+                            next({{ data: result.data }});
+                        }} else {{
+                            next({{ error: result.error }})
+                        }}
+                    }} else {{
+                        next(evt);
+                    }}
+                }});
+        }}
+    }}
+}}"
+        );
 
         struct Ns;
         impl Namespace for Ns {

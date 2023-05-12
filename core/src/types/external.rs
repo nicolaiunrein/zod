@@ -475,7 +475,7 @@ mod test {
         let export = <Usize as RequestType>::export();
         assert_eq!(
             export.to_zod_string(),
-            "export const Usize = z.bigint().nonnegative().lt(2n ** 64n);"
+            "export const Usize = z.coerce.bigint().nonnegative().lt(2n ** 64n);"
         );
     }
 }

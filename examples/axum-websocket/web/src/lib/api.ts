@@ -81,62 +81,70 @@ export namespace Chat {
 
     export const User = z.lazy(() => z.object({ name: Rs.String }));
 
-export function init(client: Rs.Client){return {// @ts-ignore
- count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
-    z.lazy(() => z.tuple([Rs.Usize])).parse([n]);
+export function init(client: Rs.Client){const __zod_private_client_instance = client;
+
+return {// @ts-ignore
+count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
     return {
-      subscribe(next) {
-        return client
-          .get_stream("Chat", "count_to", [n])
-              .subscribe((val) => {
-                if ("data" in val) {
-                  next({ data: Rs.Usize.parse(val.data) });
-                } else  {
-                  next(val);
-                }
-              });
-      }
-}},
-
-// @ts-ignore
-async  get_lightness(color: Rs.String): Promise<Rs.F64> {
-    z.lazy(() => z.tuple([Rs.String])).parse([color]);
-    return Rs.F64.parse(await client.call("Chat", "get_lightness", [color]));
+        subscribe(next) {
+            return __zod_private_client_instance
+                .get_stream("Chat", "count_to", [n])
+                .subscribe((evt) => {
+                    if ("data" in evt) {
+                        let result = Rs.Usize.safeParse(evt.data);
+                        if (result.success) {
+                            next({ data: result.data });
+                        } else {
+                            next({ error: result.error })
+                        }
+                    } else {
+                        next(evt);
+                    }
+                });
+        }
+    }
 },
 
 // @ts-ignore
-async  get_random_color(): Promise<Rs.String> {
-    z.lazy(() => z.tuple([])).parse([]);
-    return Rs.String.parse(await client.call("Chat", "get_random_color", []));
+async get_lightness(color: Rs.String): Promise<Rs.F64> {
+    return Rs.F64.parse(await __zod_private_client_instance.call("Chat", "get_lightness", z.lazy(() => z.tuple([Rs.String])).parse([color])));
 },
 
 // @ts-ignore
- messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
-    z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
+async get_random_color(): Promise<Rs.String> {
+    return Rs.String.parse(await __zod_private_client_instance.call("Chat", "get_random_color", z.lazy(() => z.tuple([])).parse([])));
+},
+
+// @ts-ignore
+messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
     return {
-      subscribe(next) {
-        return client
-          .get_stream("Chat", "messages", [len])
-              .subscribe((val) => {
-                if ("data" in val) {
-                  next({ data: Rs.VecDeque(Chat.Message).parse(val.data) });
-                } else  {
-                  next(val);
-                }
-              });
-      }
-}},
-
-// @ts-ignore
-async  pending(): Promise<Rs.Unit> {
-    z.lazy(() => z.tuple([])).parse([]);
-    return Rs.Unit.parse(await client.call("Chat", "pending", []));
+        subscribe(next) {
+            return __zod_private_client_instance
+                .get_stream("Chat", "messages", [len])
+                .subscribe((evt) => {
+                    if ("data" in evt) {
+                        let result = Rs.VecDeque(Chat.Message).safeParse(evt.data);
+                        if (result.success) {
+                            next({ data: result.data });
+                        } else {
+                            next({ error: result.error })
+                        }
+                    } else {
+                        next(evt);
+                    }
+                });
+        }
+    }
 },
 
 // @ts-ignore
-async  send(msg: Chat.Message): Promise<Rs.Unit> {
-    z.lazy(() => z.tuple([Chat.Message])).parse([msg]);
-    return Rs.Unit.parse(await client.call("Chat", "send", [msg]));
+async pending(): Promise<Rs.Unit> {
+    return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "pending", z.lazy(() => z.tuple([])).parse([])));
+},
+
+// @ts-ignore
+async send(msg: Chat.Message): Promise<Rs.Unit> {
+    return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "send", z.lazy(() => z.tuple([Chat.Message])).parse([msg])));
 },
 
 }}
