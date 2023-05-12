@@ -43,7 +43,10 @@ export namespace Rs {
         z.object({
             error: z.object({
                 id: z.coerce.bigint().nonnegative().lt(2n ** 64n).optional(),
-                data: z.unknown()
+                data: z.object({
+                    name: z.string(),
+                    message: z.string()
+                })
             })
         });
 
@@ -58,17 +61,17 @@ export namespace Rs {
     export type Response = z.infer<typeof Response>;
 
     export interface Client {
-      get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
-      call(ns: string, method: string, args: unknown[]): Promise<unknown>;
+        get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
+        call(ns: string, method: string, args: unknown[]): Promise<unknown>;
     }
     export interface Stream<T> {
-      subscribe(
-        next: (value: StreamEvent<T>) => void
-      ): () => void;
+        subscribe(
+            next: (value: StreamEvent<T>) => void
+        ): () => void;
     }
-  
+
     export type StreamEvent<T> = { data: T } | { error: Error } | { loading: true };
-  
+
 
 }
 
@@ -81,73 +84,75 @@ export namespace Chat {
 
     export const User = z.lazy(() => z.object({ name: Rs.String }));
 
-export function init(client: Rs.Client){const __zod_private_client_instance = client;
+    export function init(client: Rs.Client) {
+        const __zod_private_client_instance = client;
 
-return {// @ts-ignore
-count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
-    return {
-        subscribe(next) {
-            return __zod_private_client_instance
-                .get_stream("Chat", "count_to", [n])
-                .subscribe((evt) => {
-                    if ("data" in evt) {
-                        let result = Rs.Usize.safeParse(evt.data);
-                        if (result.success) {
-                            next({ data: result.data });
-                        } else {
-                            next({ error: result.error })
-                        }
-                    } else {
-                        next(evt);
+        return {// @ts-ignore
+            count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
+                return {
+                    subscribe(next) {
+                        return __zod_private_client_instance
+                            .get_stream("Chat", "count_to", [n])
+                            .subscribe((evt) => {
+                                if ("data" in evt) {
+                                    let result = Rs.Usize.safeParse(evt.data);
+                                    if (result.success) {
+                                        next({ data: result.data });
+                                    } else {
+                                        next({ error: result.error })
+                                    }
+                                } else {
+                                    next(evt);
+                                }
+                            });
                     }
-                });
+                }
+            },
+
+            // @ts-ignore
+            async get_lightness(color: Rs.String): Promise<Rs.F64> {
+                return Rs.F64.parse(await __zod_private_client_instance.call("Chat", "get_lightness", z.lazy(() => z.tuple([Rs.String])).parse([color])));
+            },
+
+            // @ts-ignore
+            async get_random_color(): Promise<Rs.String> {
+                return Rs.String.parse(await __zod_private_client_instance.call("Chat", "get_random_color", z.lazy(() => z.tuple([])).parse([])));
+            },
+
+            // @ts-ignore
+            messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
+                return {
+                    subscribe(next) {
+                        return __zod_private_client_instance
+                            .get_stream("Chat", "messages", [len])
+                            .subscribe((evt) => {
+                                if ("data" in evt) {
+                                    let result = Rs.VecDeque(Chat.Message).safeParse(evt.data);
+                                    if (result.success) {
+                                        next({ data: result.data });
+                                    } else {
+                                        next({ error: result.error })
+                                    }
+                                } else {
+                                    next(evt);
+                                }
+                            });
+                    }
+                }
+            },
+
+            // @ts-ignore
+            async pending(): Promise<Rs.Unit> {
+                return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "pending", z.lazy(() => z.tuple([])).parse([])));
+            },
+
+            // @ts-ignore
+            async send(msg: Chat.Message): Promise<Rs.Unit> {
+                return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "send", z.lazy(() => z.tuple([Chat.Message])).parse([msg])));
+            },
+
         }
     }
-},
-
-// @ts-ignore
-async get_lightness(color: Rs.String): Promise<Rs.F64> {
-    return Rs.F64.parse(await __zod_private_client_instance.call("Chat", "get_lightness", z.lazy(() => z.tuple([Rs.String])).parse([color])));
-},
-
-// @ts-ignore
-async get_random_color(): Promise<Rs.String> {
-    return Rs.String.parse(await __zod_private_client_instance.call("Chat", "get_random_color", z.lazy(() => z.tuple([])).parse([])));
-},
-
-// @ts-ignore
-messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
-    return {
-        subscribe(next) {
-            return __zod_private_client_instance
-                .get_stream("Chat", "messages", [len])
-                .subscribe((evt) => {
-                    if ("data" in evt) {
-                        let result = Rs.VecDeque(Chat.Message).safeParse(evt.data);
-                        if (result.success) {
-                            next({ data: result.data });
-                        } else {
-                            next({ error: result.error })
-                        }
-                    } else {
-                        next(evt);
-                    }
-                });
-        }
-    }
-},
-
-// @ts-ignore
-async pending(): Promise<Rs.Unit> {
-    return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "pending", z.lazy(() => z.tuple([])).parse([])));
-},
-
-// @ts-ignore
-async send(msg: Chat.Message): Promise<Rs.Unit> {
-    return Rs.Unit.parse(await __zod_private_client_instance.call("Chat", "send", z.lazy(() => z.tuple([Chat.Message])).parse([msg])));
-},
-
-}}
 }
 
 
