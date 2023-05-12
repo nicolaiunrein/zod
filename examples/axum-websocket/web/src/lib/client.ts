@@ -25,12 +25,23 @@ class IdProvider {
   }
 }
 
+export class ReceiveError extends Error {
+  name: string;
+  message: string;
+  constructor(ctx: { ns: string, method: string, args: any[] }) {
+    super()
+    this.name = "ReceiveError";
+    this.message = `Connection closed while receiving response for \`${ctx.ns}.${ctx.method}(${ctx.args.join(", ")})\``;
+  }
+}
+
 export class Client implements Rs.Client {
   transport: Transport;
   next_id: IdProvider;
   listeners: Map<bigint, (response: Rs.Response) => void>
 
   constructor(transport: Transport) {
+    this.listeners = new Map();
     this.transport = transport
     this.transport.onResponse(msg => {
       let res = JSON.parse(msg);
@@ -45,7 +56,6 @@ export class Client implements Rs.Client {
     });
 
     this.next_id = new IdProvider();
-    this.listeners = new Map();
   }
 
   destroy() {
@@ -57,13 +67,16 @@ export class Client implements Rs.Client {
     let id = this.next_id.get();
     let msg = stringify_request({ id, ns, method, args })
 
-    let res = new Promise<unknown>((resolve, reject) => {
+    await this.transport.send(msg);
+
+    return new Promise<unknown>((resolve, reject) => {
       let destroy = this.transport.onStateChange(state => {
         if (state == "close") {
           this.listeners.delete(id)
-          reject("todo")
+          reject(new ReceiveError({ method, ns, args }))
         }
       });
+
       this.listeners.set(id, (response: Rs.Response) => {
         destroy();
         if ("method" in response) {
@@ -74,9 +87,6 @@ export class Client implements Rs.Client {
         this.listeners.delete(id)
       })
     })
-
-    let req = this.transport.send(msg);
-    return await Promise.all([req, res])
   }
 
 

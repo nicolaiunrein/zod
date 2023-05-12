@@ -32,24 +32,13 @@ $: color == "transparent" && getInitialColor();
 $: color && color !== "transparent" && getLightness(color);
 $: fgColor = lightness > 0.8 ? "black" : "white";
 
-function handleError(err: any) {
-  alert(JSON.stringify(err));
-}
-
 async function sendMessage() {
-  if (!chat) return;
-
-  await chat
-    .send({ user: { name }, content: current_msg, color: color })
-    .then(() => (current_msg = ""))
-    .catch(handleError);
+  await chat.send({ user: { name }, content: current_msg, color: color });
+  current_msg = "";
 }
 
 async function getInitialColor() {
-  await chat
-    .get_random_color()
-    .then((value) => (color = value))
-    .catch(handleError);
+  color = await chat.get_random_color();
 }
 
 async function getLightness(color: string) {
@@ -64,6 +53,7 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <button class="bg-gray-100" on:click="{() => client.destroy()}">destroy</button>
+<button class="bg-gray-100" on:click="{() => chat.pending()}">pending</button>
 <div class="container mx-auto h-screen flex flex-col items-center px-12">
   <div
     class="p:2 sm:p-6 justify-between flex flex-col bg-gray-200 my-32 rounded-xl shadow-xl w-full flex-grow">
