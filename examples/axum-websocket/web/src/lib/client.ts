@@ -105,7 +105,7 @@ export class Client implements Rs.Client {
       } else if ("error" in res) {
         subscribers.forEach(subscriber => {
           // TODO
-          subscriber({ error: res.error.data as any })
+          subscriber({ error: res.error.data })
         });
       }
     })
@@ -142,5 +142,4 @@ export class Client implements Rs.Client {
 
 
   }
-
 }

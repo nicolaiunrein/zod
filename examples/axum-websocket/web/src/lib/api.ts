@@ -58,21 +58,17 @@ export namespace Rs {
     export type Response = z.infer<typeof Response>;
 
     export interface Client {
-        get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
-        call(ns: string, method: string, args: unknown[]): Promise<unknown>;
+      get_stream(ns: string, method: string, args: unknown[]): Stream<unknown>;
+      call(ns: string, method: string, args: unknown[]): Promise<unknown>;
     }
     export interface Stream<T> {
-        subscribe(
-            next: (value: StreamEvent<T>) => void
-        ): () => void;
+      subscribe(
+        next: (value: StreamEvent<T>) => void
+      ): () => void;
     }
-
-    export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
-
-    export interface ZodError {
-        name: "JsonError" | "UnknownNamespace",
-        message: string
-    }
+  
+    export type StreamEvent<T> = { data: T } | { error: Error } | { loading: true };
+  
 
 }
 
@@ -85,69 +81,65 @@ export namespace Chat {
 
     export const User = z.lazy(() => z.object({ name: Rs.String }));
 
-    export function init(client: Rs.Client) {
-        return {// @ts-ignore
-            count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
-                z.lazy(() => z.tuple([Rs.Usize])).parse([n]);
-                return {
-                    subscribe(cb) {
-                        return client
-                            .get_stream("Chat", "count_to", [n])
-                            .subscribe((val) => {
-                                if ("data" in val) {
-                                    cb({ data: Rs.Usize.parse(val.data) });
-                                } else {
-                                    cb(val);
-                                }
-                            });
-                    }
+export function init(client: Rs.Client){return {// @ts-ignore
+ count_to(n: Rs.Usize): Rs.Stream<Rs.Usize> {
+    z.lazy(() => z.tuple([Rs.Usize])).parse([n]);
+    return {
+      subscribe(next) {
+        return client
+          .get_stream("Chat", "count_to", [n])
+              .subscribe((val) => {
+                if ("data" in val) {
+                  next({ data: Rs.Usize.parse(val.data) });
+                } else  {
+                  next(val);
                 }
-            },
+              });
+      }
+}},
 
-            // @ts-ignore
-            async get_lightness(color: Rs.String): Promise<Rs.F64> {
-                z.lazy(() => z.tuple([Rs.String])).parse([color]);
-                return Rs.F64.parse(await client.call("Chat", "get_lightness", [color]));
-            },
+// @ts-ignore
+async  get_lightness(color: Rs.String): Promise<Rs.F64> {
+    z.lazy(() => z.tuple([Rs.String])).parse([color]);
+    return Rs.F64.parse(await client.call("Chat", "get_lightness", [color]));
+},
 
-            // @ts-ignore
-            async get_random_color(): Promise<Rs.String> {
-                z.lazy(() => z.tuple([])).parse([]);
-                return Rs.String.parse(await client.call("Chat", "get_random_color", []));
-            },
+// @ts-ignore
+async  get_random_color(): Promise<Rs.String> {
+    z.lazy(() => z.tuple([])).parse([]);
+    return Rs.String.parse(await client.call("Chat", "get_random_color", []));
+},
 
-            // @ts-ignore
-            messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
-                z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
-                return {
-                    subscribe(cb) {
-                        return client
-                            .get_stream("Chat", "messages", [len])
-                            .subscribe((val) => {
-                                if ("data" in val) {
-                                    cb({ data: Rs.VecDeque(Chat.Message).parse(val.data) });
-                                } else {
-                                    cb(val);
-                                }
-                            });
-                    }
+// @ts-ignore
+ messages(len: Rs.Usize): Rs.Stream<Rs.VecDeque<Chat.Message>> {
+    z.lazy(() => z.tuple([Rs.Usize])).parse([len]);
+    return {
+      subscribe(next) {
+        return client
+          .get_stream("Chat", "messages", [len])
+              .subscribe((val) => {
+                if ("data" in val) {
+                  next({ data: Rs.VecDeque(Chat.Message).parse(val.data) });
+                } else  {
+                  next(val);
                 }
-            },
+              });
+      }
+}},
 
-            // @ts-ignore
-            async pending(): Promise<Rs.Unit> {
-                z.lazy(() => z.tuple([])).parse([]);
-                return Rs.Unit.parse(await client.call("Chat", "pending", []));
-            },
+// @ts-ignore
+async  pending(): Promise<Rs.Unit> {
+    z.lazy(() => z.tuple([])).parse([]);
+    return Rs.Unit.parse(await client.call("Chat", "pending", []));
+},
 
-            // @ts-ignore
-            async send(msg: Chat.Message): Promise<Rs.Unit> {
-                z.lazy(() => z.tuple([Chat.Message])).parse([msg]);
-                return Rs.Unit.parse(await client.call("Chat", "send", [msg]));
-            },
+// @ts-ignore
+async  send(msg: Chat.Message): Promise<Rs.Unit> {
+    z.lazy(() => z.tuple([Chat.Message])).parse([msg]);
+    return Rs.Unit.parse(await client.call("Chat", "send", [msg]));
+},
 
-        }
-    }
+}}
 }
 
 

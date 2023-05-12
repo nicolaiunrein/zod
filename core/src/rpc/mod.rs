@@ -6,8 +6,7 @@ pub mod server;
 
 pub use error::*;
 
-use crate::ast::{Docs, ExportSchema, UnionSchema};
-use crate::types::{Rs, Usize};
+use crate::types::Usize;
 use crate::{RequestTypeVisitor, ResponseType, ResponseTypeVisitor};
 
 use server::StreamHandle;

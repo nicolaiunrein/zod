@@ -55,12 +55,8 @@ const STATIC_TYPE_DEFS: &str = r#"
       ): () => void;
     }
   
-    export type StreamEvent<T> = { data: T } | { error: ZodError } | { loading: true };
+    export type StreamEvent<T> = { data: T } | { error: Error } | { loading: true };
   
-    export interface ZodError {
-      name: "JsonError" | "UnknownNamespace",
-      message: string
-    }
 "#;
 
 /// a [JoinHandle](tokio::task::JoinHandle) to cancel a stream when it is dropped.

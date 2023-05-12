@@ -81,14 +81,14 @@ impl Display for RpcRequest {
             RpcRequestKind::Stream => {
                 f.write_fmt(format_args!(
                     "    return {{
-      subscribe(cb) {{
+      subscribe(next) {{
         return client
           .get_stream(\"{ns}\", \"{name}\", [{arg_names}])
               .subscribe((val) => {{
                 if (\"data\" in val) {{
-                  cb({{ data: {inner_res_zod}.parse(val.data) }});
+                  next({{ data: {inner_res_zod}.parse(val.data) }});
                 }} else  {{
-                  cb(val);
+                  next(val);
                 }}
               }});
       }}
