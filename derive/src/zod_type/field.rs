@@ -13,9 +13,35 @@ pub(crate) struct Field {
     pub ty: Type,
     pub config: FieldConfig,
     pub generic: Option<Ident>,
+    pub nested_generics: Vec<Ident>,
 }
 
-fn get_generics(ty: &Type, generics: &[&Ident]) -> Vec<Ident> {
+fn get_generic(ty: &Type, generics: &[&Ident]) -> Option<Ident> {
+    match ty {
+        Type::Path(p) => match p.path.get_ident() {
+            Some(ident) => generics
+                .iter()
+                .find(|gen| gen == &&ident)
+                .map(|i| Ident::clone(i)),
+
+            None => None,
+        },
+
+        _ => None,
+    }
+}
+
+fn get_nested_generics(ty: &Type, generics: &[&Ident]) -> Vec<Ident> {
+    match ty {
+        Type::Path(p) => match p.path.get_ident() {
+            Some(_) => Vec::new(),
+            None => get_nested_generics_inner(ty, generics),
+        },
+        _ => Vec::new(),
+    }
+}
+
+fn get_nested_generics_inner(ty: &Type, generics: &[&Ident]) -> Vec<Ident> {
     match ty {
         Type::Path(p) => match p.path.get_ident() {
             Some(ident) => generics
@@ -34,7 +60,7 @@ fn get_generics(ty: &Type, generics: &[&Ident]) -> Vec<Ident> {
                         .args
                         .iter()
                         .map(|arg| match arg {
-                            syn::GenericArgument::Type(t) => get_generics(t, generics),
+                            syn::GenericArgument::Type(t) => get_nested_generics_inner(t, generics),
                             _ => Vec::new(),
                         })
                         .collect(),
@@ -51,12 +77,17 @@ fn get_generics(ty: &Type, generics: &[&Ident]) -> Vec<Ident> {
 
 impl Field {
     pub(crate) fn new(ty: &Type, config: FieldConfig, generics: &[&Ident]) -> Result<Self, Error> {
+        let generic = get_generic(ty, generics);
+        let nested_generics = get_nested_generics(ty, generics);
+        if !nested_generics.is_empty() {
+            todo!("nested generics")
+        }
+
         Ok(Self {
             ty: ty.clone(),
             config,
-            generic: get_generics(ty, generics)
-                .first()
-                .map(|ident| Ident::clone(ident)),
+            generic,
+            nested_generics,
         })
     }
 }
