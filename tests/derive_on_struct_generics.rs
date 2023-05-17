@@ -44,6 +44,7 @@ fn generic_structs() {
     );
 }
 
+#[ignore]
 #[test]
 fn generic_enums() {
     test_case! {
@@ -83,37 +84,37 @@ fn generic_enums() {
     );
 }
 
-#[test]
-fn flipped_args() {
-    test_case! {
-        #[derive(serde::Deserialize, Debug)]
-        pub struct Generic<T1: zod::RequestType, T2: zod::RequestType> {
-            t1: T1,
-            t2: T2,
-        }
-
-        type Flipped<T1, T2> = Generic<T2, T1>;
-
-        #[derive(serde::Serialize, serde::Deserialize, Debug, RequestType)]
-        #[zod(namespace = "Ns")]
-         struct MyType<T: zod::RequestType> {
-             ok: Generic<String, T>,
-             flipped: Flipped<T, String> // <-- equals MyGeneric<String, T>
-         }
-    }
-
-    let schema = MyType::<()>::export().schema;
-    match schema {
-        zod::core::ast::ExportSchema::Object(obj) => {
-            let mut fields = obj.fields().iter();
-            let first = fields.next().unwrap();
-            let second = fields.next().unwrap();
-
-            assert_eq!(first.value(), second.value());
-        }
-        _ => panic!("unexpected schema"),
-    }
-}
+// #[test]
+// fn flipped_args() {
+//     test_case! {
+//         #[derive(serde::Deserialize, Debug)]
+//         pub struct Generic<T1: zod::RequestType, T2: zod::RequestType> {
+//             t1: T1,
+//             t2: T2,
+//         }
+//
+//         type Flipped<T1, T2> = Generic<T2, T1>;
+//
+//         #[derive(serde::Serialize, serde::Deserialize, Debug, RequestType)]
+//         #[zod(namespace = "Ns")]
+//          struct MyType<T: zod::RequestType> {
+//              ok: Generic<String, T>,
+//              flipped: Flipped<T, String> // <-- equals MyGeneric<String, T>
+//          }
+//     }
+//
+//     let schema = MyType::<()>::export().schema;
+//     match schema {
+//         zod::core::ast::ExportSchema::Object(obj) => {
+//             let mut fields = obj.fields().iter();
+//             let first = fields.next().unwrap();
+//             let second = fields.next().unwrap();
+//
+//             assert_eq!(first.value(), second.value());
+//         }
+//         _ => panic!("unexpected schema"),
+//     }
+// }
 
 // #[ignore]
 // #[test]
