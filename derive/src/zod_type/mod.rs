@@ -121,13 +121,13 @@ impl ZodType {
                     let fields = FilteredFields::new(fields, &generic_idents)?;
                     let dependencies = fields.iter().map(|f| f.ty.clone()).collect();
 
-                    let struct_export = StructExport {
+                    let definition = StructExport {
                         style,
                         fields,
                         config: &config,
                     };
 
-                    (dependencies, quote!(#struct_export))
+                    (dependencies, quote!(#definition))
                 }
             }
         };

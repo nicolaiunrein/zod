@@ -82,7 +82,7 @@ mod test {
                 docs: None,
                 path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                 schema: ::zod::core::ast::ExportSchema::Object(
-                    ::zod::core::ast::ObjectSchema::new(&[])
+                    ::zod::core::ast::ObjectSchema::new(&[]).with_extensions(&[])
                 ),
             }),
         );
@@ -125,6 +125,7 @@ mod test {
                         ::zod::core::ast::NamedField::new_req::<Vec<String>>("field1"),
                         ::zod::core::ast::NamedField::new_req::<Option<bool>>("field2")
                     ])
+                    .with_extensions(&[])
                 ),
             }),
         );
@@ -233,6 +234,7 @@ mod test {
                         ::zod::core::ast::NamedField::generic("field3", "T1"),
                         ::zod::core::ast::NamedField::generic("field4", "T2")
                     ])
+                    .with_extensions(&[])
                 ),
             }),
         );
