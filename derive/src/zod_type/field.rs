@@ -15,22 +15,48 @@ pub(crate) struct Field {
     pub generic: Option<Ident>,
 }
 
+fn get_generics(ty: &Type, generics: &[&Ident]) -> Vec<Ident> {
+    match ty {
+        Type::Path(p) => match p.path.get_ident() {
+            Some(ident) => generics
+                .iter()
+                .filter(|gen| gen == &&ident)
+                .map(|i| Ident::clone(i))
+                .collect(),
+
+            None => p
+                .path
+                .segments
+                .iter()
+                .map(|seg| match seg.arguments {
+                    syn::PathArguments::None => Vec::new(),
+                    syn::PathArguments::AngleBracketed(ref inner) => inner
+                        .args
+                        .iter()
+                        .map(|arg| match arg {
+                            syn::GenericArgument::Type(t) => get_generics(t, generics),
+                            _ => Vec::new(),
+                        })
+                        .collect(),
+                    syn::PathArguments::Parenthesized(_) => Vec::new(),
+                })
+                .map(|inner| inner.into_iter().map(|i| i.into_iter()).flatten())
+                .flatten()
+                .collect(),
+        },
+
+        _ => Vec::new(),
+    }
+}
+
 impl Field {
     pub(crate) fn new(ty: &Type, config: FieldConfig, generics: &[&Ident]) -> Result<Self, Error> {
-        let generic = match ty {
-            Type::Path(p) => p
-                .path
-                .get_ident()
-                .and_then(|ident| generics.iter().find(|gen| gen == &&ident))
-                .map(|i| Ident::clone(i)),
-
-            _ => None,
-        };
-
         Ok(Self {
             ty: ty.clone(),
             config,
-            generic,
+            generic: get_generics(ty, generics)
+                .first()
+                .map(|ident| Ident::clone(ident)),
         })
     }
 }
