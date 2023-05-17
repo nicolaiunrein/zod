@@ -10,13 +10,10 @@ pub enum FieldValue {
 
 impl FieldValue {
     pub const fn is_generic(&self) -> bool {
-        match self {
-            FieldValue::Resolved(_) => false,
-            FieldValue::Generic(_) => true,
-        }
+        self.get_generic().is_some()
     }
 
-    pub(crate) fn get_generic(&self) -> Option<&'static str> {
+    pub(crate) const fn get_generic(&self) -> Option<&'static str> {
         match self {
             FieldValue::Resolved(_) => None,
             FieldValue::Generic(value) => Some(value),
