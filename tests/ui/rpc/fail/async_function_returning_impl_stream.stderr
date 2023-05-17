@@ -1,4 +1,4 @@
-error[E0562]: `impl Trait` only allowed in function and inherent method return types, not in path
+error[E0562]: `impl Trait` only allowed in function and inherent method return types, not in paths
  --> tests/ui/rpc/fail/async_function_returning_impl_stream.rs:8:33
   |
 8 |     async fn test(&mut self) -> impl futures::Stream<Item = u8> {

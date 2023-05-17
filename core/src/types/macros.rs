@@ -112,8 +112,7 @@ macro_rules! impl_wrapper {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &$crate::ast::Ref::new_req::<T>(),
-                    false,
+                    &$crate::ast::TupleField::generic("T"),
                 )),
             };
             const ARGS: &'static [$crate::ast::Ref] = &[$crate::ast::Ref::new_req::<T>()];
@@ -133,8 +132,7 @@ macro_rules! impl_wrapper {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &$crate::ast::Ref::new_res::<T>(),
-                    false,
+                    &$crate::ast::TupleField::generic("T"),
                 )),
             };
             const ARGS: &'static [$crate::ast::Ref] = &[$crate::ast::Ref::new_res::<T>()];

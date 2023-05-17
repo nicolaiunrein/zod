@@ -110,7 +110,7 @@ impl Compiler for Exported<UnionSchema> {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, Ref, TupleField};
+    use crate::ast::{NamedField, TupleField};
     use crate::types::Usize;
 
     use super::*;
@@ -178,15 +178,13 @@ mod test {
             Variant::ExternallyTagged(
                 "A",
                 Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &Ref::new_req::<String>(),
-                    false,
+                    &TupleField::new_req::<String>(),
                 ))),
             ),
             Variant::ExternallyTagged(
                 "B",
                 Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &Ref::new_req::<Usize>(),
-                    true,
+                    &TupleField::new_req::<Usize>().optional(),
                 ))),
             ),
         ]);
@@ -224,8 +222,7 @@ mod test {
             Variant::ExternallyTagged(
                 "A",
                 Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &Ref::new_req::<String>(),
-                    true,
+                    &TupleField::new_req::<String>().optional(),
                 ))),
             ),
             Variant::ExternallyTagged(

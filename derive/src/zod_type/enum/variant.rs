@@ -140,13 +140,18 @@ impl<'a> Variant<'a> {
         let req_res = self.1.req_or_res();
         let ty = field.ty;
 
-        let optional = !field.attrs.default().is_none();
+        let optional = if !field.attrs.default().is_none() {
+            quote!(.optional())
+        } else {
+            quote!()
+        };
 
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
-                        &#zod::core::ast::Ref::#req_res::<#ty>(), #optional
+                        &#zod::core::ast::TupleField::#req_res::<#ty>()
+                        #optional
                     )
                 )
             )
@@ -161,7 +166,7 @@ impl<'a> Variant<'a> {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
-                        &#zod::core::ast::Ref::#req_res::<()>(), false
+                        &#zod::core::ast::TupleField::#req_res::<()>()
                     )
                 )
             )
@@ -300,19 +305,25 @@ impl<'a> Variant<'a> {
             let variant_name = self.1.resolve_name(self.name());
             let req_res = self.1.req_or_res();
             let ty = field.ty;
-            let optional = !field.attrs.default().is_none();
+            let optional = if !field.attrs.default().is_none() {
+                quote!(.optional())
+            } else {
+                quote!()
+            };
 
-            quote!(#zod::core::ast::Variant::ExternallyTagged(
-                #variant_name,
-                ::core::option::Option::Some(
-                    #zod::core::ast::VariantValue::Newtype(
-                        #zod::core::ast::NewtypeSchema::new(
-                            &#zod::core::ast::Ref::#req_res::<#ty>(), #optional
+            quote! {
+                #zod::core::ast::Variant::ExternallyTagged(
+                    #variant_name,
+                    ::core::option::Option::Some(
+                        #zod::core::ast::VariantValue::Newtype(
+                            #zod::core::ast::NewtypeSchema::new(
+                                &#zod::core::ast::TupleField::#req_res::<#ty>()
+                                #optional
                             )
                         )
                     )
                 )
-            )
+            }
         } else {
             self.external_unit()
         }

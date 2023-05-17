@@ -146,6 +146,13 @@ impl TupleField {
             ..self
         }
     }
+
+    pub const fn generic(value: &'static str) -> Self {
+        Self {
+            value: FieldValue::Generic(value),
+            optional: false,
+        }
+    }
 }
 
 impl Compiler for TupleField {

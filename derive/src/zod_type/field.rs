@@ -68,10 +68,10 @@ impl ToTokens for Field {
                 })
             }
             (Some(ident), None) => {
-                let _value = ident.to_string();
+                let name = ident.to_string();
 
                 tokens.extend(quote! {
-                    #zod::core::ast::TupleField:: #req_res  ::<#ty>() #optional
+                    #zod::core::ast::TupleField::generic(#name) #optional
                 })
             }
         }

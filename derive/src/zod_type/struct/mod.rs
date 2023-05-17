@@ -239,4 +239,36 @@ mod test {
             }),
         );
     }
+
+    #[test]
+    fn tuple_with_generic_fields_ok() {
+        let input = StructExport {
+            style: &Style::Tuple,
+            fields: FilteredFields::new(
+                vec![
+                    (&parse_quote!(T1), Default::default()),
+                    (&parse_quote!(T2), Default::default()),
+                    (&parse_quote!(Option<bool>), Default::default()),
+                ],
+                &[&parse_quote!(T1), &parse_quote!(T2)],
+            )
+            .unwrap(),
+            config: &Default::default(),
+        };
+
+        compare(
+            quote!(#input),
+            quote! {
+                ::zod::core::ast::Export {
+                    docs: None,
+                    path: ::zod::core::ast::Path::new::<Ns>("MyType"),
+                    schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
+                       ::zod::core::ast::TupleField::generic("T1"),
+                       ::zod::core::ast::TupleField::generic("T2"),
+                       ::zod::core::ast::TupleField::new_req::<Option<bool>>()
+                    ])),
+                }
+            },
+        )
+    }
 }

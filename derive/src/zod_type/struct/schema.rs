@@ -60,15 +60,30 @@ impl<'a> ToTokens for NewtypeSchema<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let ty = &self.field.ty;
-        let optional = !self.field.config.required;
 
-        let reference = match self.field.config.derive {
-            Derive::Request => quote!(&#zod::core::ast::Ref::new_req::<#ty>()),
-            Derive::Response => quote!(&#zod::core::ast::Ref::new_res::<#ty>()),
+        let optional = if !self.field.config.required {
+            quote!(.optional())
+        } else {
+            quote!()
+        };
+
+        let field = match self.field.generic {
+            Some(ref ident) => {
+                let name = ident.to_string();
+                quote!(&#zod::core::ast::TupleField::generic(#name) #optional)
+            }
+            None => match self.field.config.derive {
+                Derive::Request => {
+                    quote!(&#zod::core::ast::TupleField::new_req::<#ty>() #optional)
+                }
+                Derive::Response => {
+                    quote!(&#zod::core::ast::TupleField::new_res::<#ty>() #optional)
+                }
+            },
         };
 
         tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new(#reference, #optional)
+            #zod::core::ast::NewtypeSchema::new(#field)
         })
     }
 }
@@ -98,11 +113,37 @@ impl<'a> ToTokens for TupleSchema<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let zod = get_zod();
         let fields = self.fields;
-
         let fields = fields.iter();
 
         tokens.extend(quote! {
             #zod::core::ast::TupleSchema::new(&[#(#fields),*])
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use syn::parse_quote;
+
+    use crate::test_utils::compare;
+
+    use super::*;
+
+    #[test]
+    fn tuple_schema_ok() {
+        let input = TupleSchema {
+            fields: &FilteredFields::new(
+                vec![(&parse_quote!(T1), Default::default())],
+                &[&parse_quote!(T1)],
+            )
+            .unwrap(),
+        };
+
+        compare(
+            quote!(#input),
+            quote!(::zod::core::ast::TupleSchema::new(&[
+                ::zod::core::ast::TupleField::generic("T1")
+            ])),
+        )
     }
 }

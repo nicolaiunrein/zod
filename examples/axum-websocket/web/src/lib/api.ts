@@ -5,10 +5,6 @@ export namespace Rs {
 
     export const F64 = z.number();
 
-    export type HashMap<K, V> = Map<K, V>;
-
-    export const HashMap = (K: z.ZodTypeAny, V: z.ZodTypeAny) => z.map(K, V);
-
     export type String = string;
 
     export const String = z.string();
@@ -89,10 +85,13 @@ export namespace Chat {
 
     export const Message = z.lazy(() => z.object({ user: Chat.User, color: Rs.String, content: Rs.String }));
 
-    export type MyNewtype<T> = Rs.HashMap<Rs.String, T>;
+    export type MyNewtype = [Rs.U8, Rs.String];
 
-    export const MyNewtype = (T: z.ZodTypeAny) => z.lazy(() => Rs.HashMap(Rs.String, T));
+    export const MyNewtype = z.lazy(() => z.tuple([Rs.U8, Rs.String]));
 
+    export type MyNewtype = [Rs.U16, Rs.String];
+
+    export const MyNewtype = z.lazy(() => z.tuple([Rs.U16, Rs.String]));
 
     export interface User { name: Rs.String }
 

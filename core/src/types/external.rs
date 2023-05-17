@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::ast::Ref;
+use crate::ast::TupleField;
 use crate::types::Usize;
 use crate::RequestType;
 use crate::ResponseType;
@@ -225,7 +226,7 @@ impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&Ref::new_req::<T>(), false)),
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&TupleField::generic("T"))),
     };
     const ARGS: &'static [Ref] = &[Ref::new_req::<T>()];
 }
@@ -243,7 +244,7 @@ impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&Ref::new_res::<T>(), false)),
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&TupleField::generic("T"))),
     };
     const ARGS: &'static [Ref] = &[Ref::new_res::<T>()];
 }
