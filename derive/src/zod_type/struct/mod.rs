@@ -4,7 +4,7 @@ use crate::utils::get_zod;
 use crate::zod_type::config::ContainerConfig;
 use crate::zod_type::field::FilteredFields;
 use darling::ToTokens;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use schema::*;
 use serde_derive_internals::ast::Style;
@@ -13,6 +13,7 @@ pub(crate) struct StructExport<'a> {
     pub(crate) fields: FilteredFields,
     pub(crate) style: &'a Style,
     pub(crate) config: &'a ContainerConfig,
+    pub(crate) generics: Vec<Ident>,
 }
 
 impl<'a> ToTokens for StructExport<'a> {
@@ -23,7 +24,7 @@ impl<'a> ToTokens for StructExport<'a> {
         let ns = &self.config.namespace;
 
         let schema = match self.style {
-            Style::Tuple => match TupleSchema::new(&self.fields) {
+            Style::Tuple => match TupleSchema::new(&self.fields, self.generics.clone()) {
                 Ok(schema) => Schema::Tuple(schema),
                 Err(err) => {
                     let err = syn::Error::from(err);
@@ -38,6 +39,7 @@ impl<'a> ToTokens for StructExport<'a> {
                 } else {
                     Schema::Object(ObjectSchema {
                         fields: self.fields.clone(),
+                        generics: self.generics.clone(),
                     })
                 }
             }
@@ -71,9 +73,10 @@ mod test {
     #[test]
     fn empty_named_ok() {
         let input = StructExport {
+            generics: Vec::new(),
             config: &Default::default(),
             style: &Style::Struct,
-            fields: FilteredFields::new(Vec::new(), &[]).unwrap(),
+            fields: FilteredFields::new(Vec::new(), Vec::new()).unwrap(),
         };
 
         compare(
@@ -82,7 +85,7 @@ mod test {
                 docs: None,
                 path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                 schema: ::zod::core::ast::ExportSchema::Object(
-                    ::zod::core::ast::ObjectSchema::new(&[]).with_extensions(&[])
+                    ::zod::core::ast::ObjectSchema::new(&[], &[]).with_extensions(&[])
                 ),
             }),
         );
@@ -92,6 +95,8 @@ mod test {
     fn named_with_fields_ok() {
         let input = StructExport {
             style: &Style::Struct,
+            generics: Vec::new(),
+
             fields: FilteredFields::new(
                 vec![
                     (
@@ -109,7 +114,7 @@ mod test {
                         },
                     ),
                 ],
-                &[],
+                Vec::new(),
             )
             .unwrap(),
             config: &Default::default(),
@@ -121,10 +126,19 @@ mod test {
                 docs: None,
                 path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                 schema: ::zod::core::ast::ExportSchema::Object(
-                    ::zod::core::ast::ObjectSchema::new(&[
-                        ::zod::core::ast::NamedField::new_req::<Vec<String>>("field1"),
-                        ::zod::core::ast::NamedField::new_req::<Option<bool>>("field2")
-                    ])
+                    ::zod::core::ast::ObjectSchema::new(
+                        &[
+                            ::zod::core::ast::NamedField::new(
+                                "field1",
+                                ::zod::core::ast::Ref::new_req::<Vec<String>>()
+                            ),
+                            ::zod::core::ast::NamedField::new(
+                                "field2",
+                                ::zod::core::ast::Ref::new_req::<Option<bool>>()
+                            )
+                        ],
+                        &[]
+                    )
                     .with_extensions(&[])
                 ),
             }),
@@ -134,7 +148,8 @@ mod test {
     #[test]
     fn empty_tuple_ok() {
         let input = StructExport {
-            fields: FilteredFields::new(Vec::new(), &[]).unwrap(),
+            generics: Vec::new(),
+            fields: FilteredFields::new(Vec::new(), Vec::new()).unwrap(),
             style: &Style::Tuple,
             config: &Default::default(),
         };
@@ -145,7 +160,7 @@ mod test {
                 ::zod::core::ast::Export {
                     docs: None,
                     path: ::zod::core::ast::Path::new::<Ns>("MyType"),
-                    schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[])),
+                    schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[], &[])),
                 }
             },
         )
@@ -154,13 +169,14 @@ mod test {
     #[test]
     fn tuple_with_fields_ok() {
         let input = StructExport {
+            generics: Vec::new(),
             style: &Style::Tuple,
             fields: FilteredFields::new(
                 vec![
                     (&parse_quote!(Vec<String>), Default::default()),
                     (&parse_quote!(Option<bool>), Default::default()),
                 ],
-                &[],
+                Vec::new(),
             )
             .unwrap(),
             config: &Default::default(),
@@ -173,9 +189,9 @@ mod test {
                     docs: None,
                     path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
-                       ::zod::core::ast::TupleField::new_req::<Vec<String>>(),
-                       ::zod::core::ast::TupleField::new_req::<Option<bool>>()
-                    ])),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::new_req::<Vec<String>>()),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::new_req::<Option<bool>>())
+                    ], &[])),
                 }
             },
         )
@@ -184,6 +200,7 @@ mod test {
     #[test]
     fn named_with_generic_fields_export_ok() {
         let input = StructExport {
+            generics: vec![parse_quote!(T1), parse_quote!(T2)],
             style: &Style::Struct,
             fields: FilteredFields::new(
                 vec![
@@ -216,7 +233,7 @@ mod test {
                         },
                     ),
                 ],
-                &[&parse_quote!(T1), &parse_quote!(T2)],
+                vec![parse_quote!(T1), parse_quote!(T2)],
             )
             .unwrap(),
             config: &Default::default(),
@@ -228,12 +245,27 @@ mod test {
                 docs: None,
                 path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                 schema: ::zod::core::ast::ExportSchema::Object(
-                    ::zod::core::ast::ObjectSchema::new(&[
-                        ::zod::core::ast::NamedField::new_req::<Vec<String>>("field1"),
-                        ::zod::core::ast::NamedField::new_req::<Option<bool>>("field2"),
-                        ::zod::core::ast::NamedField::generic("field3", "T1"),
-                        ::zod::core::ast::NamedField::generic("field4", "T2")
-                    ])
+                    ::zod::core::ast::ObjectSchema::new(
+                        &[
+                            ::zod::core::ast::NamedField::new(
+                                "field1",
+                                ::zod::core::ast::Ref::new_req::<Vec<String>>()
+                            ),
+                            ::zod::core::ast::NamedField::new(
+                                "field2",
+                                ::zod::core::ast::Ref::new_req::<Option<bool>>()
+                            ),
+                            ::zod::core::ast::NamedField::new(
+                                "field3",
+                                ::zod::core::ast::Ref::generic("T1")
+                            ),
+                            ::zod::core::ast::NamedField::new(
+                                "field4",
+                                ::zod::core::ast::Ref::generic("T2")
+                            )
+                        ],
+                        &["T1", "T2"]
+                    )
                     .with_extensions(&[])
                 ),
             }),
@@ -243,6 +275,7 @@ mod test {
     #[test]
     fn tuple_with_generic_fields_ok() {
         let input = StructExport {
+            generics: Vec::new(),
             style: &Style::Tuple,
             fields: FilteredFields::new(
                 vec![
@@ -250,7 +283,7 @@ mod test {
                     (&parse_quote!(T2), Default::default()),
                     (&parse_quote!(Option<bool>), Default::default()),
                 ],
-                &[&parse_quote!(T1), &parse_quote!(T2)],
+                vec![parse_quote!(T1), parse_quote!(T2)],
             )
             .unwrap(),
             config: &Default::default(),
@@ -263,10 +296,10 @@ mod test {
                     docs: None,
                     path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
-                       ::zod::core::ast::TupleField::generic("T1"),
-                       ::zod::core::ast::TupleField::generic("T2"),
-                       ::zod::core::ast::TupleField::new_req::<Option<bool>>()
-                    ])),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::generic("T1")),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::generic("T2")),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::new_req::<Option<bool>>())
+                    ], &[])),
                 }
             },
         )

@@ -1,4 +1,4 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use serde_derive_internals::ast::{self, Style};
 use syn::spanned::Spanned;
@@ -6,17 +6,29 @@ use syn::spanned::Spanned;
 use crate::utils::get_zod;
 use crate::zod_type::config::ContainerConfig;
 
-pub(crate) struct Variant<'a>(&'a ast::Variant<'a>, &'a ContainerConfig);
+pub(crate) struct Variant<'a> {
+    inner: &'a ast::Variant<'a>,
+    config: &'a ContainerConfig,
+    generics: &'a [Ident],
+}
 
 impl<'a> Variant<'a> {
-    pub fn new(v: &'a ast::Variant<'a>, config: &'a ContainerConfig) -> Self {
-        Self(v, config)
+    pub fn new(
+        inner: &'a ast::Variant<'a>,
+        config: &'a ContainerConfig,
+        generics: &'a [Ident],
+    ) -> Self {
+        Self {
+            inner,
+            config,
+            generics,
+        }
     }
 
     pub(crate) fn skipped(&self) -> bool {
-        match self.1.derive {
-            crate::zod_type::Derive::Request => self.0.attrs.skip_deserializing(),
-            crate::zod_type::Derive::Response => self.0.attrs.skip_serializing(),
+        match self.config.derive {
+            crate::zod_type::Derive::Request => self.inner.attrs.skip_deserializing(),
+            crate::zod_type::Derive::Response => self.inner.attrs.skip_serializing(),
         }
     }
 
@@ -56,29 +68,32 @@ impl<'a> Variant<'a> {
     }
 
     fn fields(&self) -> impl Iterator<Item = &serde_derive_internals::ast::Field> {
-        self.0.fields.iter().filter(|f| !match self.1.derive {
-            crate::zod_type::Derive::Request => f.attrs.skip_deserializing(),
-            crate::zod_type::Derive::Response => f.attrs.skip_serializing(),
-        })
+        self.inner
+            .fields
+            .iter()
+            .filter(|f| !match self.config.derive {
+                crate::zod_type::Derive::Request => f.attrs.skip_deserializing(),
+                crate::zod_type::Derive::Response => f.attrs.skip_serializing(),
+            })
     }
 
     fn name(&self) -> &serde_derive_internals::attr::Name {
-        self.0.attrs.name()
+        self.inner.attrs.name()
     }
 
     fn span(&self) -> Span {
-        self.0.original.span()
+        self.inner.original.span()
     }
 
     fn style(&self) -> Style {
-        self.0.style
+        self.inner.style
     }
 
     fn named_fields(&self) -> impl Iterator<Item = TokenStream> + '_ {
         self.fields().map(|f| {
             let zod = get_zod();
-            let req_res = self.1.req_or_res();
-            let name = self.1.resolve_name(f.attrs.name());
+            let req_res = self.config.req_or_res();
+            let name = self.config.resolve_name(f.attrs.name());
             let ty = f.ty;
 
             let optional = if f.attrs.default().is_none() {
@@ -87,7 +102,7 @@ impl<'a> Variant<'a> {
                 quote!(.optional())
             };
 
-            quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#name) #optional)
+            quote!(#zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::#req_res::<#ty>()) #optional)
         })
     }
 
@@ -95,7 +110,7 @@ impl<'a> Variant<'a> {
         self.fields().map(|f| {
             let zod = get_zod();
             let ty = f.ty;
-            let req_res = self.1.req_or_res();
+            let req_res = self.config.req_or_res();
 
             let optional = if f.attrs.default().is_none() {
                 quote!()
@@ -103,7 +118,7 @@ impl<'a> Variant<'a> {
                 quote!(.optional())
             };
 
-            quote!(#zod::core::ast::TupleField::#req_res::<#ty>() #optional)
+            quote!(#zod::core::ast::TupleField::new(#zod::core::ast::Ref:: #req_res ::<#ty>()) #optional)
         })
     }
 
@@ -114,7 +129,7 @@ impl<'a> Variant<'a> {
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Tuple(
-                    #zod::core::ast::TupleSchema::new(&[#(#fields),*])
+                    #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[])
                 )
             )
         }
@@ -127,7 +142,7 @@ impl<'a> Variant<'a> {
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Object(
-                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
+                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[]) //todo
                 )
             )
         }
@@ -137,7 +152,7 @@ impl<'a> Variant<'a> {
         let zod = get_zod();
 
         let field = self.fields().next().expect("one field");
-        let req_res = self.1.req_or_res();
+        let req_res = self.config.req_or_res();
         let ty = field.ty;
 
         let optional = if !field.attrs.default().is_none() {
@@ -150,8 +165,11 @@ impl<'a> Variant<'a> {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
-                        &#zod::core::ast::TupleField::#req_res::<#ty>()
-                        #optional
+                        &#zod::core::ast::TupleField::new(#zod::core::ast::Ref::#req_res::<#ty>())
+                        #optional, &[
+                        // todo
+                        ]
+
                     )
                 )
             )
@@ -160,13 +178,17 @@ impl<'a> Variant<'a> {
 
     fn untagged_unit(&self) -> TokenStream {
         let zod = get_zod();
-        let req_res = self.1.req_or_res();
+        let req_res = self.config.req_or_res();
 
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
-                        &#zod::core::ast::TupleField::#req_res::<()>()
+                        &#zod::core::ast::TupleField::new(#zod::core::ast::Ref::#req_res::<()>()),
+                        &[
+                        //todo
+                        ]
+
                     )
                 )
             )
@@ -176,7 +198,7 @@ impl<'a> Variant<'a> {
     pub(crate) fn internal_struct_or_unit(&self) -> TokenStream {
         let zod = get_zod();
         let fields = self.named_fields();
-        let variant_name = self.1.resolve_name(self.name());
+        let variant_name = self.config.resolve_name(self.name());
 
         quote! {
             #zod::core::ast::DiscriminatedVariant{
@@ -190,8 +212,8 @@ impl<'a> Variant<'a> {
     pub(crate) fn internal_newtype(&self) -> TokenStream {
         let zod = get_zod();
         if let Some(field) = self.fields().next() {
-            let variant_name = self.1.resolve_name(self.name());
-            let trait_name = self.1.trait_name();
+            let variant_name = self.config.resolve_name(self.name());
+            let trait_name = self.config.trait_name();
             let ty = field.ty;
 
             let error = "zod: `internally tagged newtype variants are only supported for types compiling to zod objects.";
@@ -222,7 +244,7 @@ impl<'a> Variant<'a> {
     fn adj_struct(&self, content_tag: &str) -> TokenStream {
         let zod = get_zod();
         let fields = self.named_fields();
-        let variant_name = self.1.resolve_name(self.name());
+        let variant_name = self.config.resolve_name(self.name());
 
         quote! {
             #zod::core::ast::DiscriminatedVariant{
@@ -235,12 +257,11 @@ impl<'a> Variant<'a> {
 
     fn adj_tuple(&self, content_tag: &str) -> TokenStream {
         let zod = get_zod();
-        let req_res = self.1.req_or_res();
+        let req_res = self.config.req_or_res();
         let field_tys = self.fields().map(|f| f.ty.clone()).collect::<Vec<_>>();
-        let field =
-            quote!(#zod::core::ast::NamedField::#req_res::<(#(#field_tys),*,)>(#content_tag));
+        let field = quote!(#zod::core::ast::NamedField::new(#content_tag, #zod::core::ast::Ref::#req_res::<(#(#field_tys),*,)>()));
 
-        let variant_name = self.1.resolve_name(self.name());
+        let variant_name = self.config.resolve_name(self.name());
 
         quote! {
             #zod::core::ast::DiscriminatedVariant{
@@ -253,10 +274,10 @@ impl<'a> Variant<'a> {
 
     fn adj_newtype(&self, content_tag: &str) -> TokenStream {
         let zod = get_zod();
-        let req_res = self.1.req_or_res();
+        let req_res = self.config.req_or_res();
         let ty = self.fields().next().unwrap().ty;
-        let field = quote!(#zod::core::ast::NamedField::#req_res::<#ty>(#content_tag));
-        let variant_name = self.1.resolve_name(self.name());
+        let field = quote!(#zod::core::ast::NamedField::new(#content_tag, #zod::core::ast::Ref::#req_res::<#ty>()));
+        let variant_name = self.config.resolve_name(self.name());
 
         quote! {
             #zod::core::ast::DiscriminatedVariant{
@@ -270,13 +291,15 @@ impl<'a> Variant<'a> {
     fn external_struct(&self) -> TokenStream {
         let zod = get_zod();
         let fields = self.named_fields();
-        let variant_name = self.1.resolve_name(self.name());
+        let variant_name = self.config.resolve_name(self.name());
 
         quote!(#zod::core::ast::Variant::ExternallyTagged(
             #variant_name,
             ::core::option::Option::Some(
                 #zod::core::ast::VariantValue::Object(
-                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*])
+                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[
+                                                       //todo
+                    ])
                     )
                 )
             )
@@ -286,13 +309,15 @@ impl<'a> Variant<'a> {
     fn external_tuple(&self) -> TokenStream {
         let zod = get_zod();
         let fields = self.tuple_fields();
-        let variant_name = self.1.resolve_name(self.name());
+        let variant_name = self.config.resolve_name(self.name());
 
         quote!(#zod::core::ast::Variant::ExternallyTagged(
             #variant_name,
             ::core::option::Option::Some(
                 #zod::core::ast::VariantValue::Tuple(
-                    #zod::core::ast::TupleSchema::new(&[#(#fields),*])
+                    #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[
+                                                      //todo
+                    ])
                     )
                 )
             )
@@ -302,8 +327,8 @@ impl<'a> Variant<'a> {
     fn external_newtype(&self) -> TokenStream {
         let zod = get_zod();
         if let Some(field) = self.fields().next() {
-            let variant_name = self.1.resolve_name(self.name());
-            let req_res = self.1.req_or_res();
+            let variant_name = self.config.resolve_name(self.name());
+            let req_res = self.config.req_or_res();
             let ty = field.ty;
             let optional = if !field.attrs.default().is_none() {
                 quote!(.optional())
@@ -311,14 +336,16 @@ impl<'a> Variant<'a> {
                 quote!()
             };
 
+            let generics = self.generics_names();
+
             quote! {
                 #zod::core::ast::Variant::ExternallyTagged(
                     #variant_name,
                     ::core::option::Option::Some(
                         #zod::core::ast::VariantValue::Newtype(
                             #zod::core::ast::NewtypeSchema::new(
-                                &#zod::core::ast::TupleField::#req_res::<#ty>()
-                                #optional
+                                &#zod::core::ast::TupleField::new(#zod::core::ast::Ref::#req_res::<#ty>())
+                                #optional , &[#(#generics),*]
                             )
                         )
                     )
@@ -331,7 +358,14 @@ impl<'a> Variant<'a> {
 
     fn external_unit(&self) -> TokenStream {
         let zod = get_zod();
-        let variant_name = self.1.resolve_name(self.name());
+        let variant_name = self.config.resolve_name(self.name());
         quote!(#zod::core::ast::Variant::ExternallyTagged(#variant_name, ::core::option::Option::None))
+    }
+
+    fn generics_names(&self) -> Vec<String> {
+        self.generics
+            .iter()
+            .map(|ident| ident.to_string())
+            .collect()
     }
 }

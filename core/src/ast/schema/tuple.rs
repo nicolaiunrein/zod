@@ -6,10 +6,14 @@ use super::{Exported, TupleField};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TupleSchema {
     fields: &'static [TupleField],
+    generics: &'static [&'static str],
 }
 impl TupleSchema {
-    pub const fn new(fields: &'static [TupleField]) -> TupleSchema {
-        Self { fields }
+    pub const fn new(
+        fields: &'static [TupleField],
+        generics: &'static [&'static str],
+    ) -> TupleSchema {
+        Self { fields, generics }
     }
 
     pub const fn export(self, name: &'static str) -> Exported<Self> {
@@ -32,6 +36,7 @@ impl Compiler for TupleSchema {
         f.write_str("z.tuple([")?;
         self.fields
             .iter()
+            .map(|f| f.transform(self.generics))
             .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
         f.write_str("])")?;
@@ -42,6 +47,7 @@ impl Compiler for TupleSchema {
         f.write_str("[")?;
         self.fields
             .iter()
+            .map(|f| f.transform(self.generics))
             .comma_separated(f, |f, field| field.fmt_ts(f))?;
         f.write_str("]")?;
         Ok(())
@@ -92,15 +98,20 @@ impl Compiler for Exported<TupleSchema> {
 
 #[cfg(test)]
 mod test {
+    use crate::ast::Ref;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn tuple_ok() {
-        const TUPLE: TupleSchema = TupleSchema::new(&[
-            TupleField::new_req::<String>(),
-            TupleField::new_req::<crate::types::Usize>(),
-        ]);
+        const TUPLE: TupleSchema = TupleSchema::new(
+            &[
+                TupleField::new(Ref::new_req::<String>()),
+                TupleField::new(Ref::new_req::<crate::types::Usize>()),
+            ],
+            &[],
+        );
 
         assert_eq!(
             TUPLE.export("test").to_zod_string(),
@@ -114,10 +125,13 @@ mod test {
 
     #[test]
     fn tuple_generic_ok() {
-        const TUPLE: TupleSchema = TupleSchema::new(&[
-            TupleField::generic("T"),
-            TupleField::new_req::<crate::types::Usize>(),
-        ]);
+        const TUPLE: TupleSchema = TupleSchema::new(
+            &[
+                TupleField::new(Ref::generic("T")),
+                TupleField::new(Ref::new_req::<crate::types::Usize>()),
+            ],
+            &[],
+        );
 
         assert_eq!(
             TUPLE.export("test").to_zod_string(),

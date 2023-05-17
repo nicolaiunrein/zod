@@ -6,6 +6,7 @@ use super::{Exported, NewtypeSchema, ObjectSchema, TupleSchema};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnionSchema {
     variants: &'static [Variant],
+    generics: &'static [&'static str],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -72,8 +73,11 @@ impl Compiler for Variant {
 }
 
 impl UnionSchema {
-    pub const fn new(variants: &'static [Variant]) -> UnionSchema {
-        Self { variants }
+    pub const fn new(
+        variants: &'static [Variant],
+        generics: &'static [&'static str],
+    ) -> UnionSchema {
+        Self { variants, generics }
     }
 
     pub const fn export(self, name: &'static str) -> Exported<Self> {
@@ -84,6 +88,7 @@ impl UnionSchema {
 impl Compiler for Exported<UnionSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("const {} = z.lazy(() => z.union([", self.name))?;
+        //todo use generics
         self.schema
             .variants
             .iter()
@@ -95,6 +100,7 @@ impl Compiler for Exported<UnionSchema> {
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("type {} = ", self.name))?;
+        //todo use generics
         if self.schema.variants.is_empty() {
             f.write_str("never")?;
         } else {
@@ -110,7 +116,7 @@ impl Compiler for Exported<UnionSchema> {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::{NamedField, TupleField};
+    use crate::ast::{NamedField, Ref, TupleField};
     use crate::types::Usize;
 
     use super::*;
@@ -121,15 +127,17 @@ mod test {
         const DEF: UnionSchema = UnionSchema::new(&[
             Variant::ExternallyTagged(
                 "A",
-                Some(VariantValue::Object(ObjectSchema::new(&[
-                    NamedField::new_req::<String>("a"),
-                ]))),
+                Some(VariantValue::Object(ObjectSchema::new(
+                    &[NamedField::new("a", Ref::new_req::<String>())],
+                    &[],
+                ))),
             ),
             Variant::ExternallyTagged(
                 "B",
-                Some(VariantValue::Object(ObjectSchema::new(&[
-                    NamedField::new_req::<Usize>("b"),
-                ]))),
+                Some(VariantValue::Object(ObjectSchema::new(
+                    &[NamedField::new("b", Ref::new_req::<Usize>())],
+                    &[],
+                ))),
             ),
         ]);
 
@@ -149,15 +157,15 @@ mod test {
             Variant::ExternallyTagged(
                 "A",
                 Some(VariantValue::Tuple(TupleSchema::new(&[
-                    TupleField::new_req::<String>(),
-                    TupleField::new_req::<()>(),
+                    TupleField::new(Ref::new_req::<String>()),
+                    TupleField::new(Ref::new_req::<()>()),
                 ]))),
             ),
             Variant::ExternallyTagged(
                 "B",
                 Some(VariantValue::Tuple(TupleSchema::new(&[
-                    TupleField::new_req::<Usize>(),
-                    TupleField::new_req::<bool>(),
+                    TupleField::new(Ref::new_req::<Usize>()),
+                    TupleField::new(Ref::new_req::<bool>()),
                 ]))),
             ),
         ]);
@@ -177,14 +185,14 @@ mod test {
         const DEF: UnionSchema = UnionSchema::new(&[
             Variant::ExternallyTagged(
                 "A",
-                Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &TupleField::new_req::<String>(),
-                ))),
+                Some(VariantValue::Newtype(NewtypeSchema::new(&TupleField::new(
+                    Ref::new_req::<String>(),
+                )))),
             ),
             Variant::ExternallyTagged(
                 "B",
                 Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &TupleField::new_req::<Usize>().optional(),
+                    &TupleField::new(Ref::new_req::<Usize>()).optional(),
                 ))),
             ),
         ]);
@@ -222,21 +230,22 @@ mod test {
             Variant::ExternallyTagged(
                 "A",
                 Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &TupleField::new_req::<String>().optional(),
+                    &TupleField::new(Ref::new_req::<String>()).optional(),
                 ))),
             ),
             Variant::ExternallyTagged(
                 "B",
                 Some(VariantValue::Tuple(TupleSchema::new(&[
-                    TupleField::new_req::<String>(),
-                    TupleField::new_req::<()>(),
+                    TupleField::new(Ref::new_req::<String>()),
+                    TupleField::new(Ref::new_req::<()>()),
                 ]))),
             ),
             Variant::ExternallyTagged(
                 "C",
-                Some(VariantValue::Object(ObjectSchema::new(&[
-                    NamedField::new_req::<Usize>("b"),
-                ]))),
+                Some(VariantValue::Object(ObjectSchema::new(
+                    &[NamedField::new("b", Ref::new_req::<Usize>())],
+                    &[],
+                ))),
             ),
         ]);
 

@@ -1,71 +1,25 @@
-use crate::{RequestType, ResponseType};
-
-use super::{Compiler, Ref};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum FieldValue {
-    Resolved(Ref),
-    Generic(&'static str),
-}
-
-impl FieldValue {
-    pub const fn is_generic(&self) -> bool {
-        self.get_generic().is_some()
-    }
-
-    pub(crate) const fn get_generic(&self) -> Option<&'static str> {
-        match self {
-            FieldValue::Resolved(_) => None,
-            FieldValue::Generic(value) => Some(value),
-        }
-    }
-}
-
-impl Compiler for FieldValue {
-    fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldValue::Resolved(value) => value.fmt_zod(f),
-            FieldValue::Generic(value) => f.write_str(value),
-        }
-    }
-
-    fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldValue::Resolved(value) => value.fmt_ts(f),
-            FieldValue::Generic(value) => f.write_str(value),
-        }
-    }
-}
+use super::{Compiler, OwnedRef, Ref};
 
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedField {
     name: &'static str,
-    value: FieldValue,
+    value: Ref,
+    optional: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct OwnedNamedField {
+    name: &'static str,
+    value: OwnedRef,
     optional: bool,
 }
 
 impl NamedField {
-    pub const fn new_req<T: RequestType>(name: &'static str) -> Self {
+    pub const fn new(name: &'static str, value: Ref) -> Self {
         Self {
             name,
-            value: FieldValue::Resolved(Ref::new_req::<T>()),
-            optional: false,
-        }
-    }
-
-    pub const fn new_res<T: ResponseType>(name: &'static str) -> Self {
-        Self {
-            name,
-            value: FieldValue::Resolved(Ref::new_res::<T>()),
-            optional: false,
-        }
-    }
-
-    pub const fn generic(name: &'static str, value: &'static str) -> Self {
-        Self {
-            name,
-            value: FieldValue::Generic(value),
+            value,
             optional: false,
         }
     }
@@ -74,7 +28,7 @@ impl NamedField {
         self.name
     }
 
-    pub const fn value(&self) -> FieldValue {
+    pub const fn value(&self) -> Ref {
         self.value
     }
 
@@ -84,9 +38,17 @@ impl NamedField {
             ..self
         }
     }
+
+    pub(crate) fn transform(&self, generics: &[&'static str]) -> OwnedNamedField {
+        OwnedNamedField {
+            name: self.name,
+            optional: self.optional,
+            value: self.value.transform(generics),
+        }
+    }
 }
 
-impl Compiler for NamedField {
+impl Compiler for OwnedNamedField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name)?;
         f.write_str(": ")?;
@@ -114,26 +76,26 @@ impl Compiler for NamedField {
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TupleField {
-    value: FieldValue,
+    value: Ref,
+    optional: bool,
+}
+
+/// A name/value pair as used in objects
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct OwnedTupleField {
+    value: OwnedRef,
     optional: bool,
 }
 
 impl TupleField {
-    pub const fn new_req<T: RequestType>() -> Self {
+    pub const fn new(value: Ref) -> Self {
         Self {
-            value: FieldValue::Resolved(Ref::new_req::<T>()),
+            value,
             optional: false,
         }
     }
 
-    pub const fn new_res<T: ResponseType>() -> Self {
-        Self {
-            value: FieldValue::Resolved(Ref::new_res::<T>()),
-            optional: false,
-        }
-    }
-
-    pub const fn value(&self) -> FieldValue {
+    pub const fn value(&self) -> Ref {
         self.value
     }
 
@@ -144,15 +106,15 @@ impl TupleField {
         }
     }
 
-    pub const fn generic(value: &'static str) -> Self {
-        Self {
-            value: FieldValue::Generic(value),
-            optional: false,
+    pub fn transform(&self, generics: &[&'static str]) -> OwnedTupleField {
+        OwnedTupleField {
+            optional: self.optional,
+            value: self.value.transform(generics),
         }
     }
 }
 
-impl Compiler for TupleField {
+impl Compiler for OwnedTupleField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value.fmt_zod(f)?;
         if self.optional {
@@ -178,31 +140,37 @@ mod test {
 
     #[test]
     fn named_field_non_optional() {
-        const FIELD: NamedField = NamedField::new_req::<Usize>("test");
-        assert_eq!(FIELD.to_zod_string(), "test: Rs.Usize");
-        assert_eq!(FIELD.to_ts_string(), "test: Rs.Usize");
+        const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>());
+        assert_eq!(FIELD.transform(&[]).to_zod_string(), "test: Rs.Usize");
+        assert_eq!(FIELD.transform(&[]).to_ts_string(), "test: Rs.Usize");
     }
 
     #[test]
     fn named_field_optional() {
-        const FIELD: NamedField = NamedField::new_req::<Usize>("test").optional();
+        const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>()).optional();
 
-        assert_eq!(FIELD.to_zod_string(), "test: Rs.Usize.optional()");
-        assert_eq!(FIELD.to_ts_string(), "test?: Rs.Usize | undefined");
+        assert_eq!(
+            FIELD.transform(&[]).to_zod_string(),
+            "test: Rs.Usize.optional()"
+        );
+        assert_eq!(
+            FIELD.transform(&[]).to_ts_string(),
+            "test?: Rs.Usize | undefined"
+        );
     }
 
     #[test]
     fn tuple_field_non_optional() {
-        const FIELD: TupleField = TupleField::new_req::<crate::types::Usize>();
-        assert_eq!(FIELD.to_zod_string(), "Rs.Usize");
-        assert_eq!(FIELD.to_ts_string(), "Rs.Usize");
+        const FIELD: TupleField = TupleField::new(Ref::new_req::<crate::types::Usize>());
+        assert_eq!(FIELD.transform(&[]).to_zod_string(), "Rs.Usize");
+        assert_eq!(FIELD.transform(&[]).to_ts_string(), "Rs.Usize");
     }
 
     #[test]
     fn tuple_field_optional() {
-        const FIELD: TupleField = TupleField::new_req::<crate::types::Usize>().optional();
+        const FIELD: TupleField = TupleField::new(Ref::new_req::<crate::types::Usize>()).optional();
 
-        assert_eq!(FIELD.to_zod_string(), "Rs.Usize.optional()");
-        assert_eq!(FIELD.to_ts_string(), "Rs.Usize | undefined");
+        assert_eq!(FIELD.transform(&[]).to_zod_string(), "Rs.Usize.optional()");
+        assert_eq!(FIELD.transform(&[]).to_ts_string(), "Rs.Usize | undefined");
     }
 }

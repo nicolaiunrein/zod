@@ -202,6 +202,10 @@ pub trait Backend: RequestTypeVisitor + ResponseTypeVisitor {
         }
 
         for (name, exports) in exports.into_iter() {
+            let export_str = format!("{:#?}", exports);
+            for line in export_str.lines() {
+                out.push_str(&format!("// {line}\n"))
+            }
             out.push_str(&NamespaceExporter::new(name, exports).to_string());
         }
 

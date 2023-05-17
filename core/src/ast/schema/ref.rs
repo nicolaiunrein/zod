@@ -2,24 +2,34 @@ use crate::ast::{Compiler, Delimited, Path};
 use crate::{RequestType, ResponseType};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Ref {
-    path: Path,
-    args: &'static [Ref],
+pub enum Ref {
+    Resolved { path: Path, args: &'static [Ref] },
+    Generic { name: &'static str },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum OwnedRef {
+    Resolved { path: Path, args: Vec<OwnedRef> },
+    Generic { name: &'static str },
 }
 
 impl Ref {
+    pub const fn generic(name: &'static str) -> Self {
+        Self::Generic { name }
+    }
+
     pub const fn new_req<T: RequestType>() -> Self {
         let path = T::EXPORT.path;
         let args = T::ARGS;
 
-        Self { path, args }
+        Self::Resolved { path, args }
     }
 
     pub const fn new_res<T: ResponseType>() -> Self {
         let path = T::EXPORT.path;
         let args = T::ARGS;
 
-        Self { path, args }
+        Self::Resolved { path, args }
     }
 
     pub const fn new_stream_res<F, S, I>(_: &'static F) -> Self
@@ -32,33 +42,72 @@ impl Ref {
     }
 
     pub const fn args(&self) -> &'static [Ref] {
-        self.args
+        match self {
+            Ref::Resolved { args, .. } => args,
+            Ref::Generic { .. } => &[],
+        }
+    }
+
+    pub const fn is_generic(&self) -> bool {
+        self.get_generic().is_some()
+    }
+
+    pub const fn get_generic(&self) -> Option<&'static str> {
+        match self {
+            Ref::Resolved { .. } => None,
+            Ref::Generic { name } => Some(name),
+        }
+    }
+
+    pub(crate) fn transform(&self, generics: &[&'static str]) -> OwnedRef {
+        let res = match self {
+            Ref::Resolved { path, args } => match path.generic {
+                Some(index) => OwnedRef::Generic {
+                    name: generics[index],
+                },
+                None => OwnedRef::Resolved {
+                    path: *path,
+                    args: args
+                        .iter()
+                        .map(|r| r.transform(generics))
+                        .collect::<Vec<_>>(),
+                },
+            },
+            Ref::Generic { name } => OwnedRef::Generic { name },
+        };
+        println!("transforming {:?} {:?} => {:?}", self, generics, res);
+        res
     }
 }
 
-impl Compiler for Ref {
+impl Compiler for OwnedRef {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.path, f)?;
-        if !self.args.is_empty() {
-            f.write_str("(")?;
-            self.args
-                .iter()
-                .comma_separated(f, |f, arg| arg.fmt_zod(f))?;
-
-            f.write_str(")")?;
+        match self {
+            OwnedRef::Resolved { path, args, .. } => {
+                std::fmt::Display::fmt(&path, f)?;
+                if !args.is_empty() {
+                    f.write_str("(")?;
+                    args.iter().comma_separated(f, |f, arg| arg.fmt_zod(f))?;
+                    f.write_str(")")?;
+                }
+            }
+            OwnedRef::Generic { name } => f.write_str(name)?,
         }
 
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.path, f)?;
-        if !self.args.is_empty() {
-            f.write_str("<")?;
-            self.args
-                .iter()
-                .comma_separated(f, |f, arg| arg.fmt_ts(f))?;
-            f.write_str(">")?;
+        match self {
+            OwnedRef::Resolved { path, args, .. } => {
+                std::fmt::Display::fmt(&path, f)?;
+                if !args.is_empty() {
+                    f.write_str("<")?;
+                    args.iter().comma_separated(f, |f, arg| arg.fmt_ts(f))?;
+                    f.write_str(">")?;
+                }
+            }
+            OwnedRef::Generic { name } => f.write_str(name)?,
         }
         Ok(())
     }

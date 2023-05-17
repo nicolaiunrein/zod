@@ -31,7 +31,9 @@ impl<'a> ToTokens for EnumExport<'a> {
                 let variants = self.variants().map(|v| v.external());
                 quote! {
                     #zod::core::ast::ExportSchema::Union(
-                        #zod::core::ast::UnionSchema::new(&[#(#variants),*])
+                        #zod::core::ast::UnionSchema::new(&[#(#variants),*], &[
+                                                          //todo
+                        ])
                     )
                 }
             }
@@ -40,7 +42,9 @@ impl<'a> ToTokens for EnumExport<'a> {
                 let variants = self.variants().map(|v| v.internal());
                 quote! {
                     #zod::core::ast::ExportSchema::DiscriminatedUnion(
-                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*]))
+                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*], &[
+                                                                       //todo
+                        ]))
                 }
             }
 
@@ -48,6 +52,8 @@ impl<'a> ToTokens for EnumExport<'a> {
                 let variants = self.variants().map(|v| v.untagged());
                 quote!(#zod::core::ast::ExportSchema::Union(#zod::core::ast::UnionSchema::new(&[
                     #(#variants),*
+                ], &[
+                //todo
                 ])))
             }
 
@@ -55,7 +61,9 @@ impl<'a> ToTokens for EnumExport<'a> {
                 let variants = self.variants().map(|v| v.adjacent(content));
                 quote! {
                     #zod::core::ast::ExportSchema::DiscriminatedUnion(
-                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*])
+                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*], &[
+                                                                       //todo
+                        ])
                     )
                 }
             }

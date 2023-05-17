@@ -42,7 +42,11 @@ impl Compiler for GenericArgument {
             GenericArgument::Const { name, schema } => {
                 f.write_str(name)?;
                 f.write_str(": ")?;
-                schema.fmt_zod(f)?;
+                schema
+                    .transform(&[
+                    // const generics cannot be generic themself
+                ])
+                    .fmt_zod(f)?;
             }
             GenericArgument::Assign { .. } => {}
         }
@@ -61,7 +65,11 @@ impl Compiler for GenericArgument {
             GenericArgument::Const { name, schema } => {
                 f.write_str(name)?;
                 f.write_str(" extends ")?;
-                schema.fmt_ts(f)?;
+                schema
+                    .transform(&[
+                    // const generics cannot be generic themself
+                ])
+                    .fmt_ts(f)?;
                 Ok(())
             }
         }

@@ -69,7 +69,7 @@ impl RpcInput {
             let args = item.method_args.iter().map(|arg| {
                 let ty = &arg.ty;
                 let name = &arg.name;
-                quote!(#zod::core::ast::NamedField::new_req::<#ty>(#name))
+                quote!(#zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::new_req::<#ty>()))
             });
 
             match &item.kind {

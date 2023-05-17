@@ -7,6 +7,7 @@ use super::{ExportSchema, Exported, NamedField};
 pub struct DiscriminatedUnionSchema {
     key: &'static str,
     variants: &'static [DiscriminatedVariant],
+    generics: &'static [&'static str],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -33,8 +34,13 @@ impl DiscriminatedUnionSchema {
     pub const fn new(
         key: &'static str,
         variants: &'static [DiscriminatedVariant],
+        generics: &'static [&'static str],
     ) -> DiscriminatedUnionSchema {
-        Self { key, variants }
+        Self {
+            key,
+            variants,
+            generics,
+        }
     }
 
     pub const fn export(self, name: &'static str) -> Exported<Self> {
@@ -62,18 +68,18 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
             if let Some(content) = v.content_tag {
                 f.write_str(", ")?;
                 f.write_fmt(format_args!("{content}: z.object({{ "))?;
-                v.fields
-                    .iter()
-                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
+                v.fields.iter().comma_separated(f, |f, field| {
+                    field.transform(self.schema.generics).fmt_zod(f)
+                })?;
                 f.write_str(" })")?;
             } else {
                 if !v.fields.is_empty() {
                     f.write_str(", ")?;
                 }
 
-                v.fields
-                    .iter()
-                    .comma_separated(f, |f, field| field.fmt_zod(f))?;
+                v.fields.iter().comma_separated(f, |f, field| {
+                    field.transform(self.schema.generics).fmt_zod(f)
+                })?;
             }
 
             f.write_str(" })")?;
@@ -99,18 +105,18 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
 
                 if let Some(content) = v.content_tag {
                     f.write_fmt(format_args!(", {content}: {{ "))?;
-                    v.fields
-                        .iter()
-                        .comma_separated(f, |f, field| field.fmt_ts(f))?;
+                    v.fields.iter().comma_separated(f, |f, field| {
+                        field.transform(self.schema.generics).fmt_ts(f)
+                    })?;
                     f.write_str(" }")?;
                 } else {
                     if !v.fields.is_empty() {
                         f.write_str(", ")?;
                     }
 
-                    v.fields
-                        .iter()
-                        .comma_separated(f, |f, field| field.fmt_ts(f))?;
+                    v.fields.iter().comma_separated(f, |f, field| {
+                        field.transform(self.schema.generics).fmt_ts(f)
+                    })?;
                 }
 
                 f.write_str(" }")?;
@@ -125,7 +131,7 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
 #[cfg(test)]
 mod test {
 
-    use crate::ast::NamedField;
+    use crate::ast::{NamedField, Ref};
     use crate::types::{Isize, Usize};
 
     use super::*;
@@ -137,16 +143,16 @@ mod test {
             DiscriminatedVariant {
                 tag: "A",
                 content_tag: None,
-                fields: &[NamedField::new_req::<Usize>("b")],
+                fields: &[NamedField::new("b", Ref::new_req::<Usize>())],
             },
             DiscriminatedVariant {
                 tag: "B",
                 content_tag: None,
-                fields: &[NamedField::new_req::<Isize>("c")],
+                fields: &[NamedField::new("c", Ref::new_req::<Isize>())],
             },
         ];
 
-        const DEF: DiscriminatedUnionSchema = DiscriminatedUnionSchema::new("myKey", FIELDS);
+        const DEF: DiscriminatedUnionSchema = DiscriminatedUnionSchema::new("myKey", FIELDS, &[]);
         assert_eq!(
             DEF.export("test").to_zod_string(),
             r#"const test = z.lazy(() => z.discriminatedUnion("myKey", [z.object({ myKey: z.literal("A"), b: Rs.Usize }), z.object({ myKey: z.literal("B"), c: Rs.Isize })]));"#
@@ -163,16 +169,16 @@ mod test {
             DiscriminatedVariant {
                 tag: "A",
                 content_tag: Some("content"),
-                fields: &[NamedField::new_req::<Usize>("b")],
+                fields: &[NamedField::new("b", Ref::new_req::<Usize>())],
             },
             DiscriminatedVariant {
                 tag: "B",
                 content_tag: Some("content"),
-                fields: &[NamedField::new_req::<Isize>("c")],
+                fields: &[NamedField::new("c", Ref::new_req::<Isize>())],
             },
         ];
 
-        const DEF: DiscriminatedUnionSchema = DiscriminatedUnionSchema::new("myKey", FIELDS);
+        const DEF: DiscriminatedUnionSchema = DiscriminatedUnionSchema::new("myKey", FIELDS, &[]);
         assert_eq!(
             DEF.export("test").to_zod_string(),
             r#"const test = z.lazy(() => z.discriminatedUnion("myKey", [z.object({ myKey: z.literal("A"), content: z.object({ b: Rs.Usize }) }), z.object({ myKey: z.literal("B"), content: z.object({ c: Rs.Isize }) })]));"#

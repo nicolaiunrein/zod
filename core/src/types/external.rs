@@ -226,7 +226,10 @@ impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&TupleField::generic("T"))),
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
+            &TupleField::new(Ref::generic("T")),
+            &[], //todo
+        )),
     };
     const ARGS: &'static [Ref] = &[Ref::new_req::<T>()];
 }
@@ -244,7 +247,10 @@ impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
     const EXPORT: Export = Export {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
-        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(&TupleField::generic("T"))),
+        schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
+            &TupleField::new(Ref::generic("T")),
+            &[], // todo?
+        )),
     };
     const ARGS: &'static [Ref] = &[Ref::new_res::<T>()];
 }

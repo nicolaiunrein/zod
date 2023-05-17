@@ -5,13 +5,15 @@ use crate::ast::{Compiler, Delimited};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ObjectSchema {
     fields: &'static [NamedField],
+    generics: &'static [&'static str],
     extends: &'static [Ref],
 }
 
 impl ObjectSchema {
-    pub const fn new(fields: &'static [NamedField]) -> Self {
+    pub const fn new(fields: &'static [NamedField], generics: &'static [&'static str]) -> Self {
         Self {
             fields,
+            generics,
             extends: &[],
         }
     }
@@ -19,6 +21,7 @@ impl ObjectSchema {
     pub const fn with_extensions(self, extends: &'static [Ref]) -> Self {
         Self {
             fields: self.fields,
+            generics: self.generics,
             extends,
         }
     }
@@ -31,14 +34,8 @@ impl ObjectSchema {
         self.fields
     }
 
-    pub fn generics(&self) -> impl Iterator<Item = &'static str> {
-        self.fields.iter().filter_map(|f| f.value().get_generic())
-    }
-
     pub fn is_generic(&self) -> bool {
-        self.fields
-            .iter()
-            .any(|f| f.value().get_generic().is_some())
+        !self.generics.is_empty()
     }
 }
 
@@ -49,7 +46,8 @@ impl Compiler for Exported<ObjectSchema> {
             f.write_str("(")?;
 
             self.schema
-                .generics()
+                .generics
+                .iter()
                 .comma_separated(f, |f, g| f.write_fmt(format_args!("{g}: z.ZodTypeAny")))?;
 
             f.write_str(") => ")?;
@@ -62,7 +60,7 @@ impl Compiler for Exported<ObjectSchema> {
 
         for ext in self.schema.extends {
             f.write_str(".extend(z.lazy(() => ")?;
-            ext.fmt_zod(f)?;
+            ext.transform(self.schema.generics).fmt_zod(f)?;
             f.write_str("))")?;
         }
 
@@ -77,7 +75,8 @@ impl Compiler for Exported<ObjectSchema> {
         if self.schema.is_generic() {
             f.write_str("<")?;
             self.schema
-                .generics()
+                .generics
+                .iter()
                 .comma_separated(f, |f, g| f.write_str(g))?;
             f.write_str(">")?;
         }
@@ -88,7 +87,7 @@ impl Compiler for Exported<ObjectSchema> {
             self.schema
                 .extends
                 .iter()
-                .comma_separated(f, |f, e| e.fmt_ts(f))?;
+                .comma_separated(f, |f, e| e.transform(self.schema.generics).fmt_ts(f))?;
         }
         self.schema.fmt_ts(f)?;
         Ok(())
@@ -100,6 +99,7 @@ impl Compiler for ObjectSchema {
         f.write_str("z.object({ ")?;
         self.fields
             .iter()
+            .map(|f| f.transform(&self.generics))
             .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
         f.write_str(" })")?;
@@ -112,7 +112,9 @@ impl Compiler for ObjectSchema {
 
         self.fields
             .iter()
+            .map(|f| f.transform(&self.generics))
             .comma_separated(f, |f, field| field.fmt_ts(f))?;
+
         f.write_str(" }")?;
         Ok(())
     }
@@ -124,15 +126,21 @@ mod test {
 
     use super::*;
 
-    const OBJECT: ObjectSchema = ObjectSchema::new(&[
-        NamedField::new_req::<String>("a"),
-        NamedField::new_req::<Usize>("b"),
-    ]);
+    const OBJECT: ObjectSchema = ObjectSchema::new(
+        &[
+            NamedField::new("a", Ref::new_req::<String>()),
+            NamedField::new("b", Ref::new_req::<Usize>()),
+        ],
+        &[],
+    );
 
-    const GENERIC: ObjectSchema = ObjectSchema::new(&[
-        NamedField::generic("a", "A"),
-        NamedField::new_req::<Usize>("b"),
-    ]);
+    const GENERIC: ObjectSchema = ObjectSchema::new(
+        &[
+            NamedField::new("a", Ref::generic("A")),
+            NamedField::new("b", Ref::new_req::<Usize>()),
+        ],
+        &[],
+    );
 
     #[test]
     fn object_ok() {

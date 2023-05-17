@@ -6,10 +6,14 @@ use super::{Exported, TupleField};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct NewtypeSchema {
     inner: &'static TupleField,
+    generics: &'static [&'static str],
 }
 impl NewtypeSchema {
-    pub const fn new(inner: &'static TupleField) -> NewtypeSchema {
-        Self { inner }
+    pub const fn new(
+        inner: &'static TupleField,
+        generics: &'static [&'static str],
+    ) -> NewtypeSchema {
+        Self { inner, generics }
     }
 
     pub const fn export(self, name: &'static str) -> Exported<Self> {
@@ -19,12 +23,12 @@ impl NewtypeSchema {
 
 impl Compiler for NewtypeSchema {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt_zod(f)?;
+        self.inner.transform(self.generics).fmt_zod(f)?;
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt_ts(f)?;
+        self.inner.transform(self.generics).fmt_ts(f)?;
         Ok(())
     }
 }
@@ -64,12 +68,15 @@ impl Compiler for Exported<NewtypeSchema> {
 }
 #[cfg(test)]
 mod test {
+    use crate::ast::Ref;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn newtype_ok() {
-        const NEWTYPE: NewtypeSchema = NewtypeSchema::new(&TupleField::new_req::<String>());
+        const NEWTYPE: NewtypeSchema =
+            NewtypeSchema::new(&TupleField::new(Ref::new_req::<String>()), &[]);
 
         assert_eq!(
             NEWTYPE.export("test").to_zod_string(),
@@ -83,7 +90,7 @@ mod test {
 
     #[test]
     fn newtype_generic_ok() {
-        const NEWTYPE: NewtypeSchema = NewtypeSchema::new(&TupleField::generic("T"));
+        const NEWTYPE: NewtypeSchema = NewtypeSchema::new(&TupleField::new(Ref::generic("T")), &[]);
 
         assert_eq!(
             NEWTYPE.export("test").to_zod_string(),

@@ -31,14 +31,14 @@ impl Display for RpcRequest {
         let ts_args = self
             .args
             .iter()
-            .map(|arg| arg.to_ts_string())
+            .map(|arg| arg.transform(&[]).to_ts_string())
             .collect::<Vec<_>>()
             .join(", ");
 
         let zod_args = self
             .args
             .iter()
-            .map(|arg| arg.value().to_zod_string())
+            .map(|arg| arg.value().transform(&[]).to_zod_string())
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -57,8 +57,8 @@ impl Display for RpcRequest {
             RpcRequestKind::Stream => "",
         };
 
-        let inner_res_ts = self.output.to_ts_string();
-        let inner_res_zod = self.output.to_zod_string();
+        let inner_res_ts = self.output.transform(&[]).to_ts_string();
+        let inner_res_zod = self.output.transform(&[]).to_zod_string();
 
         let res = match self.kind {
             RpcRequestKind::Method => format!("Promise<{}>", inner_res_ts),
@@ -128,8 +128,8 @@ async test(name: Rs.String, age: Rs.U16): Promise<Rs.Option<Rs.Bool>> {{
             path: Path::new::<Ns>("test"),
             kind: RpcRequestKind::Method,
             args: &[
-                NamedField::new_req::<String>("name"),
-                NamedField::new_req::<u16>("age"),
+                NamedField::new("name", Ref::new_req::<String>()),
+                NamedField::new("age", Ref::new_req::<u16>()),
             ],
             output: Ref::new_res::<Option<bool>>(),
         };
@@ -173,8 +173,8 @@ test(name: Rs.String, age: Rs.U16): Rs.Stream<Rs.Option<Rs.Bool>> {{
             path: Path::new::<Ns>("test"),
             kind: RpcRequestKind::Stream,
             args: &[
-                NamedField::new_req::<String>("name"),
-                NamedField::new_req::<u16>("age"),
+                NamedField::new("name", Ref::new_req::<String>()),
+                NamedField::new("age", Ref::new_req::<u16>()),
             ],
             output: Ref::new_res::<Option<bool>>(),
         };

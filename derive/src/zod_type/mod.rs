@@ -78,7 +78,7 @@ impl ZodType {
             .params
             .iter()
             .filter_map(|param| match param {
-                syn::GenericParam::Type(ty) => Some(&ty.ident),
+                syn::GenericParam::Type(ty) => Some(ty.ident.clone()),
                 syn::GenericParam::Lifetime(_) => None,
                 syn::GenericParam::Const(_) => None,
             })
@@ -104,7 +104,7 @@ impl ZodType {
                     let definition = EnumExport {
                         variants: variants
                             .iter()
-                            .map(|v| r#enum::Variant::new(v, &config))
+                            .map(|v| r#enum::Variant::new(v, &config, &generic_idents))
                             .collect(),
 
                         config: &config,
@@ -118,13 +118,14 @@ impl ZodType {
                         .map(|f| Ok((f.ty, FieldConfig::new(&f.attrs, derive)?)))
                         .collect::<Result<_, crate::error::Error>>()?;
 
-                    let fields = FilteredFields::new(fields, &generic_idents)?;
+                    let fields = FilteredFields::new(fields, generic_idents.clone())?;
                     let dependencies = fields.iter().map(|f| f.ty.clone()).collect();
 
                     let definition = StructExport {
                         style,
                         fields,
                         config: &config,
+                        generics: generic_idents,
                     };
 
                     (dependencies, quote!(#definition))
@@ -171,27 +172,24 @@ impl ToTokens for ZodType {
             }
         };
 
-        let args = &self
+        let args = self
             .generics
-            .params
-            .iter()
-            .filter_map(|param| match param {
-                syn::GenericParam::Type(ty) => Some(&ty.ident),
-                syn::GenericParam::Lifetime(_) => None,
-                syn::GenericParam::Const(_) => None,
-            })
-            .map(|ident| match self.derive {
-                Derive::Request => quote!(#zod::core::ast::Ref::new_req::<#ident>()),
-                Derive::Response => quote!(#zod::core::ast::Ref::new_res::<#ident>()),
+            .type_params()
+            .map(|param| {
+                let ident = &param.ident;
+                match self.derive {
+                    Derive::Request => quote!(#zod::core::ast::Ref::new_req::<#ident>()),
+                    Derive::Response => quote!(#zod::core::ast::Ref::new_res::<#ident>()),
+                }
             })
             .collect::<Vec<_>>();
 
         let expanded = quote! {
             impl #impl_generics #impl_trait for #ident #ty_generics #where_clause {
+                const EXPORT: #zod::core::ast::Export = #export;
                 const ARGS: &'static [#zod::core::ast::Ref] = &[
                     #(#args),*
                 ];
-                const EXPORT: #zod::core::ast::Export = #export;
             }
 
             impl #impl_generics #impl_trait_visitor for #ident #ty_generics #where_clause {

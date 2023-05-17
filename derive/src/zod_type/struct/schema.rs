@@ -3,7 +3,7 @@ use crate::utils::get_zod;
 use crate::zod_type::field::{Field, FilteredFields};
 use crate::zod_type::Derive;
 use darling::ToTokens;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::spanned::Spanned;
 
@@ -29,6 +29,7 @@ impl<'a> ToTokens for Schema<'a> {
 
 pub(super) struct ObjectSchema {
     pub fields: FilteredFields,
+    pub generics: Vec<Ident>,
 }
 
 impl ToTokens for ObjectSchema {
@@ -46,8 +47,10 @@ impl ToTokens for ObjectSchema {
             }
         });
 
+        let generics = self.generics.iter().map(|ident| ident.to_string());
+
         tokens.extend(
-            quote!(#zod::core::ast::ObjectSchema::new(&[#(#fields),*]).with_extensions(&[#(#ext,)*])),
+            quote!(#zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[#(#generics),*]).with_extensions(&[#(#ext,)*])),
         );
     }
 }
@@ -70,30 +73,33 @@ impl<'a> ToTokens for NewtypeSchema<'a> {
         let field = match self.field.generic {
             Some(ref ident) => {
                 let name = ident.to_string();
-                quote!(&#zod::core::ast::TupleField::generic(#name) #optional)
+                quote!(&#zod::core::ast::TupleField::new(#zod::core::ast::Ref::generic(#name)) #optional)
             }
             None => match self.field.config.derive {
                 Derive::Request => {
-                    quote!(&#zod::core::ast::TupleField::new_req::<#ty>() #optional)
+                    quote!(&#zod::core::ast::TupleField::new(#zod::core::ast::Ref::new_req::<#ty>()) #optional)
                 }
                 Derive::Response => {
-                    quote!(&#zod::core::ast::TupleField::new_res::<#ty>() #optional)
+                    quote!(&#zod::core::ast::TupleField::new(#zod::core::ast::Ref::new_res::<#ty>()) #optional)
                 }
             },
         };
 
         tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new(#field)
+            #zod::core::ast::NewtypeSchema::new(#field, &[
+                                                //todo
+            ])
         })
     }
 }
 
 pub(super) struct TupleSchema<'a> {
     fields: &'a FilteredFields,
+    generics: Vec<Ident>,
 }
 
 impl<'a> TupleSchema<'a> {
-    pub fn new(fields: &'a FilteredFields) -> Result<Self, Error> {
+    pub fn new(fields: &'a FilteredFields, generics: Vec<Ident>) -> Result<Self, Error> {
         if let Some(first_required) = fields.iter().position(|f| !f.config.required) {
             if let Some(err) = fields.iter().skip(first_required + 1).find_map(|f| {
                 if f.config.required {
@@ -105,7 +111,7 @@ impl<'a> TupleSchema<'a> {
                 return Err(err);
             }
         }
-        Ok(Self { fields })
+        Ok(Self { fields, generics })
     }
 }
 
@@ -115,8 +121,10 @@ impl<'a> ToTokens for TupleSchema<'a> {
         let fields = self.fields;
         let fields = fields.iter();
 
+        let generics = self.generics.iter().map(|ident| ident.to_string());
+
         tokens.extend(quote! {
-            #zod::core::ast::TupleSchema::new(&[#(#fields),*])
+            #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[#(#generics),*])
         })
     }
 }
@@ -134,16 +142,20 @@ mod test {
         let input = TupleSchema {
             fields: &FilteredFields::new(
                 vec![(&parse_quote!(T1), Default::default())],
-                &[&parse_quote!(T1)],
+                vec![parse_quote!(T1)],
             )
             .unwrap(),
+            generics: Vec::new(),
         };
 
         compare(
             quote!(#input),
-            quote!(::zod::core::ast::TupleSchema::new(&[
-                ::zod::core::ast::TupleField::generic("T1")
-            ])),
+            quote!(::zod::core::ast::TupleSchema::new(
+                &[::zod::core::ast::TupleField::new(
+                    ::zod::core::ast::Ref::generic("T1")
+                )],
+                &[]
+            )),
         )
     }
 }

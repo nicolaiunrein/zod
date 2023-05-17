@@ -25,7 +25,53 @@ use std::{
     collections::{BTreeMap, HashSet},
 };
 
-use ast::{Docs, Export, Ref};
+pub struct Generic<const N: usize>;
+
+impl<const N: usize> RequestType for Generic<N> {
+    const EXPORT: Export = Export {
+        docs: None,
+        path: Path::generic(N),
+        schema: ExportSchema::Raw(RawSchema {
+            args: &[],
+            ts: "xxx",
+            zod: "xxx",
+        }),
+    };
+
+    const ARGS: &'static [Ref] = &[];
+}
+
+impl<const N: usize> RequestTypeVisitor for Generic<N> {
+    fn register(_: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+    }
+}
+
+impl<const N: usize> ResponseType for Generic<N> {
+    const EXPORT: Export = Export {
+        docs: None,
+        path: Path::generic(N),
+        schema: ExportSchema::Raw(RawSchema {
+            args: &[],
+            ts: "xxx",
+            zod: "xxx",
+        }),
+    };
+
+    const ARGS: &'static [Ref] = &[];
+}
+
+impl<const N: usize> ResponseTypeVisitor for Generic<N> {
+    fn register(_: &mut DependencyMap)
+    where
+        Self: 'static,
+    {
+    }
+}
+
+use ast::{Docs, Export, ExportSchema, Path, RawSchema, Ref};
 
 /// Trait for dependency registration
 /// Each implementor should recursively call register on all its dependencies (ie. fields in a
@@ -59,9 +105,9 @@ use ast::{Docs, Export, Ref};
 /// #     const EXPORT: Export = Export {
 /// #        docs: None,
 /// #        path: Path::new::<Rs>("MyType"),
-/// #        schema: ExportSchema::Object(ObjectSchema::new(&[]))
+/// #        schema: ExportSchema::Object(ObjectSchema::new(&[], &["T"]))
 /// #     };
-/// #     const ARGS: &'static [Ref] = &[];
+/// #     const ARGS: &'static [Ref] = &[todo!()];
 /// # }
 ///
 /// impl<T: RequestType> RequestTypeVisitor for MyType<T> {
@@ -104,7 +150,7 @@ use ast::{Docs, Export, Ref};
 /// #     const EXPORT: Export = Export {
 /// #        docs: None,
 /// #        path: Path::new::<Rs>("MyType"),
-/// #        schema: ExportSchema::Object(ObjectSchema::new(&[]))
+/// #        schema: ExportSchema::Object(ObjectSchema::new(&[], &[]))
 /// #     };
 /// #     const ARGS: &'static [Ref] = &[];
 /// # }

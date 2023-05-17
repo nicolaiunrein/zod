@@ -36,13 +36,19 @@ pub struct Color {
 
 #[derive(RequestType, ResponseType, serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[zod(namespace = "Chat")]
-pub struct MyNewtype<T: RequestType + ResponseType>(T);
+pub struct MyNewtype<T1: RequestType + ResponseType, T2: RequestType + ResponseType> {
+    t1: T1,
+    t2: T2,
+}
 
 #[derive(RequestType, ResponseType, serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[zod(namespace = "Chat")]
 pub struct MyNewtype2<T: RequestType + ResponseType> {
-    inner: MyNewtype<T>,
+    inner: MyNewtype<T, String>,
+    flipped: Flipped<T, String>,
 }
+
+type Flipped<T1, T2> = MyNewtype<T2, T1>;
 
 impl From<Color> for String {
     fn from(value: Color) -> Self {
@@ -76,71 +82,71 @@ impl TryFrom<String> for Color {
 
 #[zod::rpc]
 impl Chat {
-    pub async fn send(&mut self, msg: Message) {
-        self.subscribers.retain(|sub| !sub.is_closed());
-        for sub in self.subscribers.iter_mut() {
-            let _ = sub.unbounded_send(msg.clone());
-        }
-    }
-
-    pub fn messages(&mut self, len: Usize) -> impl Stream<Item = VecDeque<Message>> {
-        let (tx, rx) = futures::channel::mpsc::unbounded();
-        self.subscribers.push(tx);
-        rx.scan(VecDeque::new(), move |history, msg| {
-            history.push_back(msg);
-            if history.len() > *len {
-                history.pop_front();
-            }
-            futures::future::ready(Some(history.clone()))
-        })
-    }
-
-    pub fn count_to(&mut self, n: Usize) -> impl Stream<Item = Usize> {
-        futures::stream::repeat(())
-            .enumerate()
-            .take(*n)
-            .map(|(index, _)| index.into())
-            .then(|evt| async move {
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                evt
-            })
-    }
-
-    async fn get_random_color(&mut self) -> Color {
-        let random_u8 = |seed: u128| {
-            ((std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-                * 17
-                * seed)
-                % 255) as u8
-        };
-
-        Color {
-            red: random_u8(1),
-            green: random_u8(2),
-            blue: random_u8(3),
-        }
-    }
-
-    async fn get_lightness(&mut self, color: Color) -> f64 {
-        const RED_FACTOR: f64 = 0.299;
-        const GREEN_FACTOR: f64 = 0.587;
-        const BLUE_FACTOR: f64 = 0.114;
-
-        const MAX: f64 = RED_FACTOR + GREEN_FACTOR + BLUE_FACTOR;
-
-        let red = RED_FACTOR * (color.red as f64 / 255.0);
-        let green = GREEN_FACTOR * (color.green as f64 / 255.0);
-        let blue = BLUE_FACTOR * (color.blue as f64 / 255.0);
-
-        (red + green + blue).sqrt()
-    }
-
-    async fn pending(&mut self) {
-        futures::future::pending().await
-    }
+    // pub async fn send(&mut self, msg: Message) {
+    //     self.subscribers.retain(|sub| !sub.is_closed());
+    //     for sub in self.subscribers.iter_mut() {
+    //         let _ = sub.unbounded_send(msg.clone());
+    //     }
+    // }
+    //
+    // pub fn messages(&mut self, len: Usize) -> impl Stream<Item = VecDeque<Message>> {
+    //     let (tx, rx) = futures::channel::mpsc::unbounded();
+    //     self.subscribers.push(tx);
+    //     rx.scan(VecDeque::new(), move |history, msg| {
+    //         history.push_back(msg);
+    //         if history.len() > *len {
+    //             history.pop_front();
+    //         }
+    //         futures::future::ready(Some(history.clone()))
+    //     })
+    // }
+    //
+    // pub fn count_to(&mut self, n: Usize) -> impl Stream<Item = Usize> {
+    //     futures::stream::repeat(())
+    //         .enumerate()
+    //         .take(*n)
+    //         .map(|(index, _)| index.into())
+    //         .then(|evt| async move {
+    //             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    //             evt
+    //         })
+    // }
+    //
+    // async fn get_random_color(&mut self) -> Color {
+    //     let random_u8 = |seed: u128| {
+    //         ((std::time::SystemTime::now()
+    //             .duration_since(std::time::UNIX_EPOCH)
+    //             .unwrap()
+    //             .as_nanos()
+    //             * 17
+    //             * seed)
+    //             % 255) as u8
+    //     };
+    //
+    //     Color {
+    //         red: random_u8(1),
+    //         green: random_u8(2),
+    //         blue: random_u8(3),
+    //     }
+    // }
+    //
+    // async fn get_lightness(&mut self, color: Color) -> f64 {
+    //     const RED_FACTOR: f64 = 0.299;
+    //     const GREEN_FACTOR: f64 = 0.587;
+    //     const BLUE_FACTOR: f64 = 0.114;
+    //
+    //     const MAX: f64 = RED_FACTOR + GREEN_FACTOR + BLUE_FACTOR;
+    //
+    //     let red = RED_FACTOR * (color.red as f64 / 255.0);
+    //     let green = GREEN_FACTOR * (color.green as f64 / 255.0);
+    //     let blue = BLUE_FACTOR * (color.blue as f64 / 255.0);
+    //
+    //     (red + green + blue).sqrt()
+    // }
+    //
+    // async fn pending(&mut self) {
+    //     futures::future::pending().await
+    // }
 
     async fn debug(&mut self, t: MyNewtype2<u8>, t2: MyNewtype2<u16>) {}
 }

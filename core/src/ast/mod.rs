@@ -46,10 +46,13 @@ mod test {
         const EXPORT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("MyGeneric"),
-            schema: ExportSchema::Object(ObjectSchema::new(&[
-                NamedField::generic("t1", "T1"),
-                NamedField::generic("t2", "T2"),
-            ])),
+            schema: ExportSchema::Object(ObjectSchema::new(
+                &[
+                    NamedField::new("t1", Ref::generic("T1")),
+                    NamedField::new("t2", Ref::generic("T2")),
+                ],
+                &["T1", "T2"],
+            )),
         };
         const ARGS: &'static [Ref] = &[Ref::new_req::<T1>(), Ref::new_req::<T2>()];
     }
@@ -71,9 +74,13 @@ mod test {
         const EXPORT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("MyType"),
-            schema: ExportSchema::Object(ObjectSchema::new(&[
-                NamedField::new_req::<Partial<Usize>>("my_type_inner"),
-            ])),
+            schema: ExportSchema::Object(ObjectSchema::new(
+                &[NamedField::new(
+                    "my_type_inner",
+                    Ref::new_req::<Partial<Usize>>(),
+                )],
+                &[],
+            )),
         };
         const ARGS: &'static [Ref] = &[];
     }
@@ -95,9 +102,13 @@ mod test {
         const EXPORT: Export = Export {
             docs: None,
             path: Path::new::<Ns>("Partial"),
-            schema: ExportSchema::Object(ObjectSchema::new(&[NamedField::new_req::<
-                MyGeneric<String, T>,
-            >("partial_inner")])),
+            schema: ExportSchema::Object(ObjectSchema::new(
+                &[NamedField::new(
+                    "partial_inner",
+                    Ref::new_req::<MyGeneric<String, T>>(),
+                )],
+                &["T"],
+            )),
         };
 
         const ARGS: &'static [Ref] = &[Ref::new_req::<T>()];
