@@ -111,12 +111,10 @@ macro_rules! impl_wrapper {
             const EXPORT: $crate::ast::Export = $crate::ast::Export {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
-                schema: $crate::ast::ExportSchema::Newtype(
-                    $crate::ast::NewtypeSchema::new(
-                        &$crate::ast::TupleField::new($crate::ast::Ref::generic("T")),
-                        &[],
-                    ), // todo
-                ),
+                schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
+                    &$crate::ast::TupleField::new($crate::ast::Ref::generic("T")),
+                    &["T"],
+                )),
             };
             const ARGS: &'static [$crate::ast::Ref] = &[$crate::ast::Ref::new_req::<T>()];
         }
@@ -136,7 +134,7 @@ macro_rules! impl_wrapper {
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
                     &$crate::ast::TupleField::new($crate::ast::Ref::generic("T")),
-                    &[], // todo
+                    &["T"],
                 )),
             };
             const ARGS: &'static [$crate::ast::Ref] = &[$crate::ast::Ref::new_res::<T>()];

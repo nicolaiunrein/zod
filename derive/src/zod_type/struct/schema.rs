@@ -57,6 +57,7 @@ impl ToTokens for ObjectSchema {
 
 pub(super) struct NewtypeSchema<'a> {
     pub field: &'a Field,
+    pub generics: Vec<Ident>,
 }
 
 impl<'a> ToTokens for NewtypeSchema<'a> {
@@ -85,10 +86,10 @@ impl<'a> ToTokens for NewtypeSchema<'a> {
             },
         };
 
+        let generics = self.generics.iter().map(|ident| ident.to_string());
+
         tokens.extend(quote! {
-            #zod::core::ast::NewtypeSchema::new(#field, &[
-                                                //todo
-            ])
+            #zod::core::ast::NewtypeSchema::new(#field, &[#(#generics),*])
         })
     }
 }

@@ -108,6 +108,7 @@ impl ZodType {
                             .collect(),
 
                         config: &config,
+                        generics: &generic_idents,
                     };
 
                     (dependencies, quote!(#definition))

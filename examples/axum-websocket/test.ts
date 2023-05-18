@@ -1,35 +1,13 @@
-// transforming Generic { name: "T1" } ["T1", "T2"] => Generic { name: "T1" }
-// transforming Generic { name: "T2" } ["T1", "T2"] => Generic { name: "T2" }
-// transforming Generic { name: "T1" } ["T1", "T2"] => Generic { name: "T1" }
-// transforming Generic { name: "T2" } ["T1", "T2"] => Generic { name: "T2" }
-// transforming Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] } ["T"] => Generic { name: "T" }
-// transforming Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] } ["T"] => Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] }, Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }] } ["T"] => Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Generic { name: "T" }, Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] } ["T"] => Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] } ["T"] => Generic { name: "T" }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }, Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] }] } ["T"] => Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }, Generic { name: "T" }] }
-// transforming Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] } ["T"] => Generic { name: "T" }
-// transforming Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] } ["T"] => Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] }, Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }] } ["T"] => Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Generic { name: "T" }, Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] } ["T"] => Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] } ["T"] => Generic { name: "T" }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }, Resolved { path: Path { ns: "", name: "", generic: Some(0) }, args: [] }] } ["T"] => Resolved { path: Path { ns: "Chat", name: "MyNewtype", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "String", generic: None }, args: [] }, Generic { name: "T" }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] } [] => Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] }] } [] => Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] } [] => Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] }] } [] => Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] } [] => Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] }] } [] => Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U8", generic: None }, args: [] }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] } [] => Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] }] } [] => Resolved { path: Path { ns: "Chat", name: "MyNewtype2", generic: None }, args: [Resolved { path: Path { ns: "Rs", name: "U16", generic: None }, args: [] }] }
-// transforming Resolved { path: Path { ns: "Rs", name: "Unit", generic: None }, args: [] } [] => Resolved { path: Path { ns: "Rs", name: "Unit", generic: None }, args: [] }
-// transforming Resolved { path: Path { ns: "Rs", name: "Unit", generic: None }, args: [] } [] => Resolved { path: Path { ns: "Rs", name: "Unit", generic: None }, args: [] }
 import { z } from "zod";
 
 export namespace Rs {
     export type String = string;
 
     export const String = z.string();
+
+    export type Tuple3<T1, T2, T3> = [T1, T2, T3];
+
+    export const Tuple3 = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.tuple([T1, T2, T3]);
 
     export type U16 = number;
 
@@ -117,6 +95,253 @@ export namespace Rs {
 //                             name: "t2",
 //                             value: Generic {
 //                                 name: "T2",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "list",
+//                             value: Resolved {
+//                                 path: Path {
+//                                     ns: "Rs",
+//                                     name: "Tuple3",
+//                                     generic: None,
+//                                 },
+//                                 args: [
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "String",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U16",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U8",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                 ],
+//                             },
+//                             optional: false,
+//                         },
+//                     ],
+//                     generics: [
+//                         "T1",
+//                         "T2",
+//                     ],
+//                     extends: [],
+//                 },
+//             ),
+//         },
+//         Export {
+//             docs: None,
+//             path: Path {
+//                 ns: "Chat",
+//                 name: "MyNewtype",
+//                 generic: None,
+//             },
+//             schema: Object(
+//                 ObjectSchema {
+//                     fields: [
+//                         NamedField {
+//                             name: "t1",
+//                             value: Generic {
+//                                 name: "T1",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "t2",
+//                             value: Generic {
+//                                 name: "T2",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "list",
+//                             value: Resolved {
+//                                 path: Path {
+//                                     ns: "Rs",
+//                                     name: "Tuple3",
+//                                     generic: None,
+//                                 },
+//                                 args: [
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U8",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "String",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U8",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                 ],
+//                             },
+//                             optional: false,
+//                         },
+//                     ],
+//                     generics: [
+//                         "T1",
+//                         "T2",
+//                     ],
+//                     extends: [],
+//                 },
+//             ),
+//         },
+//         Export {
+//             docs: None,
+//             path: Path {
+//                 ns: "Chat",
+//                 name: "MyNewtype",
+//                 generic: None,
+//             },
+//             schema: Object(
+//                 ObjectSchema {
+//                     fields: [
+//                         NamedField {
+//                             name: "t1",
+//                             value: Generic {
+//                                 name: "T1",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "t2",
+//                             value: Generic {
+//                                 name: "T2",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "list",
+//                             value: Resolved {
+//                                 path: Path {
+//                                     ns: "Rs",
+//                                     name: "Tuple3",
+//                                     generic: None,
+//                                 },
+//                                 args: [
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U16",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "String",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U8",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                 ],
+//                             },
+//                             optional: false,
+//                         },
+//                     ],
+//                     generics: [
+//                         "T1",
+//                         "T2",
+//                     ],
+//                     extends: [],
+//                 },
+//             ),
+//         },
+//         Export {
+//             docs: None,
+//             path: Path {
+//                 ns: "Chat",
+//                 name: "MyNewtype",
+//                 generic: None,
+//             },
+//             schema: Object(
+//                 ObjectSchema {
+//                     fields: [
+//                         NamedField {
+//                             name: "t1",
+//                             value: Generic {
+//                                 name: "T1",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "t2",
+//                             value: Generic {
+//                                 name: "T2",
+//                             },
+//                             optional: false,
+//                         },
+//                         NamedField {
+//                             name: "list",
+//                             value: Resolved {
+//                                 path: Path {
+//                                     ns: "Rs",
+//                                     name: "Tuple3",
+//                                     generic: None,
+//                                 },
+//                                 args: [
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "String",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U8",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                     Resolved {
+//                                         path: Path {
+//                                             ns: "Rs",
+//                                             name: "U8",
+//                                             generic: None,
+//                                         },
+//                                         args: [],
+//                                     },
+//                                 ],
 //                             },
 //                             optional: false,
 //                         },
@@ -274,9 +499,21 @@ export namespace Rs {
 //     },
 // )
 export namespace Chat {
-    export interface MyNewtype<T1, T2> { t1: T1, t2: T2 }
+    export interface MyNewtype<T1, T2> { t1: T1, t2: T2, list: Rs.Tuple3<Rs.String, Rs.U16, Rs.U8> }
 
-    export const MyNewtype = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ t1: T1, t2: T2 });
+    export const MyNewtype = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ t1: T1, t2: T2, list: Rs.Tuple3(Rs.String, Rs.U16, Rs.U8) });
+
+    export interface MyNewtype<T1, T2> { t1: T1, t2: T2, list: Rs.Tuple3<Rs.U8, Rs.String, Rs.U8> }
+
+    export const MyNewtype = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ t1: T1, t2: T2, list: Rs.Tuple3(Rs.U8, Rs.String, Rs.U8) });
+
+    export interface MyNewtype<T1, T2> { t1: T1, t2: T2, list: Rs.Tuple3<Rs.U16, Rs.String, Rs.U8> }
+
+    export const MyNewtype = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ t1: T1, t2: T2, list: Rs.Tuple3(Rs.U16, Rs.String, Rs.U8) });
+
+    export interface MyNewtype<T1, T2> { t1: T1, t2: T2, list: Rs.Tuple3<Rs.String, Rs.U8, Rs.U8> }
+
+    export const MyNewtype = (T1: z.ZodTypeAny, T2: z.ZodTypeAny) => z.object({ t1: T1, t2: T2, list: Rs.Tuple3(Rs.String, Rs.U8, Rs.U8) });
 
     export interface MyNewtype2<T> { inner: Chat.MyNewtype<T, Rs.String>, flipped: Chat.MyNewtype<Rs.String, T> }
 

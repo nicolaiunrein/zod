@@ -87,20 +87,53 @@ impl UnionSchema {
 
 impl Compiler for Exported<UnionSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("const {} = z.lazy(() => z.union([", self.name))?;
-        //todo use generics
-        self.schema
-            .variants
-            .iter()
-            .comma_separated(f, |f, field| field.fmt_zod(f))?;
+        f.write_fmt(format_args!("const {} ", self.name))?;
 
-        f.write_str("]));")?;
+        if !self.schema.generics.is_empty() {
+            f.write_str(" = (")?;
+
+            self.schema
+                .generics
+                .iter()
+                .comma_separated(f, |f, g| f.write_fmt(format_args!("{g}: z.ZodTypeAny")))?;
+
+            f.write_str(") => ")?;
+
+            f.write_str("z.union([")?;
+
+            self.schema
+                .variants
+                .iter()
+                .comma_separated(f, |f, field| field.fmt_zod(f))?;
+
+            f.write_str("]);")?;
+        } else {
+            f.write_str("= z.lazy(() => z.union([")?;
+
+            self.schema
+                .variants
+                .iter()
+                .comma_separated(f, |f, field| field.fmt_zod(f))?;
+            f.write_str("]));")?;
+        }
+
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("type {} = ", self.name))?;
-        //todo use generics
+        f.write_fmt(format_args!("type {}", self.name))?;
+        if !self.schema.generics.is_empty() {
+            f.write_str("<")?;
+
+            self.schema
+                .generics
+                .iter()
+                .comma_separated(f, |f, g| f.write_str(g))?;
+
+            f.write_str("> = ")?;
+        } else {
+            f.write_str(" = ")?;
+        }
         if self.schema.variants.is_empty() {
             f.write_str("never")?;
         } else {
@@ -124,22 +157,25 @@ mod test {
 
     #[test]
     fn union_object_ok() {
-        const DEF: UnionSchema = UnionSchema::new(&[
-            Variant::ExternallyTagged(
-                "A",
-                Some(VariantValue::Object(ObjectSchema::new(
-                    &[NamedField::new("a", Ref::new_req::<String>())],
-                    &[],
-                ))),
-            ),
-            Variant::ExternallyTagged(
-                "B",
-                Some(VariantValue::Object(ObjectSchema::new(
-                    &[NamedField::new("b", Ref::new_req::<Usize>())],
-                    &[],
-                ))),
-            ),
-        ]);
+        const DEF: UnionSchema = UnionSchema::new(
+            &[
+                Variant::ExternallyTagged(
+                    "A",
+                    Some(VariantValue::Object(ObjectSchema::new(
+                        &[NamedField::new("a", Ref::new_req::<String>())],
+                        &[],
+                    ))),
+                ),
+                Variant::ExternallyTagged(
+                    "B",
+                    Some(VariantValue::Object(ObjectSchema::new(
+                        &[NamedField::new("b", Ref::new_req::<Usize>())],
+                        &[],
+                    ))),
+                ),
+            ],
+            &[],
+        );
 
         assert_eq!(
             DEF.export("test").to_zod_string(),
@@ -153,22 +189,31 @@ mod test {
 
     #[test]
     fn union_tuple_ok() {
-        const DEF: UnionSchema = UnionSchema::new(&[
-            Variant::ExternallyTagged(
-                "A",
-                Some(VariantValue::Tuple(TupleSchema::new(&[
-                    TupleField::new(Ref::new_req::<String>()),
-                    TupleField::new(Ref::new_req::<()>()),
-                ]))),
-            ),
-            Variant::ExternallyTagged(
-                "B",
-                Some(VariantValue::Tuple(TupleSchema::new(&[
-                    TupleField::new(Ref::new_req::<Usize>()),
-                    TupleField::new(Ref::new_req::<bool>()),
-                ]))),
-            ),
-        ]);
+        const DEF: UnionSchema = UnionSchema::new(
+            &[
+                Variant::ExternallyTagged(
+                    "A",
+                    Some(VariantValue::Tuple(TupleSchema::new(
+                        &[
+                            TupleField::new(Ref::new_req::<String>()),
+                            TupleField::new(Ref::new_req::<()>()),
+                        ],
+                        &[],
+                    ))),
+                ),
+                Variant::ExternallyTagged(
+                    "B",
+                    Some(VariantValue::Tuple(TupleSchema::new(
+                        &[
+                            TupleField::new(Ref::new_req::<Usize>()),
+                            TupleField::new(Ref::new_req::<bool>()),
+                        ],
+                        &[],
+                    ))),
+                ),
+            ],
+            &[],
+        );
 
         assert_eq!(
             DEF.export("test").to_zod_string(),
@@ -182,20 +227,25 @@ mod test {
 
     #[test]
     fn union_newtype_ok() {
-        const DEF: UnionSchema = UnionSchema::new(&[
-            Variant::ExternallyTagged(
-                "A",
-                Some(VariantValue::Newtype(NewtypeSchema::new(&TupleField::new(
-                    Ref::new_req::<String>(),
-                )))),
-            ),
-            Variant::ExternallyTagged(
-                "B",
-                Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &TupleField::new(Ref::new_req::<Usize>()).optional(),
-                ))),
-            ),
-        ]);
+        const DEF: UnionSchema = UnionSchema::new(
+            &[
+                Variant::ExternallyTagged(
+                    "A",
+                    Some(VariantValue::Newtype(NewtypeSchema::new(
+                        &TupleField::new(Ref::new_req::<String>()),
+                        &[],
+                    ))),
+                ),
+                Variant::ExternallyTagged(
+                    "B",
+                    Some(VariantValue::Newtype(NewtypeSchema::new(
+                        &TupleField::new(Ref::new_req::<Usize>()).optional(),
+                        &[],
+                    ))),
+                ),
+            ],
+            &[],
+        );
 
         assert_eq!(
             DEF.export("test").to_zod_string(),
@@ -209,10 +259,13 @@ mod test {
 
     #[test]
     fn union_unit() {
-        const DEF: UnionSchema = UnionSchema::new(&[
-            Variant::ExternallyTagged("A", None),
-            Variant::ExternallyTagged("B", None),
-        ]);
+        const DEF: UnionSchema = UnionSchema::new(
+            &[
+                Variant::ExternallyTagged("A", None),
+                Variant::ExternallyTagged("B", None),
+            ],
+            &[],
+        );
 
         assert_eq!(
             DEF.export("test").to_zod_string(),
@@ -226,28 +279,35 @@ mod test {
 
     #[test]
     fn union_mixed_ok() {
-        const DEF: UnionSchema = UnionSchema::new(&[
-            Variant::ExternallyTagged(
-                "A",
-                Some(VariantValue::Newtype(NewtypeSchema::new(
-                    &TupleField::new(Ref::new_req::<String>()).optional(),
-                ))),
-            ),
-            Variant::ExternallyTagged(
-                "B",
-                Some(VariantValue::Tuple(TupleSchema::new(&[
-                    TupleField::new(Ref::new_req::<String>()),
-                    TupleField::new(Ref::new_req::<()>()),
-                ]))),
-            ),
-            Variant::ExternallyTagged(
-                "C",
-                Some(VariantValue::Object(ObjectSchema::new(
-                    &[NamedField::new("b", Ref::new_req::<Usize>())],
-                    &[],
-                ))),
-            ),
-        ]);
+        const DEF: UnionSchema = UnionSchema::new(
+            &[
+                Variant::ExternallyTagged(
+                    "A",
+                    Some(VariantValue::Newtype(NewtypeSchema::new(
+                        &TupleField::new(Ref::new_req::<String>()).optional(),
+                        &[],
+                    ))),
+                ),
+                Variant::ExternallyTagged(
+                    "B",
+                    Some(VariantValue::Tuple(TupleSchema::new(
+                        &[
+                            TupleField::new(Ref::new_req::<String>()),
+                            TupleField::new(Ref::new_req::<()>()),
+                        ],
+                        &[],
+                    ))),
+                ),
+                Variant::ExternallyTagged(
+                    "C",
+                    Some(VariantValue::Object(ObjectSchema::new(
+                        &[NamedField::new("b", Ref::new_req::<Usize>())],
+                        &[],
+                    ))),
+                ),
+            ],
+            &[],
+        );
 
         assert_eq!(
             DEF.export("test").to_zod_string(),
@@ -261,7 +321,7 @@ mod test {
 
     #[test]
     fn empty_union() {
-        const DEF: UnionSchema = UnionSchema::new(&[]);
+        const DEF: UnionSchema = UnionSchema::new(&[], &[]);
 
         assert_eq!(
             DEF.export("test").to_zod_string(),

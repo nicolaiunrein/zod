@@ -49,7 +49,7 @@ fn reference(ty: &Type, generic_idents: &[Ident], derive: Derive) -> TokenStream
                     syn::PathArguments::AngleBracketed(inner) => {
                         let args = inner.args.iter().map(|arg| match arg {
                             syn::GenericArgument::Type(t) => reference(t, generic_idents, derive),
-                            _ => todo!(),
+                            _ => quote!(#arg),
                         });
 
                         let ident = &seg.ident;
@@ -71,10 +71,6 @@ impl Field {
         generic_idents: Vec<Ident>,
     ) -> Result<Self, Error> {
         let generic = get_generic(ty, &generic_idents);
-
-        // if !nested_generics.is_empty() {
-        //     todo!("nested generics")
-        // }
 
         Ok(Self {
             ty: ty.clone(),
@@ -98,17 +94,7 @@ impl ToTokens for Field {
         let zod = get_zod();
 
         let reference = reference(ty, &self.generic_idents, self.config.derive);
-        // let reference = if let Some(ident) = position(ty, &self.generic_idents) {
-        //     let s = ident.to_string();
-        //     quote!(
-        //         #zod::core::ast::Ref:: generic(#s)
-        //     )
-        // } else {
-        //     quote!(
-        //         #zod::core::ast::Ref:: #req_res ::<#ty>()
-        //     )
-        // };
-        //
+
         let req_res = match self.config.derive {
             Derive::Request => quote!(new_req),
             Derive::Response => quote!(new_res),

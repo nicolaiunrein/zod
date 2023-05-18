@@ -35,7 +35,10 @@ impl<'a> ToTokens for StructExport<'a> {
             Style::Struct => {
                 if self.config.transparent {
                     let field = self.fields.iter().next().expect("unreachable");
-                    Schema::Newtype(NewtypeSchema { field })
+                    Schema::Newtype(NewtypeSchema {
+                        field,
+                        generics: self.generics.clone(),
+                    })
                 } else {
                     Schema::Object(ObjectSchema {
                         fields: self.fields.clone(),
@@ -47,7 +50,10 @@ impl<'a> ToTokens for StructExport<'a> {
             Style::Newtype => {
                 let field = self.fields.iter().next().expect("unreachable");
 
-                Schema::Newtype(NewtypeSchema { field })
+                Schema::Newtype(NewtypeSchema {
+                    field,
+                    generics: self.generics.clone(),
+                })
             }
         };
 

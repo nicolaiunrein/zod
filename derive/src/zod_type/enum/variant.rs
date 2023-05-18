@@ -125,11 +125,12 @@ impl<'a> Variant<'a> {
     fn untagged_tuple(&self) -> TokenStream {
         let zod = get_zod();
         let fields = self.tuple_fields();
+        let generics = self.generics_names();
 
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Tuple(
-                    #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[])
+                    #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[#(#generics),*])
                 )
             )
         }
@@ -138,11 +139,12 @@ impl<'a> Variant<'a> {
     fn untagged_struct(&self) -> TokenStream {
         let zod = get_zod();
         let fields = self.named_fields();
+        let generics = self.generics_names();
 
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Object(
-                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[]) //todo
+                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[#(#generics),*])
                 )
             )
         }
@@ -161,15 +163,14 @@ impl<'a> Variant<'a> {
             quote!()
         };
 
+        let generics = self.generics_names();
+
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
                         &#zod::core::ast::TupleField::new(#zod::core::ast::Ref::#req_res::<#ty>())
-                        #optional, &[
-                        // todo
-                        ]
-
+                        #optional, &[#(#generics),*]
                     )
                 )
             )
@@ -179,15 +180,14 @@ impl<'a> Variant<'a> {
     fn untagged_unit(&self) -> TokenStream {
         let zod = get_zod();
         let req_res = self.config.req_or_res();
+        let generics = self.generics_names();
 
         quote! {
             #zod::core::ast::Variant::Untagged(
                 #zod::core::ast::VariantValue::Newtype(
                     #zod::core::ast::NewtypeSchema::new(
                         &#zod::core::ast::TupleField::new(#zod::core::ast::Ref::#req_res::<()>()),
-                        &[
-                        //todo
-                        ]
+                        &[#(#generics),*]
 
                     )
                 )
@@ -292,14 +292,13 @@ impl<'a> Variant<'a> {
         let zod = get_zod();
         let fields = self.named_fields();
         let variant_name = self.config.resolve_name(self.name());
+        let generics = self.generics_names();
 
         quote!(#zod::core::ast::Variant::ExternallyTagged(
             #variant_name,
             ::core::option::Option::Some(
                 #zod::core::ast::VariantValue::Object(
-                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[
-                                                       //todo
-                    ])
+                    #zod::core::ast::ObjectSchema::new(&[#(#fields),*], &[#(#generics),*])
                     )
                 )
             )
@@ -310,14 +309,13 @@ impl<'a> Variant<'a> {
         let zod = get_zod();
         let fields = self.tuple_fields();
         let variant_name = self.config.resolve_name(self.name());
+        let generics = self.generics_names();
 
         quote!(#zod::core::ast::Variant::ExternallyTagged(
             #variant_name,
             ::core::option::Option::Some(
                 #zod::core::ast::VariantValue::Tuple(
-                    #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[
-                                                      //todo
-                    ])
+                    #zod::core::ast::TupleSchema::new(&[#(#fields),*], &[#(#generics),*])
                     )
                 )
             )

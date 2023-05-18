@@ -139,7 +139,7 @@ mod test {
             NamedField::new("a", Ref::generic("A")),
             NamedField::new("b", Ref::new_req::<Usize>()),
         ],
-        &[],
+        &["A"],
     );
 
     #[test]

@@ -39,6 +39,7 @@ pub struct Color {
 pub struct MyNewtype<T1: RequestType + ResponseType, T2: RequestType + ResponseType> {
     t1: T1,
     t2: T2,
+    list: (T1, T2, u8),
 }
 
 #[derive(RequestType, ResponseType, serde::Serialize, serde::Deserialize, Clone, Debug)]

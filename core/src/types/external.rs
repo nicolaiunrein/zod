@@ -228,7 +228,7 @@ impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
         path: Path::new::<crate::types::Rs>("Cow"),
         schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
             &TupleField::new(Ref::generic("T")),
-            &[], //todo
+            &["T"],
         )),
     };
     const ARGS: &'static [Ref] = &[Ref::new_req::<T>()];
@@ -249,7 +249,7 @@ impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
         path: Path::new::<crate::types::Rs>("Cow"),
         schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
             &TupleField::new(Ref::generic("T")),
-            &[], // todo?
+            &["T"],
         )),
     };
     const ARGS: &'static [Ref] = &[Ref::new_res::<T>()];
@@ -390,8 +390,14 @@ mod test {
 
         assert_eq!(export.to_ts_string(), expected_ts_export);
 
-        assert_eq!(reference.to_zod_string(), "Rs.Option(Rs.String)");
-        assert_eq!(reference.to_ts_string(), "Rs.Option<Rs.String>");
+        assert_eq!(
+            reference.transform(&[]).to_zod_string(),
+            "Rs.Option(Rs.String)"
+        );
+        assert_eq!(
+            reference.transform(&[]).to_ts_string(),
+            "Rs.Option<Rs.String>"
+        );
     }
 
     #[test]
@@ -406,8 +412,11 @@ mod test {
 
         assert_eq!(export.to_ts_string(), expected_ts_export);
 
-        assert_eq!(reference.to_zod_string(), "Rs.Vec(Rs.String)");
-        assert_eq!(reference.to_ts_string(), "Rs.Vec<Rs.String>");
+        assert_eq!(
+            reference.transform(&[]).to_zod_string(),
+            "Rs.Vec(Rs.String)"
+        );
+        assert_eq!(reference.transform(&[]).to_ts_string(), "Rs.Vec<Rs.String>");
     }
 
     #[test]
@@ -456,8 +465,8 @@ mod test {
             "export const Box = (T: z.ZodTypeAny) => T;"
         );
 
-        assert_eq!(reference.to_zod_string(), "Rs.String");
-        assert_eq!(reference.to_ts_string(), "Rs.String");
+        assert_eq!(reference.transform(&[]).to_zod_string(), "Rs.String");
+        assert_eq!(reference.transform(&[]).to_ts_string(), "Rs.String");
     }
 
     #[test]

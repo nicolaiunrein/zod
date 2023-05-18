@@ -1,7 +1,7 @@
 use crate::utils::get_zod;
 use crate::zod_type::config::{ContainerConfig, TagType};
 use darling::ToTokens;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 mod variant;
 pub(crate) use variant::Variant;
@@ -10,6 +10,7 @@ pub(crate) use variant::Variant;
 pub(crate) struct EnumExport<'a> {
     pub(crate) variants: Vec<Variant<'a>>,
     pub(crate) config: &'a ContainerConfig,
+    pub(crate) generics: &'a [Ident],
 }
 
 impl<'a> EnumExport<'a> {
@@ -25,15 +26,15 @@ impl<'a> ToTokens for EnumExport<'a> {
         let name = &self.config.name;
         let ns = &self.config.namespace;
 
+        let generics = self.generics.iter().map(|ident| ident.to_string());
+
         let schema = match &self.config.tag {
             // The default
             TagType::External => {
                 let variants = self.variants().map(|v| v.external());
                 quote! {
                     #zod::core::ast::ExportSchema::Union(
-                        #zod::core::ast::UnionSchema::new(&[#(#variants),*], &[
-                                                          //todo
-                        ])
+                        #zod::core::ast::UnionSchema::new(&[#(#variants),*], &[#(#generics),*])
                     )
                 }
             }
@@ -42,9 +43,8 @@ impl<'a> ToTokens for EnumExport<'a> {
                 let variants = self.variants().map(|v| v.internal());
                 quote! {
                     #zod::core::ast::ExportSchema::DiscriminatedUnion(
-                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*], &[
-                                                                       //todo
-                        ]))
+                        #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*], &[#(#generics),*]
+                       ))
                 }
             }
 
@@ -53,7 +53,7 @@ impl<'a> ToTokens for EnumExport<'a> {
                 quote!(#zod::core::ast::ExportSchema::Union(#zod::core::ast::UnionSchema::new(&[
                     #(#variants),*
                 ], &[
-                //todo
+                    #(#generics),*
                 ])))
             }
 
@@ -62,7 +62,7 @@ impl<'a> ToTokens for EnumExport<'a> {
                 quote! {
                     #zod::core::ast::ExportSchema::DiscriminatedUnion(
                         #zod::core::ast::DiscriminatedUnionSchema::new(#tag, &[#(#variants),*], &[
-                                                                       //todo
+                            #(#generics),*
                         ])
                     )
                 }

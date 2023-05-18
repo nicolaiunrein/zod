@@ -75,7 +75,6 @@ impl Ref {
             },
             Ref::Generic { name } => OwnedRef::Generic { name },
         };
-        println!("transforming {:?} {:?} => {:?}", self, generics, res);
         res
     }
 }
