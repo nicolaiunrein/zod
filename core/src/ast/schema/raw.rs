@@ -2,6 +2,8 @@ use crate::ast::{Compiler, Delimited, GenericArgument};
 
 use super::Exported;
 
+// TODO: RawSchema does not work with transforming generics
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RawSchema {
     pub args: &'static [GenericArgument],
