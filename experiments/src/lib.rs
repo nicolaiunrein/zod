@@ -1,25 +1,69 @@
 #![allow(dead_code)]
 
-trait Export: Inline {
+pub mod context {
+    use super::*;
+
+    pub struct Both(pub InlineTypeDef);
+    pub struct Ser {
+        pub ser: InlineTypeDef,
+    }
+    pub struct De {
+        pub de: InlineTypeDef,
+    }
+}
+
+trait Export: Inline<context::Both> {
     fn export() -> String;
 }
 
-trait InlineSer {
-    fn inline_ser() -> InlineTypeDef;
+trait Inline<T> {
+    fn inline() -> T;
 }
 
-trait InlineDe {
-    fn inline_de() -> InlineTypeDef;
+macro_rules! impl_both {
+    ($name: literal, $t: ty,  [$($args: ident),*]) => {
+        impl<$($args: Inline<context::Both>),*> Inline<context::Both> for $t {
+            fn inline() -> context::Both {
+                context::Both(InlineTypeDef::Resolved {
+                    name: $name,
+                    args: vec![$($args::inline().0),*],
+                })
+            }
+        }
+
+        impl_ser!($name, $t, [$($args),*]);
+        impl_de!($name, $t, [$($args),*]);
+    };
 }
 
-trait Inline: InlineSer + InlineDe {
-    fn inline() -> InlineTypeDef {
-        let ser = Self::inline_ser();
-        let de = Self::inline_de();
+macro_rules! impl_ser {
+    ($name: literal, $t: ty,  [$($args: ident),*]) => {
+        impl<$($args: Inline<context::Ser>),*> Inline<context::Ser> for $t {
+            fn inline() -> context::Ser {
+                context::Ser {
+                    ser: InlineTypeDef::Resolved {
+                      name: $name,
+                      args: vec![$($args::inline().ser),*],
+                    }
+                }
+            }
+        }
+    };
+}
 
-        debug_assert_eq!(ser, de);
-        ser
-    }
+macro_rules! impl_de {
+    ($name: literal, $t: ty,  [$($args: ident),*]) => {
+        impl<$($args: Inline<context::De>),*> Inline<context::De> for $t {
+            fn inline() -> context::De {
+                context::De {
+                    de: InlineTypeDef::Resolved {
+                      name: $name,
+                      args: vec![$($args::inline().de),*],
+                    }
+                }
+            }
+        }
+    };
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,7 +73,7 @@ enum Context {
 }
 
 #[derive(Debug, PartialEq)]
-enum InlineTypeDef {
+pub enum InlineTypeDef {
     Resolved {
         name: &'static str,
         args: Vec<InlineTypeDef>,
@@ -62,21 +106,9 @@ impl InlineTypeDef {
 /// This type implements Inline but not Export. It is used ...
 struct Placeholder<const N: usize>;
 
-impl<const N: usize> Inline for Placeholder<N> {
-    fn inline() -> InlineTypeDef {
-        InlineTypeDef::Generic(N)
-    }
-}
-
-impl<const N: usize> InlineSer for Placeholder<N> {
-    fn inline_ser() -> InlineTypeDef {
-        InlineTypeDef::Generic(N)
-    }
-}
-
-impl<const N: usize> InlineDe for Placeholder<N> {
-    fn inline_de() -> InlineTypeDef {
-        InlineTypeDef::Generic(N)
+impl<const N: usize> Inline<context::Both> for Placeholder<N> {
+    fn inline() -> context::Both {
+        context::Both(InlineTypeDef::Generic(N))
     }
 }
 
@@ -90,25 +122,7 @@ impl<const N: usize> InlineDe for Placeholder<N> {
 //
 // test impl ------------------------------------------------------------
 
-impl InlineSer for String {
-    fn inline_ser() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "String",
-            args: vec![],
-        }
-    }
-}
-
-impl InlineDe for String {
-    fn inline_de() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "String",
-            args: vec![],
-        }
-    }
-}
-
-impl Inline for String {}
+impl_both!("String", String, []);
 
 impl Export for String {
     fn export() -> String {
@@ -117,26 +131,8 @@ impl Export for String {
 }
 
 // test impl ------------------------------------------------------------
-
-impl InlineSer for u8 {
-    fn inline_ser() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "u8",
-            args: vec![],
-        }
-    }
-}
-
-impl InlineDe for u8 {
-    fn inline_de() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "u8",
-            args: vec![],
-        }
-    }
-}
-
-impl Inline for u8 {}
+//
+impl_both!("u8", u8, []);
 
 impl Export for u8 {
     fn export() -> String {
@@ -147,15 +143,19 @@ impl Export for u8 {
 // test impl ------------------------------------------------------------
 struct Transparent;
 
-impl InlineSer for Transparent {
-    fn inline_ser() -> InlineTypeDef {
-        String::inline_ser()
+impl Inline<context::Ser> for Transparent {
+    fn inline() -> context::Ser {
+        context::Ser {
+            ser: <String as Inline<context::Ser>>::inline().ser,
+        }
     }
 }
 
-impl InlineDe for Transparent {
-    fn inline_de() -> InlineTypeDef {
-        u8::inline_ser()
+impl Inline<context::De> for Transparent {
+    fn inline() -> context::De {
+        context::De {
+            de: <u8 as Inline<context::De>>::inline().de,
+        }
     }
 }
 
@@ -163,31 +163,13 @@ struct Generic<T> {
     inner: T,
 }
 
-impl<T: InlineSer> InlineSer for Generic<T> {
-    fn inline_ser() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "Generic",
-            args: vec![T::inline_ser()],
-        }
-    }
-}
+impl_both!("Generic", Generic<T>, [T]);
 
-impl<T: InlineDe> InlineDe for Generic<T> {
-    fn inline_de() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "Generic",
-            args: vec![T::inline_de()],
-        }
-    }
-}
-
-impl<T: Inline> Inline for Generic<T> {}
-
-impl<T: Inline> Export for Generic<T> {
+impl<T: Inline<context::Both>> Export for Generic<T> {
     fn export() -> String {
         format!(
             "export interface Generic<T> {{ inner: {} }}",
-            T::inline().format(&["T"])
+            T::inline().0.format(&["T"])
         )
     }
 }
@@ -196,34 +178,23 @@ struct Nested<T> {
     inner: Generic<T>,
 }
 
-impl<T: Inline> Export for Nested<T> {
+impl<T: Inline<context::Both>> Export for Nested<T> {
     fn export() -> String {
         format!(
             "export interface Nested<T> {{ inner: {} }}",
-            Generic::<Placeholder<0>>::inline().format(&["T"])
+            Generic::<Placeholder<0>>::inline().0.format(&["T"])
         )
     }
 }
 
-impl<T: InlineSer> InlineSer for Nested<T> {
-    fn inline_ser() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
+impl<T: Inline<context::Both>> Inline<context::Both> for Nested<T> {
+    fn inline() -> context::Both {
+        context::Both(InlineTypeDef::Resolved {
             name: "Nested",
-            args: vec![T::inline_ser()],
-        }
+            args: vec![T::inline().0],
+        })
     }
 }
-
-impl<T: InlineDe> InlineDe for Nested<T> {
-    fn inline_de() -> InlineTypeDef {
-        InlineTypeDef::Resolved {
-            name: "Nested",
-            args: vec![T::inline_de()],
-        }
-    }
-}
-
-impl<T: Inline> Inline for Nested<T> {}
 
 // ------------------------------------------------------------
 // ------------------------------------------------------------
@@ -238,19 +209,33 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::inline_ser().format(&[]), "String");
-        assert_eq!(Transparent::inline_de().format(&[]), "u8");
+        assert_eq!(
+            <Transparent as Inline<context::Ser>>::inline()
+                .ser
+                .format(&[]),
+            "String"
+        );
+        assert_eq!(
+            <Transparent as Inline<context::De>>::inline()
+                .de
+                .format(&[]),
+            "u8"
+        );
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::inline_ser().format(&[]),
+            <Generic::<Transparent> as Inline<context::Ser>>::inline()
+                .ser
+                .format(&[]),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<Transparent>::inline_de().format(&[]),
+            <Generic::<Transparent> as Inline<context::De>>::inline()
+                .de
+                .format(&[]),
             "Generic<u8>"
         );
     }
