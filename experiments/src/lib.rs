@@ -1,19 +1,9 @@
 #![allow(dead_code)]
 
-/// This trait should be implemented so that it always returns the same String regardless of the
-/// generic inputs
 trait Export: Inline {
     fn export() -> String;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Context {
-    Serialize,
-    Deserialize,
-}
-
-/// This trait is dependent on the resolved type ie. `MyStruct<u8>`::inline()` should differ from
-/// `MyStruct<String>::inline()`
 trait InlineSer {
     fn inline_ser() -> InlineTypeDef;
 }
@@ -32,18 +22,18 @@ trait Inline: InlineSer + InlineDe {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Context {
+    Serialize,
+    Deserialize,
+}
+
 #[derive(Debug, PartialEq)]
 enum InlineTypeDef {
     Resolved {
         name: &'static str,
         args: Vec<InlineTypeDef>,
     },
-    // Split {
-    //     ser_name: &'static str,
-    //     de_name: &'static str,
-    //     ser_args: Vec<InlineTypeDef>,
-    //     de_args: Vec<InlineTypeDef>,
-    // },
     Generic(usize),
 }
 
@@ -64,29 +54,6 @@ impl InlineTypeDef {
                 }
             }
 
-            // InlineTypeDef::Split {
-            //     ser_name,
-            //     de_name,
-            //     ser_args,
-            //     de_args,
-            // } => {
-            //     let (name, args) = match ctx {
-            //         Context::Serialize => (ser_name, ser_args),
-            //         Context::Deserialize => (de_name, de_args),
-            //     };
-            //
-            //     if args.is_empty() {
-            //         format!("{name}")
-            //     } else {
-            //         format!(
-            //             "{name}<{}>",
-            //             args.iter()
-            //                 .map(|ty| ty.format(generics, ctx))
-            //                 .collect::<Vec<_>>()
-            //                 .join(", ")
-            //         )
-            //     }
-            // }
             InlineTypeDef::Generic(index) => generics[*index].to_string(),
         }
     }
