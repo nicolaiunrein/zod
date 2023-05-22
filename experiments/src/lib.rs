@@ -5,8 +5,8 @@ use std::collections::HashSet;
 trait Type {
     fn visit_exports_ser(set: &mut HashSet<String>);
     fn visit_exports_de(set: &mut HashSet<String>);
-    fn inline_ser() -> Ast;
-    fn inline_de() -> Ast;
+    const INLINE_SER: Ast;
+    const INLINE_DE: Ast;
 
     fn exports_ser() -> HashSet<String> {
         let mut set = HashSet::new();
@@ -24,6 +24,16 @@ trait Type {
 macro_rules! impl_both {
     ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
         impl<$($args: Type),*> Type for $t {
+            const INLINE_SER: Ast = Ast::Concrete {
+                    name: $name,
+                    args: &[$($args::INLINE_SER),*],
+            };
+
+            const INLINE_DE: Ast = Ast::Concrete {
+                name: $name,
+                args: &[$($args::INLINE_DE),*],
+            };
+
             fn visit_exports_ser(set: &mut HashSet<String>) {
 
                 if let Some(export) = {
@@ -48,19 +58,6 @@ macro_rules! impl_both {
 
             }
 
-            fn inline_ser() -> Ast {
-                Ast::Concrete {
-                    name: $name,
-                    args: vec![$($args::inline_ser()),*],
-                }
-            }
-
-            fn inline_de() -> Ast {
-                Ast::Concrete {
-                    name: $name,
-                    args: vec![$($args::inline_de()),*],
-                }
-            }
         }
     };
 }
@@ -73,7 +70,10 @@ enum Context {
 
 #[derive(Debug, PartialEq)]
 pub enum Ast {
-    Concrete { name: &'static str, args: Vec<Ast> },
+    Concrete {
+        name: &'static str,
+        args: &'static [Ast],
+    },
     Generic(usize),
 }
 
@@ -111,13 +111,8 @@ impl<const N: usize> Type for Placeholder<N> {
         // do nothing
     }
 
-    fn inline_ser() -> Ast {
-        Ast::Generic(N)
-    }
-
-    fn inline_de() -> Ast {
-        Ast::Generic(N)
-    }
+    const INLINE_SER: Ast = Ast::Generic(N);
+    const INLINE_DE: Ast = Ast::Generic(N);
 }
 
 // ------------------------------------------------------------
@@ -152,20 +147,15 @@ impl_both!(
 struct Transparent;
 
 impl Type for Transparent {
+    const INLINE_SER: Ast = <String as Type>::INLINE_SER;
+    const INLINE_DE: Ast = <u8 as Type>::INLINE_DE;
+
     fn visit_exports_ser(set: &mut HashSet<String>) {
         String::visit_exports_ser(set);
     }
 
     fn visit_exports_de(set: &mut HashSet<String>) {
         u8::visit_exports_de(set);
-    }
-
-    fn inline_ser() -> Ast {
-        <String as Type>::inline_ser()
-    }
-
-    fn inline_de() -> Ast {
-        <u8 as Type>::inline_de()
     }
 }
 
@@ -174,25 +164,21 @@ struct Nested<T> {
 }
 
 impl<T: Type> Type for Nested<T> {
-    fn inline_ser() -> Ast {
-        Ast::Concrete {
-            name: "Nested",
-            args: vec![T::inline_ser()],
-        }
-    }
+    const INLINE_SER: Ast = Ast::Concrete {
+        name: "Nested",
+        args: &[T::INLINE_SER],
+    };
 
-    fn inline_de() -> Ast {
-        Ast::Concrete {
-            name: "Nested",
-            args: vec![T::inline_de()],
-        }
-    }
+    const INLINE_DE: Ast = Ast::Concrete {
+        name: "Nested",
+        args: &[T::INLINE_DE],
+    };
 
     fn visit_exports_ser(set: &mut HashSet<String>) {
-        if T::inline_ser() == T::inline_de() {
+        if T::INLINE_SER == T::INLINE_DE {
             set.insert(format!(
                 "export interface Nested<T> {{ inner: {} }}",
-                Generic::<Placeholder<0>>::inline_ser().format(&["T"])
+                Generic::<Placeholder<0>>::INLINE_SER.format(&["T"])
             ));
         } else {
             T::visit_exports_ser(set)
@@ -200,10 +186,10 @@ impl<T: Type> Type for Nested<T> {
     }
 
     fn visit_exports_de(set: &mut HashSet<String>) {
-        if T::inline_ser() == T::inline_de() {
+        if T::INLINE_SER == T::INLINE_DE {
             set.insert(format!(
                 "export interface Nested<T> {{ inner: {} }}",
-                Generic::<Placeholder<0>>::inline_ser().format(&["T"])
+                Generic::<Placeholder<0>>::INLINE_SER.format(&["T"])
             ));
         } else {
             T::visit_exports_de(set)
@@ -224,26 +210,23 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::inline_ser().format(&[]), "String");
-        assert_eq!(Transparent::inline_de().format(&[]), "u8");
+        assert_eq!(Transparent::INLINE_SER.format(&[]), "String");
+        assert_eq!(Transparent::INLINE_DE.format(&[]), "u8");
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::inline_ser().format(&[]),
+            Generic::<Transparent>::INLINE_SER.format(&[]),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<Placeholder<0>>::inline_ser().format(&["MY_T"]),
+            Generic::<Placeholder<0>>::INLINE_SER.format(&["MY_T"]),
             "Generic<MY_T>"
         );
 
-        assert_eq!(
-            Generic::<Transparent>::inline_de().format(&[]),
-            "Generic<u8>"
-        );
+        assert_eq!(Generic::<Transparent>::INLINE_DE.format(&[]), "Generic<u8>");
 
         assert_eq!(
             <Generic::<u8>>::exports_de(),
