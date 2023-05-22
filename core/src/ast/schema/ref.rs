@@ -8,8 +8,8 @@ pub enum Ref {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum OwnedRef {
-    Resolved { path: Path, args: Vec<OwnedRef> },
+pub enum ResolvedRef {
+    Resolved { path: Path, args: Vec<ResolvedRef> },
     Generic { name: &'static str },
 }
 
@@ -59,30 +59,27 @@ impl Ref {
         }
     }
 
-    pub(crate) fn transform(&self, generics: &[&'static str]) -> OwnedRef {
+    pub(crate) fn resolve(&self, generics: &[&'static str]) -> ResolvedRef {
         let res = match self {
             Ref::Resolved { path, args } => match path.generic {
-                Some(index) => OwnedRef::Generic {
+                Some(index) => ResolvedRef::Generic {
                     name: generics[index],
                 },
-                None => OwnedRef::Resolved {
+                None => ResolvedRef::Resolved {
                     path: *path,
-                    args: args
-                        .iter()
-                        .map(|r| r.transform(generics))
-                        .collect::<Vec<_>>(),
+                    args: args.iter().map(|r| r.resolve(generics)).collect::<Vec<_>>(),
                 },
             },
-            Ref::Generic { name } => OwnedRef::Generic { name },
+            Ref::Generic { name } => ResolvedRef::Generic { name },
         };
         res
     }
 }
 
-impl Compiler for OwnedRef {
+impl Compiler for ResolvedRef {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OwnedRef::Resolved { path, args, .. } => {
+            ResolvedRef::Resolved { path, args, .. } => {
                 std::fmt::Display::fmt(&path, f)?;
                 if !args.is_empty() {
                     f.write_str("(")?;
@@ -90,7 +87,7 @@ impl Compiler for OwnedRef {
                     f.write_str(")")?;
                 }
             }
-            OwnedRef::Generic { name } => f.write_str(name)?,
+            ResolvedRef::Generic { name } => f.write_str(name)?,
         }
 
         Ok(())
@@ -98,7 +95,7 @@ impl Compiler for OwnedRef {
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OwnedRef::Resolved { path, args, .. } => {
+            ResolvedRef::Resolved { path, args, .. } => {
                 std::fmt::Display::fmt(&path, f)?;
                 if !args.is_empty() {
                     f.write_str("<")?;
@@ -106,7 +103,7 @@ impl Compiler for OwnedRef {
                     f.write_str(">")?;
                 }
             }
-            OwnedRef::Generic { name } => f.write_str(name)?,
+            ResolvedRef::Generic { name } => f.write_str(name)?,
         }
         Ok(())
     }

@@ -1,4 +1,4 @@
-use super::{Compiler, OwnedRef, Ref};
+use super::{Compiler, Ref, ResolvedRef};
 
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -9,9 +9,9 @@ pub struct NamedField {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct OwnedNamedField {
+pub struct ResolvedNamedField {
     name: &'static str,
-    value: OwnedRef,
+    value: ResolvedRef,
     optional: bool,
 }
 
@@ -39,16 +39,16 @@ impl NamedField {
         }
     }
 
-    pub(crate) fn transform(&self, generics: &[&'static str]) -> OwnedNamedField {
-        OwnedNamedField {
+    pub(crate) fn resolve(&self, generics: &[&'static str]) -> ResolvedNamedField {
+        ResolvedNamedField {
             name: self.name,
             optional: self.optional,
-            value: self.value.transform(generics),
+            value: self.value.resolve(generics),
         }
     }
 }
 
-impl Compiler for OwnedNamedField {
+impl Compiler for ResolvedNamedField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name)?;
         f.write_str(": ")?;
@@ -82,8 +82,8 @@ pub struct TupleField {
 
 /// A name/value pair as used in objects
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct OwnedTupleField {
-    value: OwnedRef,
+pub struct ResolvedTupleField {
+    value: ResolvedRef,
     optional: bool,
 }
 
@@ -106,15 +106,15 @@ impl TupleField {
         }
     }
 
-    pub fn transform(&self, generics: &[&'static str]) -> OwnedTupleField {
-        OwnedTupleField {
+    pub fn resolve(&self, generics: &[&'static str]) -> ResolvedTupleField {
+        ResolvedTupleField {
             optional: self.optional,
-            value: self.value.transform(generics),
+            value: self.value.resolve(generics),
         }
     }
 }
 
-impl Compiler for OwnedTupleField {
+impl Compiler for ResolvedTupleField {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value.fmt_zod(f)?;
         if self.optional {
@@ -141,8 +141,8 @@ mod test {
     #[test]
     fn named_field_non_optional() {
         const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>());
-        assert_eq!(FIELD.transform(&[]).to_zod_string(), "test: Rs.Usize");
-        assert_eq!(FIELD.transform(&[]).to_ts_string(), "test: Rs.Usize");
+        assert_eq!(FIELD.resolve(&[]).to_zod_string(), "test: Rs.Usize");
+        assert_eq!(FIELD.resolve(&[]).to_ts_string(), "test: Rs.Usize");
     }
 
     #[test]
@@ -150,11 +150,11 @@ mod test {
         const FIELD: NamedField = NamedField::new("test", Ref::new_req::<Usize>()).optional();
 
         assert_eq!(
-            FIELD.transform(&[]).to_zod_string(),
+            FIELD.resolve(&[]).to_zod_string(),
             "test: Rs.Usize.optional()"
         );
         assert_eq!(
-            FIELD.transform(&[]).to_ts_string(),
+            FIELD.resolve(&[]).to_ts_string(),
             "test?: Rs.Usize | undefined"
         );
     }
@@ -162,15 +162,15 @@ mod test {
     #[test]
     fn tuple_field_non_optional() {
         const FIELD: TupleField = TupleField::new(Ref::new_req::<crate::types::Usize>());
-        assert_eq!(FIELD.transform(&[]).to_zod_string(), "Rs.Usize");
-        assert_eq!(FIELD.transform(&[]).to_ts_string(), "Rs.Usize");
+        assert_eq!(FIELD.resolve(&[]).to_zod_string(), "Rs.Usize");
+        assert_eq!(FIELD.resolve(&[]).to_ts_string(), "Rs.Usize");
     }
 
     #[test]
     fn tuple_field_optional() {
         const FIELD: TupleField = TupleField::new(Ref::new_req::<crate::types::Usize>()).optional();
 
-        assert_eq!(FIELD.transform(&[]).to_zod_string(), "Rs.Usize.optional()");
-        assert_eq!(FIELD.transform(&[]).to_ts_string(), "Rs.Usize | undefined");
+        assert_eq!(FIELD.resolve(&[]).to_zod_string(), "Rs.Usize.optional()");
+        assert_eq!(FIELD.resolve(&[]).to_ts_string(), "Rs.Usize | undefined");
     }
 }

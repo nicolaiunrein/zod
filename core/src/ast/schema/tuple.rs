@@ -36,7 +36,7 @@ impl Compiler for TupleSchema {
         f.write_str("z.tuple([")?;
         self.fields
             .iter()
-            .map(|f| f.transform(self.generics))
+            .map(|f| f.resolve(self.generics))
             .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
         f.write_str("])")?;
@@ -47,7 +47,7 @@ impl Compiler for TupleSchema {
         f.write_str("[")?;
         self.fields
             .iter()
-            .map(|f| f.transform(self.generics))
+            .map(|f| f.resolve(self.generics))
             .comma_separated(f, |f, field| field.fmt_ts(f))?;
         f.write_str("]")?;
         Ok(())

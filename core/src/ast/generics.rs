@@ -43,7 +43,7 @@ impl Compiler for GenericArgument {
                 f.write_str(name)?;
                 f.write_str(": ")?;
                 schema
-                    .transform(&[
+                    .resolve(&[
                     // const generics cannot be generic themself
                 ])
                     .fmt_zod(f)?;
@@ -66,7 +66,7 @@ impl Compiler for GenericArgument {
                 f.write_str(name)?;
                 f.write_str(" extends ")?;
                 schema
-                    .transform(&[
+                    .resolve(&[
                     // const generics cannot be generic themself
                 ])
                     .fmt_ts(f)?;

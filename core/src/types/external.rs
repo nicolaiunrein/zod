@@ -391,11 +391,11 @@ mod test {
         assert_eq!(export.to_ts_string(), expected_ts_export);
 
         assert_eq!(
-            reference.transform(&[]).to_zod_string(),
+            reference.resolve(&[]).to_zod_string(),
             "Rs.Option(Rs.String)"
         );
         assert_eq!(
-            reference.transform(&[]).to_ts_string(),
+            reference.resolve(&[]).to_ts_string(),
             "Rs.Option<Rs.String>"
         );
     }
@@ -413,10 +413,10 @@ mod test {
         assert_eq!(export.to_ts_string(), expected_ts_export);
 
         assert_eq!(
-            reference.transform(&[]).to_zod_string(),
+            reference.resolve(&[]).to_zod_string(),
             "Rs.Vec(Rs.String)"
         );
-        assert_eq!(reference.transform(&[]).to_ts_string(), "Rs.Vec<Rs.String>");
+        assert_eq!(reference.resolve(&[]).to_ts_string(), "Rs.Vec<Rs.String>");
     }
 
     #[test]
@@ -465,8 +465,8 @@ mod test {
             "export const Box = (T: z.ZodTypeAny) => T;"
         );
 
-        assert_eq!(reference.transform(&[]).to_zod_string(), "Rs.String");
-        assert_eq!(reference.transform(&[]).to_ts_string(), "Rs.String");
+        assert_eq!(reference.resolve(&[]).to_zod_string(), "Rs.String");
+        assert_eq!(reference.resolve(&[]).to_ts_string(), "Rs.String");
     }
 
     #[test]

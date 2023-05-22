@@ -23,12 +23,12 @@ impl NewtypeSchema {
 
 impl Compiler for NewtypeSchema {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.transform(self.generics).fmt_zod(f)?;
+        self.inner.resolve(self.generics).fmt_zod(f)?;
         Ok(())
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.transform(self.generics).fmt_ts(f)?;
+        self.inner.resolve(self.generics).fmt_ts(f)?;
         Ok(())
     }
 }

@@ -60,7 +60,7 @@ impl Compiler for Exported<ObjectSchema> {
 
         for ext in self.schema.extends {
             f.write_str(".extend(z.lazy(() => ")?;
-            ext.transform(self.schema.generics).fmt_zod(f)?;
+            ext.resolve(self.schema.generics).fmt_zod(f)?;
             f.write_str("))")?;
         }
 
@@ -87,7 +87,7 @@ impl Compiler for Exported<ObjectSchema> {
             self.schema
                 .extends
                 .iter()
-                .comma_separated(f, |f, e| e.transform(self.schema.generics).fmt_ts(f))?;
+                .comma_separated(f, |f, e| e.resolve(self.schema.generics).fmt_ts(f))?;
         }
         self.schema.fmt_ts(f)?;
         Ok(())
@@ -99,7 +99,7 @@ impl Compiler for ObjectSchema {
         f.write_str("z.object({ ")?;
         self.fields
             .iter()
-            .map(|f| f.transform(&self.generics))
+            .map(|f| f.resolve(&self.generics))
             .comma_separated(f, |f, field| field.fmt_zod(f))?;
 
         f.write_str(" })")?;
@@ -112,7 +112,7 @@ impl Compiler for ObjectSchema {
 
         self.fields
             .iter()
-            .map(|f| f.transform(&self.generics))
+            .map(|f| f.resolve(&self.generics))
             .comma_separated(f, |f, field| field.fmt_ts(f))?;
 
         f.write_str(" }")?;

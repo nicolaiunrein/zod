@@ -69,7 +69,7 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
                 f.write_str(", ")?;
                 f.write_fmt(format_args!("{content}: z.object({{ "))?;
                 v.fields.iter().comma_separated(f, |f, field| {
-                    field.transform(self.schema.generics).fmt_zod(f)
+                    field.resolve(self.schema.generics).fmt_zod(f)
                 })?;
                 f.write_str(" })")?;
             } else {
@@ -78,7 +78,7 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
                 }
 
                 v.fields.iter().comma_separated(f, |f, field| {
-                    field.transform(self.schema.generics).fmt_zod(f)
+                    field.resolve(self.schema.generics).fmt_zod(f)
                 })?;
             }
 
@@ -106,7 +106,7 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
                 if let Some(content) = v.content_tag {
                     f.write_fmt(format_args!(", {content}: {{ "))?;
                     v.fields.iter().comma_separated(f, |f, field| {
-                        field.transform(self.schema.generics).fmt_ts(f)
+                        field.resolve(self.schema.generics).fmt_ts(f)
                     })?;
                     f.write_str(" }")?;
                 } else {
@@ -115,7 +115,7 @@ impl Compiler for Exported<DiscriminatedUnionSchema> {
                     }
 
                     v.fields.iter().comma_separated(f, |f, field| {
-                        field.transform(self.schema.generics).fmt_ts(f)
+                        field.resolve(self.schema.generics).fmt_ts(f)
                     })?;
                 }
 

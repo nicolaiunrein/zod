@@ -31,14 +31,14 @@ impl Display for RpcRequest {
         let ts_args = self
             .args
             .iter()
-            .map(|arg| arg.transform(&[]).to_ts_string())
+            .map(|arg| arg.resolve(&[]).to_ts_string())
             .collect::<Vec<_>>()
             .join(", ");
 
         let zod_args = self
             .args
             .iter()
-            .map(|arg| arg.value().transform(&[]).to_zod_string())
+            .map(|arg| arg.value().resolve(&[]).to_zod_string())
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -57,8 +57,8 @@ impl Display for RpcRequest {
             RpcRequestKind::Stream => "",
         };
 
-        let inner_res_ts = self.output.transform(&[]).to_ts_string();
-        let inner_res_zod = self.output.transform(&[]).to_zod_string();
+        let inner_res_ts = self.output.resolve(&[]).to_ts_string();
+        let inner_res_zod = self.output.resolve(&[]).to_zod_string();
 
         let res = match self.kind {
             RpcRequestKind::Method => format!("Promise<{}>", inner_res_ts),
