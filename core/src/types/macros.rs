@@ -112,7 +112,7 @@ macro_rules! impl_wrapper {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &$crate::ast::TupleField::new($crate::ast::Ref::generic("T")),
+                    &$crate::ast::TupleField::new($crate::ast::Ref::Generic(0)), //todo
                     &["T"],
                 )),
             };
@@ -133,7 +133,7 @@ macro_rules! impl_wrapper {
                 docs: None,
                 path: $crate::ast::Path::new::<$crate::types::Rs>($name),
                 schema: $crate::ast::ExportSchema::Newtype($crate::ast::NewtypeSchema::new(
-                    &$crate::ast::TupleField::new($crate::ast::Ref::generic("T")),
+                    &$crate::ast::TupleField::new($crate::ast::Ref::Generic(0)),
                     &["T"],
                 )),
             };

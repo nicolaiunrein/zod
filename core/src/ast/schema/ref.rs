@@ -4,7 +4,7 @@ use crate::{RequestType, ResponseType};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Ref {
     Resolved { path: Path, args: &'static [Ref] },
-    Generic { name: &'static str },
+    Generic(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -14,9 +14,9 @@ pub enum ResolvedRef {
 }
 
 impl Ref {
-    pub const fn generic(name: &'static str) -> Self {
-        Self::Generic { name }
-    }
+    // pub const fn generic(name: &'static str) -> Self {
+    //     Self::Generic { name }
+    // }
 
     pub const fn new_req<T: RequestType>() -> Self {
         let path = T::EXPORT.path;
@@ -48,31 +48,26 @@ impl Ref {
         }
     }
 
-    pub const fn is_generic(&self) -> bool {
-        self.get_generic().is_some()
-    }
-
-    pub const fn get_generic(&self) -> Option<&'static str> {
-        match self {
-            Ref::Resolved { .. } => None,
-            Ref::Generic { name } => Some(name),
-        }
-    }
-
     pub(crate) fn resolve(&self, generics: &[&'static str]) -> ResolvedRef {
         let res = match self {
-            Ref::Resolved { path, args } => match path.generic {
-                Some(index) => ResolvedRef::Generic {
-                    name: generics[index],
-                },
-                None => ResolvedRef::Resolved {
-                    path: *path,
-                    args: args.iter().map(|r| r.resolve(generics)).collect::<Vec<_>>(),
-                },
+            Ref::Resolved { path, args } => ResolvedRef::Resolved {
+                path: *path,
+                args: args.iter().map(|r| r.resolve(generics)).collect::<Vec<_>>(),
             },
-            Ref::Generic { name } => ResolvedRef::Generic { name },
+            Ref::Generic(index) => ResolvedRef::Generic {
+                name: generics[*index], //todo
+            },
         };
         res
+    }
+}
+
+impl ResolvedRef {
+    pub const fn get_generic(&self) -> Option<&'static str> {
+        match self {
+            ResolvedRef::Resolved { path, args } => None,
+            ResolvedRef::Generic { name } => Some(name),
+        }
     }
 }
 

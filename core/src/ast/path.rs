@@ -7,7 +7,7 @@ use crate::Namespace;
 pub struct Path {
     ns: &'static str,
     name: &'static str,
-    pub(crate) generic: Option<usize>,
+    // pub(crate) generic: Option<usize>,
 }
 
 impl Path {
@@ -15,7 +15,7 @@ impl Path {
         Self {
             ns: T::NAME,
             name,
-            generic: None,
+            // generic: None,
         }
     }
 
@@ -23,7 +23,7 @@ impl Path {
         Self {
             ns: "",
             name: "",
-            generic: Some(index),
+            // generic: Some(index),
         }
     }
 
@@ -38,14 +38,9 @@ impl Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.generic {
-            Some(index) => f.write_fmt(format_args!("___{}__", index))?,
-            None => {
-                f.write_str(self.ns)?;
-                f.write_str(".")?;
-                f.write_str(self.name)?;
-            }
-        }
+        f.write_str(self.ns)?;
+        f.write_str(".")?;
+        f.write_str(self.name)?;
         Ok(())
     }
 }

@@ -263,11 +263,11 @@ mod test {
                             ),
                             ::zod::core::ast::NamedField::new(
                                 "field3",
-                                ::zod::core::ast::Ref::generic("T1")
+                                ::zod::core::ast::Ref::Generic(0)
                             ),
                             ::zod::core::ast::NamedField::new(
                                 "field4",
-                                ::zod::core::ast::Ref::generic("T2")
+                                ::zod::core::ast::Ref::Generic(1)
                             )
                         ],
                         &["T1", "T2"]
@@ -281,7 +281,7 @@ mod test {
     #[test]
     fn tuple_with_generic_fields_ok() {
         let input = StructExport {
-            generics: Vec::new(),
+            generics: vec![parse_quote!(T1), parse_quote!(T2)],
             style: &Style::Tuple,
             fields: FilteredFields::new(
                 vec![
@@ -302,10 +302,10 @@ mod test {
                     docs: None,
                     path: ::zod::core::ast::Path::new::<Ns>("MyType"),
                     schema: ::zod::core::ast::ExportSchema::Tuple(::zod::core::ast::TupleSchema::new(&[
-                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::generic("T1")),
-                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::generic("T2")),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::Generic(0)),
+                       ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::Generic(1)),
                        ::zod::core::ast::TupleField::new(::zod::core::ast::Ref::new_req::<Option<bool>>())
-                    ], &[])),
+                    ], &["T1", "T2"])),
                 }
             },
         )

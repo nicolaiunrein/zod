@@ -136,7 +136,7 @@ mod test {
 
     const GENERIC: ObjectSchema = ObjectSchema::new(
         &[
-            NamedField::new("a", Ref::generic("A")),
+            NamedField::new("a", Ref::Generic(0)), //todo
             NamedField::new("b", Ref::new_req::<Usize>()),
         ],
         &["A"],

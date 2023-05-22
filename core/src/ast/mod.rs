@@ -48,8 +48,8 @@ mod test {
             path: Path::new::<Ns>("MyGeneric"),
             schema: ExportSchema::Object(ObjectSchema::new(
                 &[
-                    NamedField::new("t1", Ref::generic("T1")),
-                    NamedField::new("t2", Ref::generic("T2")),
+                    NamedField::new("t1", Ref::Generic(0)), //todo
+                    NamedField::new("t2", Ref::Generic(1)),
                 ],
                 &["T1", "T2"],
             )),

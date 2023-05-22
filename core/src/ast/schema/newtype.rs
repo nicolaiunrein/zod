@@ -35,7 +35,13 @@ impl Compiler for NewtypeSchema {
 
 impl Compiler for Exported<NewtypeSchema> {
     fn fmt_zod(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.schema.inner.value().get_generic() {
+        match self
+            .schema
+            .inner
+            .value()
+            .resolve(self.schema.generics)
+            .get_generic()
+        {
             Some(value) => {
                 f.write_fmt(format_args!(
                     "const {} = ({value}: z.ZodTypeAny) => z.lazy(() => ",
@@ -53,7 +59,13 @@ impl Compiler for Exported<NewtypeSchema> {
     }
 
     fn fmt_ts(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.schema.inner.value().get_generic() {
+        match self
+            .schema
+            .inner
+            .value()
+            .resolve(self.schema.generics)
+            .get_generic()
+        {
             Some(value) => {
                 f.write_fmt(format_args!("type {}<{value}> = ", self.name))?;
             }
@@ -90,7 +102,8 @@ mod test {
 
     #[test]
     fn newtype_generic_ok() {
-        const NEWTYPE: NewtypeSchema = NewtypeSchema::new(&TupleField::new(Ref::generic("T")), &[]);
+        const NEWTYPE: NewtypeSchema =
+            NewtypeSchema::new(&TupleField::new(Ref::Generic(0)), &["T"]); // todo
 
         assert_eq!(
             NEWTYPE.export("test").to_zod_string(),

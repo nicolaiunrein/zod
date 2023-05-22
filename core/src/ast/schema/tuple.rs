@@ -21,13 +21,15 @@ impl TupleSchema {
     }
 
     pub fn generics(&self) -> impl Iterator<Item = &'static str> {
-        self.fields.iter().filter_map(|f| f.value().get_generic())
+        self.fields
+            .iter()
+            .filter_map(|f| f.value().resolve(self.generics).get_generic())
     }
 
     pub fn is_generic(&self) -> bool {
         self.fields
             .iter()
-            .any(|f| f.value().get_generic().is_some())
+            .any(|f| f.value().resolve(self.generics).get_generic().is_some())
     }
 }
 
@@ -127,10 +129,10 @@ mod test {
     fn tuple_generic_ok() {
         const TUPLE: TupleSchema = TupleSchema::new(
             &[
-                TupleField::new(Ref::generic("T")),
+                TupleField::new(Ref::Generic(0)), //todo
                 TupleField::new(Ref::new_req::<crate::types::Usize>()),
             ],
-            &[],
+            &["T"],
         );
 
         assert_eq!(

@@ -72,9 +72,8 @@ impl<'a> ToTokens for NewtypeSchema<'a> {
         };
 
         let field = match self.field.generic {
-            Some(ref ident) => {
-                let name = ident.to_string();
-                quote!(&#zod::core::ast::TupleField::new(#zod::core::ast::Ref::generic(#name)) #optional)
+            Some(ref index) => {
+                quote!(&#zod::core::ast::TupleField::new(#zod::core::ast::Ref::Generic(#index)) #optional)
             }
             None => match self.field.config.derive {
                 Derive::Request => {
@@ -146,16 +145,16 @@ mod test {
                 vec![parse_quote!(T1)],
             )
             .unwrap(),
-            generics: Vec::new(),
+            generics: vec![parse_quote!(T1)],
         };
 
         compare(
             quote!(#input),
             quote!(::zod::core::ast::TupleSchema::new(
                 &[::zod::core::ast::TupleField::new(
-                    ::zod::core::ast::Ref::generic("T1")
+                    ::zod::core::ast::Ref::Generic(0)
                 )],
-                &[]
+                &["T1"]
             )),
         )
     }

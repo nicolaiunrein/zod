@@ -13,17 +13,14 @@ use super::Derive;
 pub(crate) struct Field {
     pub ty: Type,
     pub config: FieldConfig,
-    pub generic: Option<Ident>,
+    pub generic: Option<syn::Index>,
     generic_idents: Vec<Ident>,
 }
 
-fn get_generic(ty: &Type, generics: &[Ident]) -> Option<Ident> {
+fn get_generic_position(ty: &Type, generics: &[Ident]) -> Option<usize> {
     match ty {
         Type::Path(p) => match p.path.get_ident() {
-            Some(ident) => generics
-                .iter()
-                .find(|gen| gen == &ident)
-                .map(|i| Ident::clone(i)),
+            Some(ident) => generics.iter().position(|gen| gen == ident),
 
             None => None,
         },
@@ -70,7 +67,7 @@ impl Field {
         config: FieldConfig,
         generic_idents: Vec<Ident>,
     ) -> Result<Self, Error> {
-        let generic = get_generic(ty, &generic_idents);
+        let generic = get_generic_position(ty, &generic_idents).map(syn::Index::from);
 
         Ok(Self {
             ty: ty.clone(),
@@ -108,18 +105,16 @@ impl ToTokens for Field {
                 #zod::core::ast::TupleField:: new(#zod::core::ast::Ref::#req_res::<#reference>()) #optional
             }),
 
-            (Some(ident), Some(ref name)) => {
-                let value = ident.to_string();
+            (Some(index), Some(ref name)) => {
 
                 tokens.extend(quote! {
-                    #zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::generic(#value)) #optional
+                    #zod::core::ast::NamedField::new(#name, #zod::core::ast::Ref::Generic(#index)) #optional
                 })
             }
-            (Some(ident), None) => {
-                let value = ident.to_string();
+            (Some(index), None) => {
 
                 tokens.extend(quote! {
-                    #zod::core::ast::TupleField::new(#zod::core::ast::Ref::generic(#value)) #optional
+                    #zod::core::ast::TupleField::new(#zod::core::ast::Ref::Generic(#index)) #optional
                 })
             }
         }

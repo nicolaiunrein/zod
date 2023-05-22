@@ -227,7 +227,7 @@ impl<T: RequestType + ToOwned> RequestType for std::borrow::Cow<'static, T> {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
         schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
-            &TupleField::new(Ref::generic("T")),
+            &TupleField::new(Ref::Generic(0)), //todo
             &["T"],
         )),
     };
@@ -248,7 +248,7 @@ impl<T: ResponseType + ToOwned> ResponseType for std::borrow::Cow<'static, T> {
         docs: None,
         path: Path::new::<crate::types::Rs>("Cow"),
         schema: ExportSchema::Newtype(crate::ast::NewtypeSchema::new(
-            &TupleField::new(Ref::generic("T")),
+            &TupleField::new(Ref::Generic(0)), //todo
             &["T"],
         )),
     };
@@ -412,10 +412,7 @@ mod test {
 
         assert_eq!(export.to_ts_string(), expected_ts_export);
 
-        assert_eq!(
-            reference.resolve(&[]).to_zod_string(),
-            "Rs.Vec(Rs.String)"
-        );
+        assert_eq!(reference.resolve(&[]).to_zod_string(), "Rs.Vec(Rs.String)");
         assert_eq!(reference.resolve(&[]).to_ts_string(), "Rs.Vec<Rs.String>");
     }
 
