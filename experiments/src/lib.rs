@@ -1,20 +1,67 @@
 #![allow(dead_code)]
 
-struct Generic<const N: usize>;
-
-impl<const N: usize> RequestTypeInline for Generic<N> {
-    fn inline() -> String {
-        format!("T{}", N)
-    }
+trait Type {
+    type SIMPLIFIED: Export + Inline;
 }
 
-trait RequestTypeExport {
+impl<T> Type for T
+where
+    T: Export + Inline,
+{
+    type SIMPLIFIED = Self;
+}
+
+/// This trait should be implemented so that it always returns the same String regardless of the
+/// generic inputs
+trait Export {
     fn export() -> String;
 }
 
-trait RequestTypeInline {
-    fn inline() -> String;
+/// This trait is dependent on the resolved type ie. `MyStruct<u8>`::inline()` should differ from
+/// `MyStruct<String>::inline()`
+trait Inline {
+    fn inline() -> InlineTypeDef;
 }
+
+enum InlineTypeDef {
+    Resolved {
+        name: &'static str,
+        args: Vec<InlineTypeDef>,
+    },
+    Generic(usize),
+}
+
+impl InlineTypeDef {
+    fn format(&self, generics: &[&'static str]) -> String {
+        match self {
+            InlineTypeDef::Resolved { name, args } => {
+                if args.is_empty() {
+                    format!("{name}")
+                } else {
+                    format!(
+                        "{name}<{}>",
+                        args.iter()
+                            .map(|tt| tt.format(generics))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                }
+            }
+            InlineTypeDef::Generic(index) => generics[*index].to_string(),
+        }
+    }
+}
+
+/// This type implements Inline but not Export. It is used ...
+struct GenericPlaceholder<const N: usize>;
+
+impl<const N: usize> Inline for GenericPlaceholder<N> {
+    fn inline() -> InlineTypeDef {
+        InlineTypeDef::Generic(N)
+    }
+}
+
+// test impl
 
 struct MyStruct {}
 
@@ -29,79 +76,92 @@ struct User {
     inner: GenericStruct<MyStruct, MyStruct>,
 }
 
-struct GenericUser<T> {
-    inner: GenericStruct<T, MyStruct>,
-    flipped: GenericStructFlipped<T, MyStruct>,
+struct GenericUser<MyT> {
+    inner: GenericStruct<MyT, MyStruct>,
+    flipped: GenericStructFlipped<MyT, MyStruct>,
 }
 
-// problem
-
-impl<T: RequestTypeInline> RequestTypeInline for GenericUser<T> {
-    fn inline() -> String {
-        format!("GenericUser<{}>", T::inline())
+impl<T: Inline> Inline for GenericUser<T> {
+    fn inline() -> InlineTypeDef {
+        InlineTypeDef::Resolved {
+            name: "GenericUser",
+            args: vec![T::inline()],
+        }
     }
 }
 
-impl<T: RequestTypeInline> RequestTypeExport for GenericUser<T> {
+impl<T: Inline> Export for GenericUser<T> {
     fn export() -> String {
         format!(
-            "export interface GenericUser<T0> {{ inner: {}, flipped: {} }}",
-            GenericStruct::<Generic<0>, MyStruct>::inline(),
-            GenericStructFlipped::<Generic<0>, MyStruct>::inline()
+            "export interface GenericUser<MyT> {{ inner: {}, flipped: {} }}",
+            GenericStruct::<GenericPlaceholder<0>, MyStruct>::inline().format(&["MyT"]),
+            GenericStructFlipped::<GenericPlaceholder<0>, MyStruct>::inline().format(&["MyT"])
         )
     }
 }
 
 // Export
 
-impl RequestTypeExport for MyStruct {
+impl Export for MyStruct {
     fn export() -> String {
         String::from("export interface MyStruct {}")
     }
 }
 
-impl<T: RequestTypeExport, U: RequestTypeExport> RequestTypeExport for GenericStruct<T, U> {
+impl<T: Export, U: Export> Export for GenericStruct<T, U> {
     fn export() -> String {
         String::from("export interface GenericStruct<T, U> { inner: T, inner2: U }")
     }
 }
 
-impl RequestTypeExport for User {
+impl Export for User {
     fn export() -> String {
         format!(
             "export interface User {{ inner: {} }}",
-            GenericStruct::<MyStruct, MyStruct>::inline()
+            GenericStruct::<MyStruct, MyStruct>::inline().format(&[])
         )
     }
 }
 
 /// Inline
 
-impl RequestTypeInline for MyStruct {
-    fn inline() -> String {
-        String::from("MyStruct")
+impl Inline for MyStruct {
+    fn inline() -> InlineTypeDef {
+        InlineTypeDef::Resolved {
+            name: "MyStruct",
+            args: vec![],
+        }
     }
 }
 
-impl<T: RequestTypeInline, U: RequestTypeInline> RequestTypeInline for GenericStruct<T, U> {
-    fn inline() -> String {
-        format!("GenericStruct<{}, {}>", T::inline(), U::inline())
+impl<T: Inline, U: Inline> Inline for GenericStruct<T, U> {
+    fn inline() -> InlineTypeDef {
+        InlineTypeDef::Resolved {
+            name: "GenericStruct",
+            args: vec![T::inline(), U::inline()],
+        }
     }
 }
 
-impl RequestTypeInline for User {
-    fn inline() -> String {
-        String::from("User")
+impl Inline for User {
+    fn inline() -> InlineTypeDef {
+        InlineTypeDef::Resolved {
+            name: "User",
+            args: vec![],
+        }
     }
 }
 
-impl RequestTypeInline for u8 {
-    fn inline() -> String {
-        String::from("u8")
+impl Inline for u8 {
+    fn inline() -> InlineTypeDef {
+        InlineTypeDef::Resolved {
+            name: "u8",
+            args: vec![],
+        }
     }
 }
 
-impl RequestTypeExport for u8 {
+impl Export for u8 {
     fn export() -> String {
         String::from("export type u8 = number;")
     }
@@ -114,14 +174,17 @@ mod test {
 
     #[test]
     fn inline_ok() {
-        assert_eq!(GenericUser::<u8>::inline(), "GenericUser<u8>");
+        assert_eq!(
+            GenericUser::<GenericStruct<User, u8>>::inline().format(&[]),
+            "GenericUser<GenericStruct<User, u8>>"
+        );
     }
 
     #[test]
     fn export_ok() {
         assert_eq!(
-            GenericUser::<u8>::export(),
-            "export interface GenericUser<T0> { inner: GenericStruct<T0, MyStruct>, flipped: GenericStruct<MyStruct, T0> }"
+            GenericUser::<GenericStruct<User, u8>>::export(),
+            "export interface GenericUser<MyT> { inner: GenericStruct<MyT, MyStruct>, flipped: GenericStruct<MyStruct, MyT> }"
         );
     }
 }
