@@ -1,12 +1,18 @@
 #![allow(dead_code)]
+mod const_str;
+mod utils;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 trait Type {
-    fn visit_exports_ser(set: &mut HashSet<String>);
-    fn visit_exports_de(set: &mut HashSet<String>);
-    const INLINE_SER: Ast;
-    const INLINE_DE: Ast;
+    fn ref_ser() -> Inlined;
+    fn ref_de() -> Inlined;
+
+    /// override this method to register a types export and dependencies
+    fn visit_exports_ser(_set: &mut HashSet<String>) {}
+
+    /// override this method to register a types export and dependencies
+    fn visit_exports_de(_set: &mut HashSet<String>) {}
 
     fn exports_ser() -> HashSet<String> {
         let mut set = HashSet::new();
@@ -21,18 +27,67 @@ trait Type {
     }
 }
 
-macro_rules! impl_both {
+impl<const C: char, T: const_str::Tail> Type for const_str::ConstStr<C, T> {
+    fn ref_ser() -> Inlined {
+        Inlined {
+            name: Self::value().to_string(),
+            args: Vec::new(),
+        }
+    }
+
+    fn ref_de() -> Inlined {
+        Inlined {
+            name: Self::value().to_string(),
+            args: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Inlined {
+    name: String,
+    args: Vec<Inlined>,
+}
+
+impl Display for Inlined {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.args.is_empty() {
+            f.write_fmt(format_args!("{}", self.name))
+        } else {
+            self.name.fmt(f)?;
+            f.write_fmt(format_args!("<{}>", utils::Separated(", ", &self.args)))?;
+            Ok(())
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+//
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    macro_rules! impl_both {
     ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
         impl<$($args: Type),*> Type for $t {
-            const INLINE_SER: Ast = Ast::Concrete {
-                    name: $name,
-                    args: &[$($args::INLINE_SER),*],
-            };
+            fn ref_ser() -> Inlined {
+                Inlined {
+                    name: String::from($name),
+                    args: vec![$($args::ref_ser()),*],
+                }
+            }
 
-            const INLINE_DE: Ast = Ast::Concrete {
-                name: $name,
-                args: &[$($args::INLINE_DE),*],
-            };
+            fn ref_de() -> Inlined {
+                Inlined {
+                    name: String::from($name),
+                    args: vec![$($args::ref_de()),*],
+                }
+            }
 
             fn visit_exports_ser(set: &mut HashSet<String>) {
 
@@ -62,171 +117,107 @@ macro_rules! impl_both {
     };
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Context {
-    Serialize,
-    Deserialize,
-}
+    impl_both!(
+        "String",
+        String,
+        [],
+        Some(String::from("export type String = string;"))
+    );
 
-#[derive(Debug, PartialEq)]
-pub enum Ast {
-    Concrete {
-        name: &'static str,
-        args: &'static [Ast],
-    },
-    Generic(usize),
-}
+    impl_both!("u8", u8, [], Some(String::from("export type u8 = number;")));
 
-impl Ast {
-    fn format(&self, generics: &[&'static str]) -> String {
-        match self {
-            Ast::Concrete { name, args } => {
-                if args.is_empty() {
-                    format!("{name}")
-                } else {
-                    format!(
-                        "{name}<{}>",
-                        args.iter()
-                            .map(|ty| ty.format(generics))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                }
+    struct Generic<T> {
+        inner: T,
+    }
+
+    impl_both!(
+        "Generic",
+        Generic<T>,
+        [T],
+        Some(String::from("export interface Generic<T> { inner: T }",))
+    );
+
+    struct Transparent;
+
+    impl Type for Transparent {
+        fn ref_ser() -> Inlined {
+            <String as Type>::ref_ser()
+        }
+
+        fn ref_de() -> Inlined {
+            <u8 as Type>::ref_ser()
+        }
+
+        fn visit_exports_ser(set: &mut HashSet<String>) {
+            String::visit_exports_ser(set);
+        }
+
+        fn visit_exports_de(set: &mut HashSet<String>) {
+            u8::visit_exports_de(set);
+        }
+    }
+
+    struct Nested<T> {
+        inner: Generic<T>,
+    }
+
+    impl<T: Type> Type for Nested<T> {
+        fn visit_exports_ser(set: &mut HashSet<String>) {
+            if T::ref_ser() == T::ref_de() {
+                set.insert(format!(
+                    "export interface Nested<T> {{ inner: {} }}",
+                    Generic::<crate::const_str!('T')>::ref_ser()
+                ));
+            } else {
+                T::visit_exports_ser(set)
             }
+        }
 
-            Ast::Generic(index) => generics[*index].to_string(), // todo
+        fn visit_exports_de(set: &mut HashSet<String>) {
+            if T::ref_ser() == T::ref_de() {
+                set.insert(format!(
+                    "export interface Nested<T> {{ inner: {} }}",
+                    Generic::<crate::const_str!('T')>::ref_ser()
+                ));
+            } else {
+                T::visit_exports_de(set)
+            }
+        }
+
+        fn ref_ser() -> Inlined {
+            Inlined {
+                name: String::from("Nested"),
+                args: vec![T::ref_ser()],
+            }
+        }
+
+        fn ref_de() -> Inlined {
+            Inlined {
+                name: String::from("Nested"),
+                args: vec![T::ref_de()],
+            }
         }
     }
-}
-
-/// This type implements Inline but not Export. It is used ...
-struct Placeholder<const N: usize>;
-
-impl<const N: usize> Type for Placeholder<N> {
-    fn visit_exports_ser(_: &mut HashSet<String>) {
-        // do nothing
-    }
-
-    fn visit_exports_de(_: &mut HashSet<String>) {
-        // do nothing
-    }
-
-    const INLINE_SER: Ast = Ast::Generic(N);
-    const INLINE_DE: Ast = Ast::Generic(N);
-}
-
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-//
-
-impl_both!(
-    "String",
-    String,
-    [],
-    Some(String::from("export type String = string;"))
-);
-
-impl_both!("u8", u8, [], Some(String::from("export type u8 = number;")));
-
-struct Generic<T> {
-    inner: T,
-}
-
-impl_both!(
-    "Generic",
-    Generic<T>,
-    [T],
-    Some(String::from("export interface Generic<T> { inner: T }",))
-);
-
-struct Transparent;
-
-impl Type for Transparent {
-    const INLINE_SER: Ast = <String as Type>::INLINE_SER;
-    const INLINE_DE: Ast = <u8 as Type>::INLINE_DE;
-
-    fn visit_exports_ser(set: &mut HashSet<String>) {
-        String::visit_exports_ser(set);
-    }
-
-    fn visit_exports_de(set: &mut HashSet<String>) {
-        u8::visit_exports_de(set);
-    }
-}
-
-struct Nested<T> {
-    inner: Generic<T>,
-}
-
-impl<T: Type> Type for Nested<T> {
-    const INLINE_SER: Ast = Ast::Concrete {
-        name: "Nested",
-        args: &[T::INLINE_SER],
-    };
-
-    const INLINE_DE: Ast = Ast::Concrete {
-        name: "Nested",
-        args: &[T::INLINE_DE],
-    };
-
-    fn visit_exports_ser(set: &mut HashSet<String>) {
-        if T::INLINE_SER == T::INLINE_DE {
-            set.insert(format!(
-                "export interface Nested<T> {{ inner: {} }}",
-                Generic::<Placeholder<0>>::INLINE_SER.format(&["T"])
-            ));
-        } else {
-            T::visit_exports_ser(set)
-        }
-    }
-
-    fn visit_exports_de(set: &mut HashSet<String>) {
-        if T::INLINE_SER == T::INLINE_DE {
-            set.insert(format!(
-                "export interface Nested<T> {{ inner: {} }}",
-                Generic::<Placeholder<0>>::INLINE_SER.format(&["T"])
-            ));
-        } else {
-            T::visit_exports_de(set)
-        }
-    }
-}
-
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-//
-#[cfg(test)]
-mod test {
-    use super::*;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::INLINE_SER.format(&[]), "String");
-        assert_eq!(Transparent::INLINE_DE.format(&[]), "u8");
+        assert_eq!(Transparent::ref_ser().to_string(), "String");
+        assert_eq!(Transparent::ref_de().to_string(), "u8");
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::INLINE_SER.format(&[]),
+            Generic::<Transparent>::ref_ser().to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<Placeholder<0>>::INLINE_SER.format(&["MY_T"]),
+            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::ref_ser().to_string(),
             "Generic<MY_T>"
         );
 
-        assert_eq!(Generic::<Transparent>::INLINE_DE.format(&[]), "Generic<u8>");
+        assert_eq!(Generic::<Transparent>::ref_de().to_string(), "Generic<u8>");
 
         assert_eq!(
             <Generic::<u8>>::exports_de(),
