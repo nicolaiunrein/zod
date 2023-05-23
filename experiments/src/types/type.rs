@@ -59,6 +59,10 @@ impl Display for Ts<'_, ZodTypeInner> {
 pub struct ZodType {
     #[builder(setter(strip_bool))]
     pub optional: bool,
+
+    #[builder(default, setter(strip_option))]
+    pub custom_suffix: Option<String>,
+
     #[builder(setter(into))]
     pub inner: ZodTypeInner,
 }
@@ -68,6 +72,12 @@ impl Display for Zod<'_, ZodType> {
         Zod(&self.inner).fmt(f)?;
         if self.optional {
             f.write_str(".optional()")?;
+        }
+        if let Some(ref suffix) = self.custom_suffix {
+            if !suffix.starts_with('.') {
+                f.write_str(".")?;
+            }
+            f.write_str(suffix)?;
         }
         Ok(())
     }
@@ -90,6 +100,7 @@ where
     fn from(value: T) -> Self {
         ZodType {
             optional: false,
+            custom_suffix: None,
             inner: value.into(),
         }
     }
@@ -122,5 +133,21 @@ impl ToTokens for ZodTypeInner {
         };
 
         tokens.extend(quote!(#Crate::types::ZodTypeInner::#variant(#inner)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn custom_ok() {
+        let input = ZodType::builder()
+            .custom_suffix(String::from(".min(24)"))
+            .inner(ZodNumber)
+            .build();
+
+        assert_eq!(Zod(&input).to_string(), "z.number().min(24)");
     }
 }
