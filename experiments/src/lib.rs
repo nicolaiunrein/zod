@@ -8,7 +8,8 @@ mod test_utils;
 use std::{collections::HashSet, fmt::Display};
 
 use quote::{quote, ToTokens};
-use types::{Ts, Zod, ZodTypeInner};
+use typed_builder::TypedBuilder;
+use types::{Ts, Zod, ZodExport, ZodTypeInner};
 
 use crate::types::Crate;
 
@@ -21,9 +22,9 @@ pub trait ReprDe {
 }
 
 pub trait ExportVisitor {
-    fn visit_exports(_set: &mut HashSet<Export>);
+    fn visit_exports(_set: &mut HashSet<ZodExport>);
 
-    fn collect_exports() -> HashSet<Export> {
+    fn collect_exports() -> HashSet<ZodExport> {
         let mut set = HashSet::new();
         Self::visit_exports(&mut set);
         set
@@ -62,9 +63,10 @@ impl Display for Export {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Reference {
     pub name: String,
+    #[builder(default)]
     pub args: Vec<Reference>,
 }
 
@@ -149,7 +151,7 @@ mod test {
         }
         impl<$($args: ExportVisitor),*> ExportVisitor for $t {
 
-            fn visit_exports(set: &mut HashSet<Export>) {
+            fn visit_exports(set: &mut HashSet<ZodExport>) {
 
                 if let Some(export) = {
                     $($export)*
@@ -168,20 +170,14 @@ mod test {
         "String",
         String,
         [],
-        Some(Export {
-            ts: String::from("export type String = string;"),
-            zod: String::from("export const String = z.string();")
-        })
+        Some(ZodExport::builder().name("String").value(ZodString).build())
     );
 
     impl_both!(
         "u8",
         u8,
         [],
-        Some(Export {
-            ts: String::from("export type u8 = number;"),
-            zod: String::from("export const u8 = z.number();")
-        })
+        Some(ZodExport::builder().name("u8").value(ZodNumber).build())
     );
 
     struct Generic<T> {
@@ -192,19 +188,26 @@ mod test {
         "Generic",
         Generic<T>,
         [T],
-        Some(Export {
-            ts: String::from("export interface Generic<T> { inner: T }"),
-            zod: format!(
-                "export const Generic = (T: {any}) => z.object({{ inner: T }});",
-                any = Zod(&ZodTypeAny)
-            )
-        })
+        Some(
+            ZodExport::builder()
+                .name("Generic")
+                .args(&["T"])
+                .value(
+                    ZodObject::builder()
+                        .fields(vec![ZodObjectField::builder()
+                            .name("inner")
+                            .value(ZodTypeInner::Generic("T"))
+                            .build()])
+                        .build()
+                )
+                .build()
+        )
     );
 
     struct Transparent;
 
     impl ExportVisitor for Transparent {
-        fn visit_exports(set: &mut HashSet<Export>) {
+        fn visit_exports(set: &mut HashSet<ZodExport>) {
             String::visit_exports(set);
             u8::visit_exports(set);
         }
@@ -227,7 +230,7 @@ mod test {
     }
 
     impl<T: ReprSer + ReprDe + ExportVisitor> ExportVisitor for Nested<T> {
-        fn visit_exports(set: &mut HashSet<Export>) {
+        fn visit_exports(set: &mut HashSet<ZodExport>) {
             let exp = ZodExport::builder()
                 .name("Nested")
                 .args(&["T"])
@@ -241,17 +244,6 @@ mod test {
                 )
                 .build();
 
-            // set.insert(Export {
-            //     ts: format!(
-            //         "export interface Nested<T> {{ inner: {} }};",
-            //         Generic::<crate::const_str!('T')>::repr_ser().as_ts()
-            //     ),
-            //     zod: format!(
-            //         "export const Nested = (T: z.ZodTypeAny) => z.object({{ inner: {} }});",
-            //         Generic::<crate::const_str!('T')>::repr_ser().as_zod()
-            //     ),
-            // });
-            //
             set.insert(exp.into());
 
             T::visit_exports(set)
@@ -279,7 +271,7 @@ mod test {
     struct SerOnly;
 
     impl ExportVisitor for SerOnly {
-        fn visit_exports(_set: &mut HashSet<Export>) {}
+        fn visit_exports(_set: &mut HashSet<ZodExport>) {}
     }
 
     impl ReprSer for SerOnly {
@@ -299,6 +291,22 @@ mod test {
 
     #[test]
     fn debug() {
+        let u8_export = ZodExport::builder().name("u8").value(ZodNumber).build();
+        let string_export = ZodExport::builder().name("String").value(ZodString).build();
+
+        let generic_export = ZodExport::builder()
+            .name("Generic")
+            .args(&["T"])
+            .value(
+                ZodObject::builder()
+                    .fields(vec![ZodObjectField::builder()
+                        .name("inner")
+                        .value(ZodTypeInner::Generic("T"))
+                        .build()])
+                    .build(),
+            )
+            .build();
+
         assert_eq!(
             Ts(&Generic::<Transparent>::repr_ser()).to_string(),
             "Generic<String>"
@@ -316,62 +324,24 @@ mod test {
 
         assert_eq!(
             <Generic::<u8>>::collect_exports(),
-            [
-                Export {
-                    ts: String::from("export type u8 = number;"),
-                    zod: format!("export const u8 = {value};", value = Zod(&ZodNumber)),
-                },
-                ZodExport::builder()
-                    .name("Generic")
-                    .args(&["T"])
-                    .value(
-                        ZodObject::builder()
-                            .fields(vec![ZodObjectField::builder()
-                                .name("inner")
-                                .value(ZodTypeInner::Generic("T"))
-                                .build()])
-                            .build(),
-                    )
-                    .build()
-                    .into()
-            ]
-            .into_iter()
-            .collect()
+            [u8_export.clone(), generic_export.clone()]
+                .into_iter()
+                .collect()
         );
 
         assert_eq!(
             Transparent::collect_exports(),
-            [
-                Export {
-                    ts: String::from("export type u8 = number;"),
-                    zod: String::from("export const u8 = z.number();"),
-                },
-                Export {
-                    ts: String::from("export type String = string;"),
-                    zod: String::from("export const String = z.string();"),
-                },
-            ]
-            .into_iter()
-            .collect()
+            [u8_export.clone(), string_export.clone(),]
+                .into_iter()
+                .collect()
         );
 
         assert_eq!(
             <Generic::<Transparent>>::collect_exports(),
             [
-                Export {
-                    ts: String::from("export type u8 = number;"),
-                    zod: String::from("export const u8 = z.number();"),
-                },
-                Export {
-                    ts: String::from("export type String = string;"),
-                    zod: String::from("export const String = z.string();"),
-                },
-                Export {
-                    ts: String::from("export interface Generic<T> { inner: T }"),
-                    zod: String::from(
-                        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
-                    ),
-                }
+                u8_export.clone(),
+                string_export.clone(),
+                generic_export.clone()
             ]
             .into_iter()
             .collect()
@@ -379,14 +349,7 @@ mod test {
 
         assert_eq!(
             <Generic::<SerOnly>>::collect_exports(),
-            [Export {
-                ts: String::from("export interface Generic<T> { inner: T }"),
-                zod: String::from(
-                    "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
-                ),
-            }]
-            .into_iter()
-            .collect()
+            [generic_export.clone()].into_iter().collect()
         );
 
         assert_eq!(

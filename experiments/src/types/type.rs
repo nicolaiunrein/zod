@@ -7,6 +7,7 @@ use crate::{types::Crate, Reference};
 
 use super::{Ts, Zod, ZodNumber, ZodObject, ZodString};
 
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub enum ZodTypeInner {
     String(ZodString),
     Number(ZodNumber),
@@ -39,7 +40,7 @@ impl Display for Ts<'_, ZodTypeInner> {
     }
 }
 
-#[derive(TypedBuilder)]
+#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodType {
     #[builder(setter(strip_bool))]
     pub optional: bool,

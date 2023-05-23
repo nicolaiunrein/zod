@@ -7,7 +7,7 @@ use crate::{types::Crate, utils::Separated};
 
 use super::{Ts, Zod, ZodType};
 
-#[derive(TypedBuilder)]
+#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodObject {
     #[builder(default)]
     pub fields: Vec<ZodObjectField>,
@@ -27,7 +27,7 @@ impl Display for Ts<'_, ZodObject> {
     }
 }
 
-#[derive(TypedBuilder)]
+#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodObjectField {
     pub name: &'static str,
     #[builder(setter(into))]

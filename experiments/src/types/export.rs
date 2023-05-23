@@ -6,7 +6,7 @@ use super::{Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-#[derive(TypedBuilder)]
+#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodExport {
     pub name: &'static str,
     #[builder(default)]

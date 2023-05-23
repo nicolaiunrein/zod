@@ -6,6 +6,7 @@ use crate::types::Crate;
 
 use super::{Ts, Zod, ZodTypeInner};
 
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodString;
 
 impl Display for Zod<'_, ZodString> {
