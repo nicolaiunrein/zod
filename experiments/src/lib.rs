@@ -1,4 +1,5 @@
 mod const_str;
+pub mod types;
 mod utils;
 
 use std::{collections::HashSet, fmt::Display};
@@ -118,9 +119,13 @@ impl<'a> Display for ZodArg<'a> {
 //
 #[cfg(test)]
 mod test {
+
     #![allow(dead_code)]
     use super::*;
+
     use pretty_assertions::assert_eq;
+
+    use types::*;
 
     macro_rules! impl_both {
     ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
@@ -141,7 +146,7 @@ mod test {
                 }
             }
         }
-        impl<$($args: Exportable),*> Exportable for $t {
+        impl<$($args: ExportVisitor),*> ExportVisitor for $t {
 
             fn visit_exports(set: &mut HashSet<Export>) {
 
@@ -187,8 +192,8 @@ mod test {
         Generic<T>,
         [T],
         Some(Export {
-            ts: String::from("export interface Generic<T> { inner: T }"),
-            zod: String::from("export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })",)
+            ts: String::from("export interface Generic<T> { inner: T };"),
+            zod: format!("export const Generic = (T: {ZodTypeAny}) => z.object({{ inner: T }});",)
         })
     );
 
@@ -221,11 +226,11 @@ mod test {
         fn visit_exports(set: &mut HashSet<Export>) {
             set.insert(Export {
                 ts: format!(
-                    "export interface Nested<T> {{ inner: {} }}",
+                    "export interface Nested<T> {{ inner: {} }};",
                     Generic::<crate::const_str!('T')>::repr_ser().as_ts()
                 ),
                 zod: format!(
-                    "export const Nested = (T: z.ZodTypeAny) => z.object({{ inner: {} }})",
+                    "export const Nested = (T: z.ZodTypeAny) => z.object({{ inner: {} }});",
                     Generic::<crate::const_str!('T')>::repr_ser().as_zod()
                 ),
             });
@@ -297,13 +302,23 @@ mod test {
             [
                 Export {
                     ts: String::from("export type u8 = number;"),
-                    zod: String::from("export const u8 = z.number();"),
+                    zod: format!("export const u8 = {ZodNumber};"),
                 },
                 Export {
-                    ts: String::from("export interface Generic<T> { inner: T }"),
-                    zod: String::from(
-                        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })"
-                    ),
+                    ts: String::from("export interface Generic<T> { inner: T };"),
+                    zod: ZodExport::builder()
+                        .name("Generic")
+                        .args(&["T"])
+                        .value(
+                            ZodObject::builder()
+                                .fields(vec![ZodObjectField::builder()
+                                    .name("inner")
+                                    .value(ZodTypeInner::Generic("T"))
+                                    .build()])
+                                .build()
+                        )
+                        .build()
+                        .to_string()
                 }
             ]
             .into_iter()
@@ -338,9 +353,9 @@ mod test {
                     zod: String::from("export const String = z.string();"),
                 },
                 Export {
-                    ts: String::from("export interface Generic<T> { inner: T }"),
+                    ts: String::from("export interface Generic<T> { inner: T };"),
                     zod: String::from(
-                        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })"
+                        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
                     ),
                 }
             ]
@@ -351,9 +366,9 @@ mod test {
         assert_eq!(
             <Generic::<SerOnly>>::collect_exports(),
             [Export {
-                ts: String::from("export interface Generic<T> { inner: T }"),
+                ts: String::from("export interface Generic<T> { inner: T };"),
                 zod: String::from(
-                    "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })"
+                    "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
                 ),
             }]
             .into_iter()
