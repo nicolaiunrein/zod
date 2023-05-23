@@ -50,25 +50,50 @@ impl Display for Ts<'_, ZodExport> {
             ZodTypeInner::Reference(ref inner) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
+                    name = self.name,
                     value = Ts(inner),
-                    name = self.name
                 ))?;
             }
 
             ZodTypeInner::String(ref inner) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
+                    name = self.name,
                     value = Ts(inner),
-                    name = self.name
                 ))?;
             }
             ZodTypeInner::Number(ref inner) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
+                    name = self.name,
                     value = Ts(inner),
-                    name = self.name
                 ))?;
             }
+
+            ZodTypeInner::Literal(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name,
+                    value = Ts(inner),
+                ))?;
+            }
+
+            ZodTypeInner::Union(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name,
+                    value = Ts(inner),
+                ))?;
+            }
+
+            ZodTypeInner::DiscriminatedUnion(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name,
+                    value = Ts(inner),
+                ))?;
+            }
+
             ZodTypeInner::Generic(value) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
@@ -209,7 +234,7 @@ mod test {
             )
             .build();
 
-        assert_eq!(Ts(&export).to_string(), "export interface Test {  }")
+        assert_eq!(Ts(&export).to_string(), "export interface Test {}")
     }
 
     #[test]

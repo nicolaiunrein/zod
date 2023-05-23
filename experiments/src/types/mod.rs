@@ -1,14 +1,19 @@
+mod discriminated_union;
 mod export;
+mod literal;
 mod number;
 mod object;
 mod string;
 mod r#type;
+mod union;
 
+pub use discriminated_union::*;
 pub use export::*;
 pub use number::*;
 pub use object::*;
 pub use r#type::*;
 pub use string::*;
+pub use union::*;
 
 use proc_macro2::TokenStream;
 use quote::quote;

@@ -15,15 +15,23 @@ pub struct ZodObject {
 
 impl Display for Zod<'_, ZodObject> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fields = self.fields.iter().map(|f| Zod(f)).collect::<Vec<_>>();
-        f.write_fmt(format_args!("z.object({{ {} }})", Separated(", ", &fields)))
+        if self.fields.is_empty() {
+            f.write_str("z.object({})")
+        } else {
+            let fields = self.fields.iter().map(|f| Zod(f)).collect::<Vec<_>>();
+            f.write_fmt(format_args!("z.object({{ {} }})", Separated(", ", &fields)))
+        }
     }
 }
 
 impl Display for Ts<'_, ZodObject> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fields = self.fields.iter().map(|f| Ts(f)).collect::<Vec<_>>();
-        f.write_fmt(format_args!("{{ {} }}", Separated(", ", &fields)))
+        if self.fields.is_empty() {
+            f.write_str("{}")
+        } else {
+            let fields = self.fields.iter().map(|f| Ts(f)).collect::<Vec<_>>();
+            f.write_fmt(format_args!("{{ {} }}", Separated(", ", &fields)))
+        }
     }
 }
 
