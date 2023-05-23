@@ -14,20 +14,11 @@ trait ReprDe {
 
 trait Type {
     /// override this method to register a types export and dependencies
-    fn visit_exports_ser(_set: &mut HashSet<String>) {}
+    fn visit_exports(_set: &mut HashSet<String>) {}
 
-    /// override this method to register a types export and dependencies
-    fn visit_exports_de(_set: &mut HashSet<String>) {}
-
-    fn exports_ser() -> HashSet<String> {
+    fn exports() -> HashSet<String> {
         let mut set = HashSet::new();
-        Self::visit_exports_ser(&mut set);
-        set
-    }
-
-    fn exports_de() -> HashSet<String> {
-        let mut set = HashSet::new();
-        Self::visit_exports_de(&mut set);
+        Self::visit_exports(&mut set);
         set
     }
 }
@@ -100,7 +91,7 @@ mod test {
         }
         impl<$($args: Type),*> Type for $t {
 
-            fn visit_exports_ser(set: &mut HashSet<String>) {
+            fn visit_exports(set: &mut HashSet<String>) {
 
                 if let Some(export) = {
                     $($export)*
@@ -108,22 +99,9 @@ mod test {
                     set.insert(export);
                 }
 
-                $($args::visit_exports_ser(set));*
+                $($args::visit_exports(set));*
 
             }
-
-            fn visit_exports_de(set: &mut HashSet<String>) {
-
-                if let Some(export) = {
-                    $($export)*
-                } {
-                    set.insert(export);
-                }
-
-                $($args::visit_exports_de(set));*
-
-            }
-
         }
     };
 }
@@ -151,12 +129,9 @@ mod test {
     struct Transparent;
 
     impl Type for Transparent {
-        fn visit_exports_ser(set: &mut HashSet<String>) {
-            String::visit_exports_ser(set);
-        }
-
-        fn visit_exports_de(set: &mut HashSet<String>) {
-            u8::visit_exports_de(set);
+        fn visit_exports(set: &mut HashSet<String>) {
+            String::visit_exports(set);
+            u8::visit_exports(set);
         }
     }
 
@@ -177,21 +152,13 @@ mod test {
     }
 
     impl<T: ReprSer + ReprDe + Type> Type for Nested<T> {
-        fn visit_exports_ser(set: &mut HashSet<String>) {
+        fn visit_exports(set: &mut HashSet<String>) {
             set.insert(format!(
                 "export interface Nested<T> {{ inner: {} }}",
                 Generic::<crate::const_str!('T')>::repr_ser()
             ));
 
-            T::visit_exports_ser(set)
-        }
-
-        fn visit_exports_de(set: &mut HashSet<String>) {
-            set.insert(format!(
-                "export interface Nested<T> {{ inner: {} }}",
-                Generic::<crate::const_str!('T')>::repr_ser()
-            ));
-            T::visit_exports_de(set)
+            T::visit_exports(set)
         }
     }
 
@@ -247,7 +214,7 @@ mod test {
         assert_eq!(Generic::<Transparent>::repr_de().to_string(), "Generic<u8>");
 
         assert_eq!(
-            <Generic::<u8>>::exports_de(),
+            <Generic::<u8>>::exports(),
             [
                 String::from("export type u8 = number;"),
                 String::from("export interface Generic<T> { inner: T }"),
@@ -257,32 +224,19 @@ mod test {
         );
 
         assert_eq!(
-            Transparent::exports_de(),
-            [String::from("export type u8 = number;"),]
-                .into_iter()
-                .collect()
-        );
-
-        assert_eq!(
-            Transparent::exports_ser(),
-            [String::from("export type String = string;"),]
-                .into_iter()
-                .collect()
-        );
-
-        assert_eq!(
-            <Generic::<Transparent>>::exports_de(),
+            Transparent::exports(),
             [
+                String::from("export type String = string;"),
                 String::from("export type u8 = number;"),
-                String::from("export interface Generic<T> { inner: T }"),
             ]
             .into_iter()
             .collect()
         );
 
         assert_eq!(
-            <Generic::<Transparent>>::exports_ser(),
+            <Generic::<Transparent>>::exports(),
             [
+                String::from("export type u8 = number;"),
                 String::from("export type String = string;"),
                 String::from("export interface Generic<T> { inner: T }"),
             ]
@@ -291,7 +245,7 @@ mod test {
         );
 
         assert_eq!(
-            <Generic::<SerOnly>>::exports_ser(),
+            <Generic::<SerOnly>>::exports(),
             [String::from("export interface Generic<T> { inner: T }"),]
                 .into_iter()
                 .collect()
