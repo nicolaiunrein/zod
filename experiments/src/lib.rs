@@ -193,7 +193,10 @@ mod test {
         [T],
         Some(Export {
             ts: String::from("export interface Generic<T> { inner: T };"),
-            zod: format!("export const Generic = (T: {ZodTypeAny}) => z.object({{ inner: T }});",)
+            zod: format!(
+                "export const Generic = (T: {any}) => z.object({{ inner: T }});",
+                any = Zod(&ZodTypeAny)
+            )
         })
     );
 
@@ -302,24 +305,21 @@ mod test {
             [
                 Export {
                     ts: String::from("export type u8 = number;"),
-                    zod: format!("export const u8 = {ZodNumber};"),
+                    zod: format!("export const u8 = {value};", value = Zod(&ZodNumber)),
                 },
-                Export {
-                    ts: String::from("export interface Generic<T> { inner: T };"),
-                    zod: ZodExport::builder()
-                        .name("Generic")
-                        .args(&["T"])
-                        .value(
-                            ZodObject::builder()
-                                .fields(vec![ZodObjectField::builder()
-                                    .name("inner")
-                                    .value(ZodTypeInner::Generic("T"))
-                                    .build()])
-                                .build()
-                        )
-                        .build()
-                        .to_string()
-                }
+                ZodExport::builder()
+                    .name("Generic")
+                    .args(&["T"])
+                    .value(
+                        ZodObject::builder()
+                            .fields(vec![ZodObjectField::builder()
+                                .name("inner")
+                                .value(ZodTypeInner::Generic("T"))
+                                .build()])
+                            .build(),
+                    )
+                    .build()
+                    .into()
             ]
             .into_iter()
             .collect()
