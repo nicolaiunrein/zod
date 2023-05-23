@@ -1,3 +1,4 @@
+mod r#bool;
 mod discriminated_union;
 mod export;
 mod literal;
@@ -8,6 +9,7 @@ mod tuple;
 mod r#type;
 mod union;
 
+pub use self::r#bool::*;
 pub use discriminated_union::*;
 pub use export::*;
 pub use number::*;

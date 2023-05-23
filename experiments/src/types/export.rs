@@ -8,7 +8,8 @@ use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodExport {
-    pub name: &'static str,
+    #[builder(setter(into))]
+    pub name: String,
     #[builder(default)]
     pub args: &'static [&'static str],
     #[builder(setter(into))]
@@ -102,6 +103,14 @@ impl Display for Ts<'_, ZodExport> {
                 ))?;
             }
 
+            ZodTypeInner::Bool(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name,
+                    value = Ts(inner),
+                ))?;
+            }
+
             ZodTypeInner::Generic(value) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
@@ -147,7 +156,7 @@ impl From<ZodExport> for crate::Export {
 
 impl ToTokens for ZodExport {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = self.name;
+        let name = &self.name;
         let args = self.args;
         let value = &self.value;
 

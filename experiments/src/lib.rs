@@ -1,3 +1,4 @@
+mod build_ins;
 mod const_str;
 pub mod types;
 mod utils;
@@ -65,7 +66,9 @@ impl Display for Export {
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Reference {
+    #[builder(setter(into))]
     pub name: String,
+
     #[builder(default)]
     pub args: Vec<Reference>,
 }
@@ -165,20 +168,6 @@ mod test {
         }
     };
 }
-
-    impl_both!(
-        "String",
-        String,
-        [],
-        Some(ZodExport::builder().name("String").value(ZodString).build())
-    );
-
-    impl_both!(
-        "u8",
-        u8,
-        [],
-        Some(ZodExport::builder().name("u8").value(ZodNumber).build())
-    );
 
     struct Generic<T> {
         inner: T,
@@ -286,13 +275,13 @@ mod test {
     #[test]
     fn inline_transparent_ok() {
         assert_eq!(Ts(&Transparent::repr_ser()).to_string(), "String");
-        assert_eq!(Ts(&Transparent::repr_de()).to_string(), "u8");
+        assert_eq!(Ts(&Transparent::repr_de()).to_string(), "U8");
     }
 
     #[test]
     fn debug() {
-        let u8_export = ZodExport::builder().name("u8").value(ZodNumber).build();
-        let string_export = ZodExport::builder().name("String").value(ZodString).build();
+        let u8_export = u8::collect_exports().into_iter().next().unwrap();
+        let string_export = String::collect_exports().into_iter().next().unwrap();
 
         let generic_export = ZodExport::builder()
             .name("Generic")
@@ -319,7 +308,7 @@ mod test {
 
         assert_eq!(
             Ts(&Generic::<Transparent>::repr_de()).to_string(),
-            "Generic<u8>"
+            "Generic<U8>"
         );
 
         assert_eq!(
