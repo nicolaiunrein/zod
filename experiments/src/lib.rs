@@ -2,7 +2,15 @@ mod const_str;
 pub mod types;
 mod utils;
 
+#[cfg(test)]
+mod test_utils;
+
 use std::{collections::HashSet, fmt::Display};
+
+use quote::{quote, ToTokens};
+use types::ZodTypeInner;
+
+use crate::types::Crate;
 
 pub trait ReprSer {
     fn repr_ser() -> Arg;
@@ -70,6 +78,23 @@ impl Arg {
 
     fn as_zod(&self) -> ZodArg {
         ZodArg(self)
+    }
+}
+
+impl ToTokens for Arg {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = &self.name;
+        let args = &self.args;
+        tokens.extend(quote!(#Crate::Arg {
+            name: String::from(#name),
+            args: vec![#(#args),*]
+        }))
+    }
+}
+
+impl From<Arg> for ZodTypeInner {
+    fn from(value: Arg) -> Self {
+        ZodTypeInner::Arg(value)
     }
 }
 
@@ -227,16 +252,31 @@ mod test {
 
     impl<T: ReprSer + ReprDe + ExportVisitor> ExportVisitor for Nested<T> {
         fn visit_exports(set: &mut HashSet<Export>) {
-            set.insert(Export {
-                ts: format!(
-                    "export interface Nested<T> {{ inner: {} }};",
-                    Generic::<crate::const_str!('T')>::repr_ser().as_ts()
-                ),
-                zod: format!(
-                    "export const Nested = (T: z.ZodTypeAny) => z.object({{ inner: {} }});",
-                    Generic::<crate::const_str!('T')>::repr_ser().as_zod()
-                ),
-            });
+            let exp = ZodExport::builder()
+                .name("Nested")
+                .args(&["T"])
+                .value(
+                    ZodObject::builder()
+                        .fields(vec![ZodObjectField::builder()
+                            .name("inner")
+                            .value(Generic::<crate::const_str!('T')>::repr_ser())
+                            .build()])
+                        .build(),
+                )
+                .build();
+
+            // set.insert(Export {
+            //     ts: format!(
+            //         "export interface Nested<T> {{ inner: {} }};",
+            //         Generic::<crate::const_str!('T')>::repr_ser().as_ts()
+            //     ),
+            //     zod: format!(
+            //         "export const Nested = (T: z.ZodTypeAny) => z.object({{ inner: {} }});",
+            //         Generic::<crate::const_str!('T')>::repr_ser().as_zod()
+            //     ),
+            // });
+            //
+            set.insert(exp.into());
 
             T::visit_exports(set)
         }

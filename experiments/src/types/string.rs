@@ -1,6 +1,10 @@
 use std::fmt::Display;
 
-use super::{Ts, Zod};
+use quote::{quote, ToTokens};
+
+use crate::types::Crate;
+
+use super::{Ts, Zod, ZodTypeInner};
 
 pub struct ZodString;
 
@@ -13,5 +17,17 @@ impl Display for Zod<'_, ZodString> {
 impl Display for Ts<'_, ZodString> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("string")
+    }
+}
+
+impl ToTokens for ZodString {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(quote!(#Crate::types::ZodString))
+    }
+}
+
+impl From<ZodString> for ZodTypeInner {
+    fn from(value: ZodString) -> Self {
+        ZodTypeInner::String(value)
     }
 }

@@ -1,11 +1,16 @@
 use std::fmt::Display;
 
+use quote::{quote, ToTokens};
+
+use crate::{types::Crate, Arg};
+
 use super::{Ts, Zod, ZodNumber, ZodObject, ZodString};
 
 pub enum ZodTypeInner {
     String(ZodString),
     Number(ZodNumber),
     Object(ZodObject),
+    Arg(Arg),
     Generic(&'static str),
 }
 
@@ -15,6 +20,7 @@ impl Display for Zod<'_, ZodTypeInner> {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Zod(inner), f),
+            ZodTypeInner::Arg(inner) => std::fmt::Display::fmt(&inner.as_zod(), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -26,6 +32,7 @@ impl Display for Ts<'_, ZodTypeInner> {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Ts(inner), f),
+            ZodTypeInner::Arg(inner) => std::fmt::Display::fmt(&inner.as_ts(), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -65,5 +72,31 @@ where
             optional: false,
             inner: value.into(),
         }
+    }
+}
+
+impl ToTokens for ZodType {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let optional = self.optional;
+        let inner = &self.inner;
+
+        tokens.extend(quote!(#Crate::types::ZodType {
+            optional: #optional,
+            inner: #inner
+        }))
+    }
+}
+
+impl ToTokens for ZodTypeInner {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let (variant, inner) = match self {
+            ZodTypeInner::String(inner) => (quote!(String), quote!(#inner)),
+            ZodTypeInner::Number(inner) => (quote!(Number), quote!(#inner)),
+            ZodTypeInner::Object(inner) => (quote!(Object), quote!(#inner)),
+            ZodTypeInner::Arg(inner) => (quote!(Arg), quote!(#inner)),
+            ZodTypeInner::Generic(inner) => (quote!(Generic), quote!(#inner)),
+        };
+
+        tokens.extend(quote!(#Crate::types::ZodTypeInner::#variant(#inner)))
     }
 }
