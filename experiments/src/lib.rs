@@ -13,11 +13,11 @@ use types::ZodTypeInner;
 use crate::types::Crate;
 
 pub trait ReprSer {
-    fn repr_ser() -> Arg;
+    fn repr_ser() -> Reference;
 }
 
 pub trait ReprDe {
-    fn repr_de() -> Arg;
+    fn repr_de() -> Reference;
 }
 
 pub trait ExportVisitor {
@@ -31,8 +31,8 @@ pub trait ExportVisitor {
 }
 
 impl<const C: char, T: const_str::Chain> ReprSer for const_str::ConstStr<C, T> {
-    fn repr_ser() -> Arg {
-        Arg {
+    fn repr_ser() -> Reference {
+        Reference {
             name: Self::value().to_string(),
             args: Vec::new(),
         }
@@ -40,8 +40,8 @@ impl<const C: char, T: const_str::Chain> ReprSer for const_str::ConstStr<C, T> {
 }
 
 impl<const C: char, T: const_str::Chain> ReprDe for const_str::ConstStr<C, T> {
-    fn repr_de() -> Arg {
-        Arg {
+    fn repr_de() -> Reference {
+        Reference {
             name: Self::value().to_string(),
             args: Vec::new(),
         }
@@ -63,15 +63,15 @@ impl Display for Export {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Arg {
+pub struct Reference {
     pub name: String,
-    pub args: Vec<Arg>,
+    pub args: Vec<Reference>,
 }
 
-struct TsArg<'a>(&'a Arg);
-struct ZodArg<'a>(&'a Arg);
+struct TsArg<'a>(&'a Reference);
+struct ZodArg<'a>(&'a Reference);
 
-impl Arg {
+impl Reference {
     fn as_ts(&self) -> TsArg {
         TsArg(self)
     }
@@ -81,20 +81,20 @@ impl Arg {
     }
 }
 
-impl ToTokens for Arg {
+impl ToTokens for Reference {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
         let args = &self.args;
-        tokens.extend(quote!(#Crate::Arg {
+        tokens.extend(quote!(#Crate::Reference {
             name: String::from(#name),
             args: vec![#(#args),*]
         }))
     }
 }
 
-impl From<Arg> for ZodTypeInner {
-    fn from(value: Arg) -> Self {
-        ZodTypeInner::Arg(value)
+impl From<Reference> for ZodTypeInner {
+    fn from(value: Reference) -> Self {
+        ZodTypeInner::Reference(value)
     }
 }
 
@@ -155,8 +155,8 @@ mod test {
     macro_rules! impl_both {
     ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
         impl<$($args: ReprSer),*> ReprSer for $t {
-            fn repr_ser() -> Arg {
-                Arg {
+            fn repr_ser() -> Reference {
+                Reference {
                     name: String::from($name),
                     args: vec![$($args::repr_ser()),*],
                 }
@@ -164,8 +164,8 @@ mod test {
         }
 
         impl<$($args: ReprDe),*> ReprDe for $t {
-            fn repr_de() -> Arg {
-                Arg {
+            fn repr_de() -> Reference {
+                Reference {
                     name: String::from($name),
                     args: vec![$($args::repr_de()),*],
                 }
@@ -217,7 +217,7 @@ mod test {
         Generic<T>,
         [T],
         Some(Export {
-            ts: String::from("export interface Generic<T> { inner: T };"),
+            ts: String::from("export interface Generic<T> { inner: T }"),
             zod: format!(
                 "export const Generic = (T: {any}) => z.object({{ inner: T }});",
                 any = Zod(&ZodTypeAny)
@@ -235,13 +235,13 @@ mod test {
     }
 
     impl ReprSer for Transparent {
-        fn repr_ser() -> Arg {
+        fn repr_ser() -> Reference {
             <String as ReprSer>::repr_ser()
         }
     }
 
     impl ReprDe for Transparent {
-        fn repr_de() -> Arg {
+        fn repr_de() -> Reference {
             <u8 as ReprDe>::repr_de()
         }
     }
@@ -283,8 +283,8 @@ mod test {
     }
 
     impl<T: ReprSer> ReprSer for Nested<T> {
-        fn repr_ser() -> Arg {
-            Arg {
+        fn repr_ser() -> Reference {
+            Reference {
                 name: String::from("Nested"),
                 args: vec![T::repr_ser()],
             }
@@ -292,8 +292,8 @@ mod test {
     }
 
     impl<T: ReprDe> ReprDe for Nested<T> {
-        fn repr_de() -> Arg {
-            Arg {
+        fn repr_de() -> Reference {
+            Reference {
                 name: String::from("Nested"),
                 args: vec![T::repr_de()],
             }
@@ -307,8 +307,8 @@ mod test {
     }
 
     impl ReprSer for SerOnly {
-        fn repr_ser() -> Arg {
-            Arg {
+        fn repr_ser() -> Reference {
+            Reference {
                 name: String::from("SerOnly"),
                 args: Vec::new(),
             }
@@ -393,7 +393,7 @@ mod test {
                     zod: String::from("export const String = z.string();"),
                 },
                 Export {
-                    ts: String::from("export interface Generic<T> { inner: T };"),
+                    ts: String::from("export interface Generic<T> { inner: T }"),
                     zod: String::from(
                         "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
                     ),
@@ -406,7 +406,7 @@ mod test {
         assert_eq!(
             <Generic::<SerOnly>>::collect_exports(),
             [Export {
-                ts: String::from("export interface Generic<T> { inner: T };"),
+                ts: String::from("export interface Generic<T> { inner: T }"),
                 zod: String::from(
                     "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
                 ),
@@ -417,9 +417,9 @@ mod test {
 
         assert_eq!(
             <Generic::<SerOnly>>::repr_ser(),
-            Arg {
+            Reference {
                 name: String::from("Generic"),
-                args: vec![Arg {
+                args: vec![Reference {
                     name: String::from("SerOnly"),
                     args: vec![]
                 }]

@@ -41,12 +41,45 @@ impl Display for Zod<'_, ZodExport> {
 
 impl Display for Ts<'_, ZodExport> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let or_undefined = if self.value.optional {
+            " | undefined"
+        } else {
+            ""
+        };
         match self.value.inner {
-            ZodTypeInner::String(_) | ZodTypeInner::Number(_) | ZodTypeInner::Generic(_) => {}
+            ZodTypeInner::Reference(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    value = inner.as_ts(),
+                    name = self.name
+                ))?;
+            }
+
+            ZodTypeInner::String(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    value = Ts(inner),
+                    name = self.name
+                ))?;
+            }
+            ZodTypeInner::Number(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    value = Ts(inner),
+                    name = self.name
+                ))?;
+            }
+            ZodTypeInner::Generic(value) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name
+                ))?;
+            }
+
             ZodTypeInner::Object(ref obj) => {
                 if self.args.is_empty() {
                     f.write_fmt(format_args!(
-                        "export interface {name} {obj};",
+                        "export interface {name} {obj}",
                         name = self.name,
                         obj = Ts(obj),
                     ))?;
@@ -58,14 +91,13 @@ impl Display for Ts<'_, ZodExport> {
                         .collect::<Vec<_>>();
 
                     f.write_fmt(format_args!(
-                        "export interface {name}<{args}> {obj};",
+                        "export interface {name}<{args}> {obj}",
                         name = self.name,
                         args = Separated(", ", &args),
                         obj = Ts(obj),
                     ))?;
                 }
             }
-            ZodTypeInner::Arg(_) => todo!(),
         }
         Ok(())
     }
@@ -105,7 +137,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn codegen() {
+    fn export_object() {
         let export = ZodExport::builder()
             .name("Test")
             .args(&["T1", "T2", "T3"])
@@ -114,7 +146,7 @@ mod test {
                     .fields(vec![
                         ZodObjectField::builder()
                             .name("my_string")
-                            .value(ZodString)
+                            .value(ZodType::builder().optional().inner(ZodString).build())
                             .build(),
                         ZodObjectField::builder()
                             .name("my_number")
@@ -126,7 +158,7 @@ mod test {
             .build();
 
         assert_eq!(
-            formatted(export),
+            formatted(&export),
             formatted(expand_zod(quote!(crate::types::ZodExport {
                 name: "Test",
                 args: &["T1", "T2", "T3"],
@@ -137,7 +169,7 @@ mod test {
                             crate::types::ZodObjectField {
                                 name: "my_string",
                                 value: crate::types::ZodType {
-                                    optional: false,
+                                    optional: true,
                                     inner: crate::types::ZodTypeInner::String(
                                         crate::types::ZodString
                                     )
@@ -156,6 +188,57 @@ mod test {
                     })
                 }
             })))
+        );
+
+        assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: z.string().optional(), my_number: z.number() });");
+        assert_eq!(
+            Ts(&export).to_string(),
+            "export interface Test<T1, T2, T3> { my_string?: string | undefined, my_number: number }"
         )
+    }
+
+    #[test]
+    fn optional_interface() {
+        let export = ZodExport::builder()
+            .name("Test")
+            .value(
+                ZodType::builder()
+                    .optional()
+                    .inner(ZodObject::builder().build())
+                    .build(),
+            )
+            .build();
+
+        assert_eq!(Ts(&export).to_string(), "export interface Test {  }")
+    }
+
+    #[test]
+    fn export_string() {
+        let export = ZodExport::builder()
+            .name("MyString")
+            .value(ZodType::builder().optional().inner(ZodString).build())
+            .build();
+
+        assert_eq!(
+            formatted(&export),
+            formatted(expand_zod(quote!(crate::types::ZodExport {
+                name: "MyString",
+                args: &[],
+                value: crate::types::ZodType {
+                    optional: true,
+                    inner: crate::types::ZodTypeInner::String(crate::types::ZodString)
+                }
+            })))
+        );
+
+        assert_eq!(
+            Zod(&export).to_string(),
+            "export const MyString = z.string().optional();"
+        );
+
+        assert_eq!(
+            Ts(&export).to_string(),
+            "export type MyString = string | undefined;"
+        );
     }
 }

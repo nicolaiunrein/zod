@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 use quote::{quote, ToTokens};
+use typed_builder::TypedBuilder;
 
-use crate::{types::Crate, Arg};
+use crate::{types::Crate, Reference};
 
 use super::{Ts, Zod, ZodNumber, ZodObject, ZodString};
 
@@ -10,7 +11,7 @@ pub enum ZodTypeInner {
     String(ZodString),
     Number(ZodNumber),
     Object(ZodObject),
-    Arg(Arg),
+    Reference(Reference),
     Generic(&'static str),
 }
 
@@ -20,7 +21,7 @@ impl Display for Zod<'_, ZodTypeInner> {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Arg(inner) => std::fmt::Display::fmt(&inner.as_zod(), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&inner.as_zod(), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -32,14 +33,17 @@ impl Display for Ts<'_, ZodTypeInner> {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Arg(inner) => std::fmt::Display::fmt(&inner.as_ts(), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&inner.as_ts(), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
 }
 
+#[derive(TypedBuilder)]
 pub struct ZodType {
+    #[builder(setter(strip_bool))]
     pub optional: bool,
+    #[builder(setter(into))]
     pub inner: ZodTypeInner,
 }
 
@@ -57,7 +61,7 @@ impl Display for Ts<'_, ZodType> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ts(&self.inner).fmt(f)?;
         if self.optional {
-            f.write_str(".optional()")?;
+            f.write_str(" | undefined")?;
         }
         Ok(())
     }
@@ -93,7 +97,7 @@ impl ToTokens for ZodTypeInner {
             ZodTypeInner::String(inner) => (quote!(String), quote!(#inner)),
             ZodTypeInner::Number(inner) => (quote!(Number), quote!(#inner)),
             ZodTypeInner::Object(inner) => (quote!(Object), quote!(#inner)),
-            ZodTypeInner::Arg(inner) => (quote!(Arg), quote!(#inner)),
+            ZodTypeInner::Reference(inner) => (quote!(Arg), quote!(#inner)),
             ZodTypeInner::Generic(inner) => (quote!(Generic), quote!(#inner)),
         };
 
