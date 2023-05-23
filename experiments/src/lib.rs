@@ -4,10 +4,15 @@ mod utils;
 
 use std::{collections::HashSet, fmt::Display};
 
-trait Type {
-    fn serialize() -> Arg;
-    fn deserialize() -> Arg;
+trait ReprSer {
+    fn repr_ser() -> Arg;
+}
 
+trait ReprDe {
+    fn repr_de() -> Arg;
+}
+
+trait Type {
     /// override this method to register a types export and dependencies
     fn visit_exports_ser(_set: &mut HashSet<String>) {}
 
@@ -27,15 +32,17 @@ trait Type {
     }
 }
 
-impl<const C: char, T: const_str::Chain> Type for const_str::ConstStr<C, T> {
-    fn serialize() -> Arg {
+impl<const C: char, T: const_str::Chain> ReprSer for const_str::ConstStr<C, T> {
+    fn repr_ser() -> Arg {
         Arg {
             name: Self::value().to_string(),
             args: Vec::new(),
         }
     }
+}
 
-    fn deserialize() -> Arg {
+impl<const C: char, T: const_str::Chain> ReprDe for const_str::ConstStr<C, T> {
+    fn repr_de() -> Arg {
         Arg {
             name: Self::value().to_string(),
             args: Vec::new(),
@@ -74,20 +81,24 @@ mod test {
 
     macro_rules! impl_both {
     ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
-        impl<$($args: Type),*> Type for $t {
-            fn serialize() -> Arg {
+        impl<$($args: ReprSer),*> ReprSer for $t {
+            fn repr_ser() -> Arg {
                 Arg {
                     name: String::from($name),
-                    args: vec![$($args::serialize()),*],
+                    args: vec![$($args::repr_ser()),*],
                 }
             }
+        }
 
-            fn deserialize() -> Arg {
+        impl<$($args: ReprDe),*> ReprDe for $t {
+            fn repr_de() -> Arg {
                 Arg {
                     name: String::from($name),
-                    args: vec![$($args::deserialize()),*],
+                    args: vec![$($args::repr_de()),*],
                 }
             }
+        }
+        impl<$($args: Type),*> Type for $t {
 
             fn visit_exports_ser(set: &mut HashSet<String>) {
 
@@ -140,14 +151,6 @@ mod test {
     struct Transparent;
 
     impl Type for Transparent {
-        fn serialize() -> Arg {
-            <String as Type>::serialize()
-        }
-
-        fn deserialize() -> Arg {
-            <u8 as Type>::serialize()
-        }
-
         fn visit_exports_ser(set: &mut HashSet<String>) {
             String::visit_exports_ser(set);
         }
@@ -157,70 +160,91 @@ mod test {
         }
     }
 
+    impl ReprSer for Transparent {
+        fn repr_ser() -> Arg {
+            <String as ReprSer>::repr_ser()
+        }
+    }
+
+    impl ReprDe for Transparent {
+        fn repr_de() -> Arg {
+            <u8 as ReprDe>::repr_de()
+        }
+    }
+
     struct Nested<T> {
         inner: Generic<T>,
     }
 
-    impl<T: Type> Type for Nested<T> {
+    impl<T: ReprSer + ReprDe + Type> Type for Nested<T> {
         fn visit_exports_ser(set: &mut HashSet<String>) {
-            if T::serialize() == T::deserialize() {
-                set.insert(format!(
-                    "export interface Nested<T> {{ inner: {} }}",
-                    Generic::<crate::const_str!('T')>::serialize()
-                ));
-            } else {
-                T::visit_exports_ser(set)
-            }
+            set.insert(format!(
+                "export interface Nested<T> {{ inner: {} }}",
+                Generic::<crate::const_str!('T')>::repr_ser()
+            ));
+
+            T::visit_exports_ser(set)
         }
 
         fn visit_exports_de(set: &mut HashSet<String>) {
-            if T::serialize() == T::deserialize() {
-                set.insert(format!(
-                    "export interface Nested<T> {{ inner: {} }}",
-                    Generic::<crate::const_str!('T')>::serialize()
-                ));
-            } else {
-                T::visit_exports_de(set)
-            }
+            set.insert(format!(
+                "export interface Nested<T> {{ inner: {} }}",
+                Generic::<crate::const_str!('T')>::repr_ser()
+            ));
+            T::visit_exports_de(set)
         }
+    }
 
-        fn serialize() -> Arg {
+    impl<T: ReprSer> ReprSer for Nested<T> {
+        fn repr_ser() -> Arg {
             Arg {
                 name: String::from("Nested"),
-                args: vec![T::serialize()],
+                args: vec![T::repr_ser()],
             }
         }
+    }
 
-        fn deserialize() -> Arg {
+    impl<T: ReprDe> ReprDe for Nested<T> {
+        fn repr_de() -> Arg {
             Arg {
                 name: String::from("Nested"),
-                args: vec![T::deserialize()],
+                args: vec![T::repr_de()],
+            }
+        }
+    }
+
+    struct SerOnly;
+
+    impl Type for SerOnly {}
+
+    impl ReprSer for SerOnly {
+        fn repr_ser() -> Arg {
+            Arg {
+                name: String::from("SerOnly"),
+                args: Vec::new(),
             }
         }
     }
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::serialize().to_string(), "String");
-        assert_eq!(Transparent::deserialize().to_string(), "u8");
+        assert_eq!(Transparent::repr_ser().to_string(), "String");
+        assert_eq!(Transparent::repr_de().to_string(), "u8");
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::serialize().to_string(),
+            Generic::<Transparent>::repr_ser().to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::serialize().to_string(),
+            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::repr_ser().to_string(),
             "Generic<MY_T>"
         );
 
-        assert_eq!(
-            Generic::<Transparent>::deserialize().to_string(),
-            "Generic<u8>"
-        );
+        assert_eq!(Generic::<Transparent>::repr_de().to_string(), "Generic<u8>");
 
         assert_eq!(
             <Generic::<u8>>::exports_de(),
@@ -264,6 +288,24 @@ mod test {
             ]
             .into_iter()
             .collect()
+        );
+
+        assert_eq!(
+            <Generic::<SerOnly>>::exports_ser(),
+            [String::from("export interface Generic<T> { inner: T }"),]
+                .into_iter()
+                .collect()
+        );
+
+        assert_eq!(
+            <Generic::<SerOnly>>::repr_ser(),
+            Arg {
+                name: String::from("Generic"),
+                args: vec![Arg {
+                    name: String::from("SerOnly"),
+                    args: vec![]
+                }]
+            }
         );
     }
 }
