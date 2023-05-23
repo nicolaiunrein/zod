@@ -94,6 +94,14 @@ impl Display for Ts<'_, ZodExport> {
                 ))?;
             }
 
+            ZodTypeInner::Tuple(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name,
+                    value = Ts(inner),
+                ))?;
+            }
+
             ZodTypeInner::Generic(value) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",

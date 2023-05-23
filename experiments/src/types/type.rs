@@ -6,7 +6,8 @@ use typed_builder::TypedBuilder;
 use crate::{types::Crate, Reference};
 
 use super::{
-    literal::ZodLiteral, Ts, Zod, ZodDiscriminatedUnion, ZodNumber, ZodObject, ZodString, ZodUnion,
+    literal::ZodLiteral, Ts, Zod, ZodDiscriminatedUnion, ZodNumber, ZodObject, ZodString, ZodTuple,
+    ZodUnion,
 };
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -19,6 +20,7 @@ pub enum ZodTypeInner {
     Literal(ZodLiteral),
     Union(ZodUnion),
     DiscriminatedUnion(ZodDiscriminatedUnion),
+    Tuple(ZodTuple),
 }
 
 impl Display for Zod<'_, ZodTypeInner> {
@@ -31,6 +33,7 @@ impl Display for Zod<'_, ZodTypeInner> {
             ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::DiscriminatedUnion(inner) => std::fmt::Display::fmt(&Zod(inner), f),
+            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -46,6 +49,7 @@ impl Display for Ts<'_, ZodTypeInner> {
             ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::DiscriminatedUnion(inner) => std::fmt::Display::fmt(&Ts(inner), f),
+            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -113,6 +117,7 @@ impl ToTokens for ZodTypeInner {
             ZodTypeInner::Literal(inner) => (quote!(Arg), quote!(#inner)),
             ZodTypeInner::Union(inner) => (quote!(Arg), quote!(#inner)),
             ZodTypeInner::DiscriminatedUnion(inner) => (quote!(Arg), quote!(#inner)),
+            ZodTypeInner::Tuple(inner) => (quote!(Arg), quote!(#inner)),
             ZodTypeInner::Generic(inner) => (quote!(Generic), quote!(#inner)),
         };
 

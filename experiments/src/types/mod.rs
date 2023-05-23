@@ -4,6 +4,7 @@ mod literal;
 mod number;
 mod object;
 mod string;
+mod tuple;
 mod r#type;
 mod union;
 
@@ -13,6 +14,7 @@ pub use number::*;
 pub use object::*;
 pub use r#type::*;
 pub use string::*;
+pub use tuple::*;
 pub use union::*;
 
 use proc_macro2::TokenStream;
