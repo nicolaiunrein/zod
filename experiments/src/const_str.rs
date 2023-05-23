@@ -10,9 +10,7 @@ pub struct ConstStr<const C: char, T> {
 
 impl<const C: char, T> ConstStr<C, T> {
     pub fn value() -> Formatter<Self> {
-        Formatter {
-            inner: Self { _t: PhantomData },
-        }
+        Formatter::new()
     }
 }
 
@@ -29,7 +27,15 @@ pub struct End;
 impl Chain for End {}
 
 pub struct Formatter<T> {
-    inner: T,
+    _inner: PhantomData<T>,
+}
+
+impl<T> Formatter<T> {
+    pub fn new() -> Self {
+        Self {
+            _inner: PhantomData,
+        }
+    }
 }
 
 impl<T> From<Formatter<T>> for String

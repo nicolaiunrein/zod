@@ -1,22 +1,20 @@
-#![allow(dead_code)]
 mod const_str;
 mod utils;
 
 use std::{collections::HashSet, fmt::Display};
 
-trait ReprSer {
+pub trait ReprSer {
     fn repr_ser() -> Arg;
 }
 
-trait ReprDe {
+pub trait ReprDe {
     fn repr_de() -> Arg;
 }
 
-trait Type {
-    /// override this method to register a types export and dependencies
-    fn visit_exports(_set: &mut HashSet<Export>) {}
+pub trait ExportVisitor {
+    fn visit_exports(_set: &mut HashSet<Export>);
 
-    fn exports() -> HashSet<Export> {
+    fn collect_exports() -> HashSet<Export> {
         let mut set = HashSet::new();
         Self::visit_exports(&mut set);
         set
@@ -42,9 +40,9 @@ impl<const C: char, T: const_str::Chain> ReprDe for const_str::ConstStr<C, T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-struct Export {
-    ts: String,
-    zod: String,
+pub struct Export {
+    pub ts: String,
+    pub zod: String,
 }
 
 impl Display for Export {
@@ -57,8 +55,8 @@ impl Display for Export {
 
 #[derive(Debug, PartialEq)]
 pub struct Arg {
-    name: String,
-    args: Vec<Arg>,
+    pub name: String,
+    pub args: Vec<Arg>,
 }
 
 struct TsArg<'a>(&'a Arg);
@@ -120,6 +118,7 @@ impl<'a> Display for ZodArg<'a> {
 //
 #[cfg(test)]
 mod test {
+    #![allow(dead_code)]
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -142,7 +141,7 @@ mod test {
                 }
             }
         }
-        impl<$($args: Type),*> Type for $t {
+        impl<$($args: Exportable),*> Exportable for $t {
 
             fn visit_exports(set: &mut HashSet<Export>) {
 
@@ -195,7 +194,7 @@ mod test {
 
     struct Transparent;
 
-    impl Type for Transparent {
+    impl ExportVisitor for Transparent {
         fn visit_exports(set: &mut HashSet<Export>) {
             String::visit_exports(set);
             u8::visit_exports(set);
@@ -218,7 +217,7 @@ mod test {
         inner: Generic<T>,
     }
 
-    impl<T: ReprSer + ReprDe + Type> Type for Nested<T> {
+    impl<T: ReprSer + ReprDe + ExportVisitor> ExportVisitor for Nested<T> {
         fn visit_exports(set: &mut HashSet<Export>) {
             set.insert(Export {
                 ts: format!(
@@ -255,7 +254,9 @@ mod test {
 
     struct SerOnly;
 
-    impl Type for SerOnly {}
+    impl ExportVisitor for SerOnly {
+        fn visit_exports(_set: &mut HashSet<Export>) {}
+    }
 
     impl ReprSer for SerOnly {
         fn repr_ser() -> Arg {
@@ -292,7 +293,7 @@ mod test {
         );
 
         assert_eq!(
-            <Generic::<u8>>::exports(),
+            <Generic::<u8>>::collect_exports(),
             [
                 Export {
                     ts: String::from("export type u8 = number;"),
@@ -310,7 +311,7 @@ mod test {
         );
 
         assert_eq!(
-            Transparent::exports(),
+            Transparent::collect_exports(),
             [
                 Export {
                     ts: String::from("export type u8 = number;"),
@@ -326,7 +327,7 @@ mod test {
         );
 
         assert_eq!(
-            <Generic::<Transparent>>::exports(),
+            <Generic::<Transparent>>::collect_exports(),
             [
                 Export {
                     ts: String::from("export type u8 = number;"),
@@ -348,7 +349,7 @@ mod test {
         );
 
         assert_eq!(
-            <Generic::<SerOnly>>::exports(),
+            <Generic::<SerOnly>>::collect_exports(),
             [Export {
                 ts: String::from("export interface Generic<T> { inner: T }"),
                 zod: String::from(
