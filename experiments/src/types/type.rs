@@ -21,7 +21,7 @@ impl Display for Zod<'_, ZodTypeInner> {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&inner.as_zod(), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&Zod(inner), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -33,7 +33,7 @@ impl Display for Ts<'_, ZodTypeInner> {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&inner.as_ts(), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&Ts(inner), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }

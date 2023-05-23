@@ -8,7 +8,7 @@ mod test_utils;
 use std::{collections::HashSet, fmt::Display};
 
 use quote::{quote, ToTokens};
-use types::ZodTypeInner;
+use types::{Ts, Zod, ZodTypeInner};
 
 use crate::types::Crate;
 
@@ -68,19 +68,6 @@ pub struct Reference {
     pub args: Vec<Reference>,
 }
 
-struct TsArg<'a>(&'a Reference);
-struct ZodArg<'a>(&'a Reference);
-
-impl Reference {
-    fn as_ts(&self) -> TsArg {
-        TsArg(self)
-    }
-
-    fn as_zod(&self) -> ZodArg {
-        ZodArg(self)
-    }
-}
-
 impl ToTokens for Reference {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
@@ -98,18 +85,13 @@ impl From<Reference> for ZodTypeInner {
     }
 }
 
-impl<'a> Display for TsArg<'a> {
+impl<'a> Display for Ts<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.0.args.is_empty() {
             f.write_fmt(format_args!("{}", self.0.name))
         } else {
             self.0.name.fmt(f)?;
-            let args = self
-                .0
-                .args
-                .iter()
-                .map(|arg| arg.as_ts())
-                .collect::<Vec<_>>();
+            let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
 
             f.write_fmt(format_args!("<{}>", utils::Separated(", ", &args)))?;
             Ok(())
@@ -117,19 +99,13 @@ impl<'a> Display for TsArg<'a> {
     }
 }
 
-impl<'a> Display for ZodArg<'a> {
+impl<'a> Display for Zod<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.0.args.is_empty() {
             f.write_fmt(format_args!("{}", self.0.name))
         } else {
             self.0.name.fmt(f)?;
-            let args = self
-                .0
-                .args
-                .iter()
-                .map(|arg| arg.as_zod())
-                .collect::<Vec<_>>();
-
+            let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
             Ok(())
         }
@@ -317,26 +293,24 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::repr_ser().as_ts().to_string(), "String");
-        assert_eq!(Transparent::repr_de().as_ts().to_string(), "u8");
+        assert_eq!(Ts(&Transparent::repr_ser()).to_string(), "String");
+        assert_eq!(Ts(&Transparent::repr_de()).to_string(), "u8");
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::repr_ser().as_ts().to_string(),
+            Ts(&Generic::<Transparent>::repr_ser()).to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::repr_ser()
-                .as_ts()
-                .to_string(),
+            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::repr_ser()).to_string(),
             "Generic<MY_T>"
         );
 
         assert_eq!(
-            Generic::<Transparent>::repr_de().as_ts().to_string(),
+            Ts(&Generic::<Transparent>::repr_de()).to_string(),
             "Generic<u8>"
         );
 

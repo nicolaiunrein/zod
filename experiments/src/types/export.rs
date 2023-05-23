@@ -50,7 +50,7 @@ impl Display for Ts<'_, ZodExport> {
             ZodTypeInner::Reference(ref inner) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
-                    value = inner.as_ts(),
+                    value = Ts(inner),
                     name = self.name
                 ))?;
             }
