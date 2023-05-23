@@ -14,9 +14,9 @@ trait ReprDe {
 
 trait Type {
     /// override this method to register a types export and dependencies
-    fn visit_exports(_set: &mut HashSet<String>) {}
+    fn visit_exports(_set: &mut HashSet<Export>) {}
 
-    fn exports() -> HashSet<String> {
+    fn exports() -> HashSet<Export> {
         let mut set = HashSet::new();
         Self::visit_exports(&mut set);
         set
@@ -41,19 +41,72 @@ impl<const C: char, T: const_str::Chain> ReprDe for const_str::ConstStr<C, T> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct Export {
+    ts: String,
+    zod: String,
+}
+
+impl Display for Export {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.ts)?;
+        f.write_str(&self.zod)?;
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Arg {
     name: String,
     args: Vec<Arg>,
 }
 
-impl Display for Arg {
+struct TsArg<'a>(&'a Arg);
+struct ZodArg<'a>(&'a Arg);
+
+impl Arg {
+    fn as_ts(&self) -> TsArg {
+        TsArg(self)
+    }
+
+    fn as_zod(&self) -> ZodArg {
+        ZodArg(self)
+    }
+}
+
+impl<'a> Display for TsArg<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.args.is_empty() {
-            f.write_fmt(format_args!("{}", self.name))
+        if self.0.args.is_empty() {
+            f.write_fmt(format_args!("{}", self.0.name))
         } else {
-            self.name.fmt(f)?;
-            f.write_fmt(format_args!("<{}>", utils::Separated(", ", &self.args)))?;
+            self.0.name.fmt(f)?;
+            let args = self
+                .0
+                .args
+                .iter()
+                .map(|arg| arg.as_ts())
+                .collect::<Vec<_>>();
+
+            f.write_fmt(format_args!("<{}>", utils::Separated(", ", &args)))?;
+            Ok(())
+        }
+    }
+}
+
+impl<'a> Display for ZodArg<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.0.args.is_empty() {
+            f.write_fmt(format_args!("{}", self.0.name))
+        } else {
+            self.0.name.fmt(f)?;
+            let args = self
+                .0
+                .args
+                .iter()
+                .map(|arg| arg.as_zod())
+                .collect::<Vec<_>>();
+
+            f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
             Ok(())
         }
     }
@@ -91,7 +144,7 @@ mod test {
         }
         impl<$($args: Type),*> Type for $t {
 
-            fn visit_exports(set: &mut HashSet<String>) {
+            fn visit_exports(set: &mut HashSet<Export>) {
 
                 if let Some(export) = {
                     $($export)*
@@ -110,10 +163,21 @@ mod test {
         "String",
         String,
         [],
-        Some(String::from("export type String = string;"))
+        Some(Export {
+            ts: String::from("export type String = string;"),
+            zod: String::from("export const String = z.string();")
+        })
     );
 
-    impl_both!("u8", u8, [], Some(String::from("export type u8 = number;")));
+    impl_both!(
+        "u8",
+        u8,
+        [],
+        Some(Export {
+            ts: String::from("export type u8 = number;"),
+            zod: String::from("export const u8 = z.number();")
+        })
+    );
 
     struct Generic<T> {
         inner: T,
@@ -123,13 +187,16 @@ mod test {
         "Generic",
         Generic<T>,
         [T],
-        Some(String::from("export interface Generic<T> { inner: T }",))
+        Some(Export {
+            ts: String::from("export interface Generic<T> { inner: T }"),
+            zod: String::from("export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })",)
+        })
     );
 
     struct Transparent;
 
     impl Type for Transparent {
-        fn visit_exports(set: &mut HashSet<String>) {
+        fn visit_exports(set: &mut HashSet<Export>) {
             String::visit_exports(set);
             u8::visit_exports(set);
         }
@@ -152,11 +219,17 @@ mod test {
     }
 
     impl<T: ReprSer + ReprDe + Type> Type for Nested<T> {
-        fn visit_exports(set: &mut HashSet<String>) {
-            set.insert(format!(
-                "export interface Nested<T> {{ inner: {} }}",
-                Generic::<crate::const_str!('T')>::repr_ser()
-            ));
+        fn visit_exports(set: &mut HashSet<Export>) {
+            set.insert(Export {
+                ts: format!(
+                    "export interface Nested<T> {{ inner: {} }}",
+                    Generic::<crate::const_str!('T')>::repr_ser().as_ts()
+                ),
+                zod: format!(
+                    "export const Nested = (T: z.ZodTypeAny) => z.object({{ inner: {} }})",
+                    Generic::<crate::const_str!('T')>::repr_ser().as_zod()
+                ),
+            });
 
             T::visit_exports(set)
         }
@@ -195,29 +268,42 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::repr_ser().to_string(), "String");
-        assert_eq!(Transparent::repr_de().to_string(), "u8");
+        assert_eq!(Transparent::repr_ser().as_ts().to_string(), "String");
+        assert_eq!(Transparent::repr_de().as_ts().to_string(), "u8");
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::repr_ser().to_string(),
+            Generic::<Transparent>::repr_ser().as_ts().to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::repr_ser().to_string(),
+            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::repr_ser()
+                .as_ts()
+                .to_string(),
             "Generic<MY_T>"
         );
 
-        assert_eq!(Generic::<Transparent>::repr_de().to_string(), "Generic<u8>");
+        assert_eq!(
+            Generic::<Transparent>::repr_de().as_ts().to_string(),
+            "Generic<u8>"
+        );
 
         assert_eq!(
             <Generic::<u8>>::exports(),
             [
-                String::from("export type u8 = number;"),
-                String::from("export interface Generic<T> { inner: T }"),
+                Export {
+                    ts: String::from("export type u8 = number;"),
+                    zod: String::from("export const u8 = z.number();"),
+                },
+                Export {
+                    ts: String::from("export interface Generic<T> { inner: T }"),
+                    zod: String::from(
+                        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })"
+                    ),
+                }
             ]
             .into_iter()
             .collect()
@@ -226,8 +312,14 @@ mod test {
         assert_eq!(
             Transparent::exports(),
             [
-                String::from("export type String = string;"),
-                String::from("export type u8 = number;"),
+                Export {
+                    ts: String::from("export type u8 = number;"),
+                    zod: String::from("export const u8 = z.number();"),
+                },
+                Export {
+                    ts: String::from("export type String = string;"),
+                    zod: String::from("export const String = z.string();"),
+                },
             ]
             .into_iter()
             .collect()
@@ -236,9 +328,20 @@ mod test {
         assert_eq!(
             <Generic::<Transparent>>::exports(),
             [
-                String::from("export type u8 = number;"),
-                String::from("export type String = string;"),
-                String::from("export interface Generic<T> { inner: T }"),
+                Export {
+                    ts: String::from("export type u8 = number;"),
+                    zod: String::from("export const u8 = z.number();"),
+                },
+                Export {
+                    ts: String::from("export type String = string;"),
+                    zod: String::from("export const String = z.string();"),
+                },
+                Export {
+                    ts: String::from("export interface Generic<T> { inner: T }"),
+                    zod: String::from(
+                        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })"
+                    ),
+                }
             ]
             .into_iter()
             .collect()
@@ -246,9 +349,14 @@ mod test {
 
         assert_eq!(
             <Generic::<SerOnly>>::exports(),
-            [String::from("export interface Generic<T> { inner: T }"),]
-                .into_iter()
-                .collect()
+            [Export {
+                ts: String::from("export interface Generic<T> { inner: T }"),
+                zod: String::from(
+                    "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T })"
+                ),
+            }]
+            .into_iter()
+            .collect()
         );
 
         assert_eq!(
