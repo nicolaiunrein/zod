@@ -1,14 +1,14 @@
 use std::{fmt::Display, marker::PhantomData};
 
-pub trait Tail {
+pub trait Chain {
     fn format(_: &mut std::fmt::Formatter<'_>) {}
 }
 
-pub struct ConstStr<const C: char, T: Tail> {
+pub struct ConstStr<const C: char, T> {
     _t: PhantomData<T>,
 }
 
-impl<const C: char, T: Tail> ConstStr<C, T> {
+impl<const C: char, T> ConstStr<C, T> {
     pub fn value() -> Formatter<Self> {
         Formatter {
             inner: Self { _t: PhantomData },
@@ -16,7 +16,7 @@ impl<const C: char, T: Tail> ConstStr<C, T> {
     }
 }
 
-impl<const C: char, T: Tail> Tail for ConstStr<C, T> {
+impl<const C: char, T: Chain> Chain for ConstStr<C, T> {
     fn format(f: &mut std::fmt::Formatter<'_>) {
         use std::fmt::Write;
         f.write_char(C).unwrap();
@@ -26,15 +26,24 @@ impl<const C: char, T: Tail> Tail for ConstStr<C, T> {
 
 pub struct End;
 
-impl Tail for End {}
+impl Chain for End {}
 
 pub struct Formatter<T> {
     inner: T,
 }
 
+impl<T> From<Formatter<T>> for String
+where
+    T: Chain,
+{
+    fn from(value: Formatter<T>) -> Self {
+        format!("{}", value)
+    }
+}
+
 impl<T> Display for Formatter<T>
 where
-    T: Tail,
+    T: Chain,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         T::format(f);

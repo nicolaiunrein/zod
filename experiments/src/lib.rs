@@ -5,8 +5,8 @@ mod utils;
 use std::{collections::HashSet, fmt::Display};
 
 trait Type {
-    fn ref_ser() -> Inlined;
-    fn ref_de() -> Inlined;
+    fn serialize() -> Arg;
+    fn deserialize() -> Arg;
 
     /// override this method to register a types export and dependencies
     fn visit_exports_ser(_set: &mut HashSet<String>) {}
@@ -27,16 +27,16 @@ trait Type {
     }
 }
 
-impl<const C: char, T: const_str::Tail> Type for const_str::ConstStr<C, T> {
-    fn ref_ser() -> Inlined {
-        Inlined {
+impl<const C: char, T: const_str::Chain> Type for const_str::ConstStr<C, T> {
+    fn serialize() -> Arg {
+        Arg {
             name: Self::value().to_string(),
             args: Vec::new(),
         }
     }
 
-    fn ref_de() -> Inlined {
-        Inlined {
+    fn deserialize() -> Arg {
+        Arg {
             name: Self::value().to_string(),
             args: Vec::new(),
         }
@@ -44,12 +44,12 @@ impl<const C: char, T: const_str::Tail> Type for const_str::ConstStr<C, T> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Inlined {
+pub struct Arg {
     name: String,
-    args: Vec<Inlined>,
+    args: Vec<Arg>,
 }
 
-impl Display for Inlined {
+impl Display for Arg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.args.is_empty() {
             f.write_fmt(format_args!("{}", self.name))
@@ -75,17 +75,17 @@ mod test {
     macro_rules! impl_both {
     ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
         impl<$($args: Type),*> Type for $t {
-            fn ref_ser() -> Inlined {
-                Inlined {
+            fn serialize() -> Arg {
+                Arg {
                     name: String::from($name),
-                    args: vec![$($args::ref_ser()),*],
+                    args: vec![$($args::serialize()),*],
                 }
             }
 
-            fn ref_de() -> Inlined {
-                Inlined {
+            fn deserialize() -> Arg {
+                Arg {
                     name: String::from($name),
-                    args: vec![$($args::ref_de()),*],
+                    args: vec![$($args::deserialize()),*],
                 }
             }
 
@@ -140,12 +140,12 @@ mod test {
     struct Transparent;
 
     impl Type for Transparent {
-        fn ref_ser() -> Inlined {
-            <String as Type>::ref_ser()
+        fn serialize() -> Arg {
+            <String as Type>::serialize()
         }
 
-        fn ref_de() -> Inlined {
-            <u8 as Type>::ref_ser()
+        fn deserialize() -> Arg {
+            <u8 as Type>::serialize()
         }
 
         fn visit_exports_ser(set: &mut HashSet<String>) {
@@ -163,10 +163,10 @@ mod test {
 
     impl<T: Type> Type for Nested<T> {
         fn visit_exports_ser(set: &mut HashSet<String>) {
-            if T::ref_ser() == T::ref_de() {
+            if T::serialize() == T::deserialize() {
                 set.insert(format!(
                     "export interface Nested<T> {{ inner: {} }}",
-                    Generic::<crate::const_str!('T')>::ref_ser()
+                    Generic::<crate::const_str!('T')>::serialize()
                 ));
             } else {
                 T::visit_exports_ser(set)
@@ -174,50 +174,53 @@ mod test {
         }
 
         fn visit_exports_de(set: &mut HashSet<String>) {
-            if T::ref_ser() == T::ref_de() {
+            if T::serialize() == T::deserialize() {
                 set.insert(format!(
                     "export interface Nested<T> {{ inner: {} }}",
-                    Generic::<crate::const_str!('T')>::ref_ser()
+                    Generic::<crate::const_str!('T')>::serialize()
                 ));
             } else {
                 T::visit_exports_de(set)
             }
         }
 
-        fn ref_ser() -> Inlined {
-            Inlined {
+        fn serialize() -> Arg {
+            Arg {
                 name: String::from("Nested"),
-                args: vec![T::ref_ser()],
+                args: vec![T::serialize()],
             }
         }
 
-        fn ref_de() -> Inlined {
-            Inlined {
+        fn deserialize() -> Arg {
+            Arg {
                 name: String::from("Nested"),
-                args: vec![T::ref_de()],
+                args: vec![T::deserialize()],
             }
         }
     }
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Transparent::ref_ser().to_string(), "String");
-        assert_eq!(Transparent::ref_de().to_string(), "u8");
+        assert_eq!(Transparent::serialize().to_string(), "String");
+        assert_eq!(Transparent::deserialize().to_string(), "u8");
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            Generic::<Transparent>::ref_ser().to_string(),
+            Generic::<Transparent>::serialize().to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::ref_ser().to_string(),
+            Generic::<crate::const_str!('M', 'Y', '_', 'T')>::serialize().to_string(),
             "Generic<MY_T>"
         );
 
-        assert_eq!(Generic::<Transparent>::ref_de().to_string(), "Generic<u8>");
+        assert_eq!(
+            Generic::<Transparent>::deserialize().to_string(),
+            "Generic<u8>"
+        );
 
         assert_eq!(
             <Generic::<u8>>::exports_de(),
