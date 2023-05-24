@@ -9,6 +9,8 @@ use typed_builder::TypedBuilder;
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodExport {
     #[builder(setter(into))]
+    pub ns: String,
+    #[builder(setter(into))]
     pub name: String,
     #[builder(default)]
     pub args: &'static [&'static str],
@@ -111,7 +113,7 @@ impl Display for Ts<'_, ZodExport> {
                 ))?;
             }
 
-            ZodTypeInner::Generic(value) => {
+            ZodTypeInner::Generic(ref value) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name
@@ -173,6 +175,7 @@ mod test {
     #[test]
     fn export_object() {
         let export = ZodExport::builder()
+            .ns("Ns")
             .name("Test")
             .args(&["T1", "T2", "T3"])
             .value(
@@ -230,6 +233,7 @@ mod test {
     #[test]
     fn optional_interface() {
         let export = ZodExport::builder()
+            .ns("Ns")
             .name("Test")
             .value(
                 ZodType::builder()
@@ -245,6 +249,7 @@ mod test {
     #[test]
     fn export_string() {
         let export = ZodExport::builder()
+            .ns("Ns")
             .name("MyString")
             .value(ZodType::builder().optional().inner(ZodString).build())
             .build();

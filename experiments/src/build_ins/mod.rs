@@ -3,6 +3,8 @@ use crate::{
     IoType,
 };
 
+const NAMESPACE: &'static str = "Rs";
+
 /// Capitalizes the first character in s.
 pub fn capitalize(s: &str) -> String {
     let mut c = s.chars();
@@ -15,16 +17,18 @@ pub fn capitalize(s: &str) -> String {
 macro_rules! impl_number {
     ($ident: ident, $suffix: expr) => {
         impl IoType for $ident {
-            fn get_ref() -> crate::Reference {
-                crate::Reference::builder()
-                    .ns("Rs")
+            fn get_ref() -> $crate::types::ZodType {
+                $crate::Reference::builder()
+                    .ns(NAMESPACE)
                     .name(capitalize(stringify!($ident)))
                     .build()
+                    .into()
             }
 
             fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
                 set.insert(
                     ZodExport::builder()
+                        .ns(NAMESPACE)
                         .name(capitalize(stringify!($ident)))
                         .value(
                             ZodType::builder()
@@ -82,20 +86,40 @@ impl_number!(
 );
 
 impl IoType for bool {
-    fn get_ref() -> crate::Reference {
-        crate::Reference::builder().ns("Rs").name("Bool").build()
+    fn get_ref() -> crate::types::ZodType {
+        crate::Reference::builder()
+            .ns("Rs")
+            .name("Bool")
+            .build()
+            .into()
     }
 
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
-        set.insert(ZodExport::builder().name("Bool").value(ZodBool).build());
+        set.insert(
+            ZodExport::builder()
+                .ns(NAMESPACE)
+                .name("Bool")
+                .value(ZodBool)
+                .build(),
+        );
     }
 }
 
 impl IoType for String {
-    fn get_ref() -> crate::Reference {
-        crate::Reference::builder().ns("Rs").name("String").build()
+    fn get_ref() -> crate::types::ZodType {
+        crate::Reference::builder()
+            .ns("Rs")
+            .name("String")
+            .build()
+            .into()
     }
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
-        set.insert(ZodExport::builder().name("String").value(ZodString).build());
+        set.insert(
+            ZodExport::builder()
+                .ns(NAMESPACE)
+                .name("String")
+                .value(ZodString)
+                .build(),
+        );
     }
 }

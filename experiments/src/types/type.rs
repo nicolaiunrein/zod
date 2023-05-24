@@ -16,7 +16,7 @@ pub enum ZodTypeInner {
     Number(ZodNumber),
     Object(ZodObject),
     Reference(Reference),
-    Generic(&'static str),
+    Generic(String),
     Literal(ZodLiteral),
     Union(ZodUnion),
     DiscriminatedUnion(ZodDiscriminatedUnion),

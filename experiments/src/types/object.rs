@@ -3,9 +3,9 @@ use std::fmt::Display;
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::crate_name, utils::Separated, Reference};
+use crate::{types::crate_name, utils::Separated};
 
-use super::{Ts, Zod, ZodTypeInner};
+use super::{Ts, Zod, ZodType, ZodTypeInner};
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodObject {
@@ -43,7 +43,7 @@ pub struct ZodNamedField {
     pub optional: bool,
 
     #[builder(setter(into))]
-    pub value: Reference,
+    pub value: ZodType,
 }
 
 impl Display for Zod<'_, ZodNamedField> {
