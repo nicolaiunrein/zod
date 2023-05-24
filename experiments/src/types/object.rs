@@ -3,14 +3,14 @@ use std::fmt::Display;
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::Crate, utils::Separated};
+use crate::{types::Crate, utils::Separated, Reference};
 
-use super::{Ts, Zod, ZodType};
+use super::{Ts, Zod, ZodTypeInner};
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodObject {
     #[builder(default)]
-    pub fields: Vec<ZodObjectField>,
+    pub fields: Vec<ZodNamedField>,
 }
 
 impl Display for Zod<'_, ZodObject> {
@@ -36,21 +36,25 @@ impl Display for Ts<'_, ZodObject> {
 }
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodObjectField {
+pub struct ZodNamedField {
     pub name: &'static str,
+
+    #[builder(setter(strip_bool))]
+    pub optional: bool,
+
     #[builder(setter(into))]
-    pub value: ZodType,
+    pub value: Reference,
 }
 
-impl Display for Zod<'_, ZodObjectField> {
+impl Display for Zod<'_, ZodNamedField> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}: {}", self.name, Zod(&self.value)))
     }
 }
 
-impl Display for Ts<'_, ZodObjectField> {
+impl Display for Ts<'_, ZodNamedField> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.value.optional {
+        if self.optional {
             f.write_fmt(format_args!("{}?: {}", self.name, Ts(&self.value)))
         } else {
             f.write_fmt(format_args!("{}: {}", self.name, Ts(&self.value)))
@@ -67,14 +71,22 @@ impl ToTokens for ZodObject {
     }
 }
 
-impl ToTokens for ZodObjectField {
+impl ToTokens for ZodNamedField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.name;
         let value = &self.value;
+        let optional = self.optional;
 
-        tokens.extend(quote!(#Crate::types::ZodObjectField {
+        tokens.extend(quote!(#Crate::types::ZodNamedField {
             name: #name,
+            optional: #optional,
             value: #value
         }))
+    }
+}
+
+impl From<ZodObject> for ZodTypeInner {
+    fn from(value: ZodObject) -> Self {
+        Self::Object(value)
     }
 }

@@ -78,12 +78,6 @@ impl<T> Deref for Ts<'_, T> {
     }
 }
 
-impl From<ZodObject> for ZodTypeInner {
-    fn from(value: ZodObject) -> Self {
-        Self::Object(value)
-    }
-}
-
 impl ToTokens for ZodTypeAny {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(quote!(#Crate::types::ZodTypeAny))

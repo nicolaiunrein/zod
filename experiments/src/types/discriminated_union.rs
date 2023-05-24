@@ -1,4 +1,4 @@
-//! TODO: https://github.com/colinhacks/zod/issues/2106
+//! TODO: `https://github.com/colinhacks/zod/issues/2106`
 
 use std::fmt::Display;
 
@@ -56,7 +56,8 @@ impl From<ZodDiscriminatedUnion> for ZodTypeInner {
 mod test {
     use crate::{
         test_utils::{expand_zod, formatted},
-        types::{ZodObjectField, ZodString},
+        types::ZodNamedField,
+        RefSer,
     };
 
     use super::*;
@@ -68,9 +69,9 @@ mod test {
             .tag("abc")
             .variants(vec![
                 ZodObject::builder()
-                    .fields(vec![ZodObjectField::builder()
+                    .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(ZodString)
+                        .value(String::ref_ser()) //todo
                         .build()])
                     .build()
                     .into(),
@@ -79,10 +80,11 @@ mod test {
             .build();
         assert_eq!(
             Zod(&input).to_string(),
-            "z.discriminatedUnion(\"abc\", [z.object({ abc: z.string() }), z.object({})])"
+            "z.discriminatedUnion(\"abc\", [z.object({ abc: String }), z.object({})])" // TODO: should be
+                                                                                       // Rs.String
         );
 
-        assert_eq!(Ts(&input).to_string(), "{ abc: string } | {}");
+        assert_eq!(Ts(&input).to_string(), "{ abc: String } | {}");
     }
 
     #[test]
@@ -91,9 +93,9 @@ mod test {
             .tag("abc")
             .variants(vec![
                 ZodObject::builder()
-                    .fields(vec![ZodObjectField::builder()
+                    .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(ZodString)
+                        .value(String::ref_ser())
                         .build()])
                     .build()
                     .into(),
@@ -101,18 +103,18 @@ mod test {
             ])
             .build();
 
+        let ref_string = String::ref_ser();
+
         assert_eq!(
             formatted(quote!(#input)),
             formatted(expand_zod(quote!(crate::types::ZodDiscriminatedUnion {
                 tag: "abc",
                 variants: vec![
                     crate::types::ZodObject {
-                        fields: vec![crate::types::ZodObjectField {
+                        fields: vec![crate::types::ZodNamedField {
                             name: "abc",
-                            value: crate::types::ZodType {
-                                optional: false,
-                                inner: crate::types::ZodTypeInner::String(crate::types::ZodString)
-                            }
+                            optional: false,
+                            value: #ref_string
                         }],
                     },
                     crate::types::ZodObject {

@@ -1,6 +1,6 @@
 use crate::{
     types::{ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    ExportVisitor, ReprDe, ReprSer,
+    Type,
 };
 
 /// Capitalizes the first character in s.
@@ -14,23 +14,13 @@ pub fn capitalize(s: &str) -> String {
 
 macro_rules! impl_number {
     ($ident: ident, $suffix: expr) => {
-        impl ReprSer for $ident {
-            fn repr_ser() -> crate::Reference {
+        impl Type for $ident {
+            fn reference() -> crate::Reference {
                 crate::Reference::builder()
                     .name(capitalize(stringify!($ident)))
                     .build()
             }
-        }
 
-        impl ReprDe for $ident {
-            fn repr_de() -> crate::Reference {
-                crate::Reference::builder()
-                    .name(capitalize(stringify!($ident)))
-                    .build()
-            }
-        }
-
-        impl ExportVisitor for $ident {
             fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
                 set.insert(
                     ZodExport::builder()
@@ -90,37 +80,20 @@ impl_number!(
     )
 );
 
-impl ReprSer for bool {
-    fn repr_ser() -> crate::Reference {
+impl Type for bool {
+    fn reference() -> crate::Reference {
         crate::Reference::builder().name("Bool").build()
     }
-}
 
-impl ReprDe for bool {
-    fn repr_de() -> crate::Reference {
-        crate::Reference::builder().name("Bool").build()
-    }
-}
-
-impl ExportVisitor for bool {
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
         set.insert(ZodExport::builder().name("Bool").value(ZodBool).build());
     }
 }
 
-impl ReprSer for String {
-    fn repr_ser() -> crate::Reference {
+impl Type for String {
+    fn reference() -> crate::Reference {
         crate::Reference::builder().name("String").build()
     }
-}
-
-impl ReprDe for String {
-    fn repr_de() -> crate::Reference {
-        crate::Reference::builder().name("String").build()
-    }
-}
-
-impl ExportVisitor for String {
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
         set.insert(ZodExport::builder().name("String").value(ZodString).build());
     }

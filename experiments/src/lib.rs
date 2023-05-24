@@ -1,3 +1,5 @@
+/// The impl is split between Argument types and Response types.
+/// The Traits are the same. Find a way to uniform them.
 mod build_ins;
 mod const_str;
 pub mod types;
@@ -14,15 +16,30 @@ use types::{Ts, Zod, ZodExport, ZodTypeInner};
 
 use crate::types::Crate;
 
-pub trait ReprSer {
-    fn repr_ser() -> Reference;
+pub trait RefSer {
+    fn ref_ser() -> Reference;
+    fn visit_ser_exports(_set: &mut HashSet<ZodExport>);
+
+    fn collect_ser_exports() -> HashSet<ZodExport> {
+        let mut set = HashSet::new();
+        Self::visit_ser_exports(&mut set);
+        set
+    }
 }
 
-pub trait ReprDe {
-    fn repr_de() -> Reference;
+pub trait RefDe {
+    fn ref_de() -> Reference;
+    fn visit_de_exports(_set: &mut HashSet<ZodExport>);
+
+    fn collect_de_exports() -> HashSet<ZodExport> {
+        let mut set = HashSet::new();
+        Self::visit_de_exports(&mut set);
+        set
+    }
 }
 
-pub trait ExportVisitor {
+pub trait Type {
+    fn reference() -> Reference;
     fn visit_exports(_set: &mut HashSet<ZodExport>);
 
     fn collect_exports() -> HashSet<ZodExport> {
@@ -32,22 +49,41 @@ pub trait ExportVisitor {
     }
 }
 
-impl<const C: char, T: const_str::Chain> ReprSer for const_str::ConstStr<C, T> {
-    fn repr_ser() -> Reference {
-        Reference {
-            name: Self::value().to_string(),
-            args: Vec::new(),
-        }
+impl<T> RefSer for T
+where
+    T: Type,
+{
+    fn ref_ser() -> Reference {
+        Self::reference()
+    }
+
+    fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
+        Self::visit_exports(set)
     }
 }
 
-impl<const C: char, T: const_str::Chain> ReprDe for const_str::ConstStr<C, T> {
-    fn repr_de() -> Reference {
+impl<T> RefDe for T
+where
+    T: Type,
+{
+    fn ref_de() -> Reference {
+        Self::reference()
+    }
+
+    fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+        Self::visit_exports(set)
+    }
+}
+
+impl<const C: char, T: const_str::Chain> Type for const_str::ConstStr<C, T> {
+    fn reference() -> Reference {
         Reference {
             name: Self::value().to_string(),
             args: Vec::new(),
         }
     }
+
+    fn visit_exports(_set: &mut HashSet<ZodExport>) {}
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -133,84 +169,87 @@ mod test {
 
     use types::*;
 
-    macro_rules! impl_both {
-    ($name: literal, $t: ty, [$($args: ident),*], $($export: tt)*) => {
-        impl<$($args: ReprSer),*> ReprSer for $t {
-            fn repr_ser() -> Reference {
-                Reference {
-                    name: String::from($name),
-                    args: vec![$($args::repr_ser()),*],
-                }
-            }
-        }
-
-        impl<$($args: ReprDe),*> ReprDe for $t {
-            fn repr_de() -> Reference {
-                Reference {
-                    name: String::from($name),
-                    args: vec![$($args::repr_de()),*],
-                }
-            }
-        }
-        impl<$($args: ExportVisitor),*> ExportVisitor for $t {
-
-            fn visit_exports(set: &mut HashSet<ZodExport>) {
-
-                if let Some(export) = {
-                    $($export)*
-                } {
-                    set.insert(export);
-                }
-
-                $($args::visit_exports(set));*
-
-            }
-        }
-    };
-}
-
     struct Generic<T> {
         inner: T,
     }
 
-    impl_both!(
-        "Generic",
-        Generic<T>,
-        [T],
-        Some(
-            ZodExport::builder()
+    impl<T> RefSer for Generic<T>
+    where
+        T: RefSer,
+    {
+        fn ref_ser() -> Reference {
+            Reference::builder()
+                .name("Generic")
+                .args(vec![T::ref_ser()])
+                .build()
+        }
+
+        fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
+            let export = ZodExport::builder()
                 .name("Generic")
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
-                        .fields(vec![ZodObjectField::builder()
+                        .fields(vec![ZodNamedField::builder()
                             .name("inner")
-                            .value(ZodTypeInner::Generic("T"))
+                            .value(Reference::builder().name("T").build())
                             .build()])
-                        .build()
+                        .build(),
                 )
+                .build();
+
+            set.insert(export);
+            T::visit_ser_exports(set)
+        }
+    }
+
+    impl<T> RefDe for Generic<T>
+    where
+        T: RefDe,
+    {
+        fn ref_de() -> Reference {
+            Reference::builder()
+                .name("Generic")
+                .args(vec![T::ref_de()])
                 .build()
-        )
-    );
+        }
+
+        fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+            let export = ZodExport::builder()
+                .name("Generic")
+                .args(&["T"])
+                .value(
+                    ZodObject::builder()
+                        .fields(vec![ZodNamedField::builder()
+                            .name("inner")
+                            .value(Reference::builder().name("T").build())
+                            .build()])
+                        .build(),
+                )
+                .build();
+
+            set.insert(export);
+            T::visit_de_exports(set)
+        }
+    }
 
     struct Transparent;
 
-    impl ExportVisitor for Transparent {
-        fn visit_exports(set: &mut HashSet<ZodExport>) {
-            String::visit_exports(set);
-            u8::visit_exports(set);
+    impl RefSer for Transparent {
+        fn ref_ser() -> Reference {
+            <String as RefSer>::ref_ser()
+        }
+        fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
+            String::visit_ser_exports(set);
         }
     }
 
-    impl ReprSer for Transparent {
-        fn repr_ser() -> Reference {
-            <String as ReprSer>::repr_ser()
+    impl RefDe for Transparent {
+        fn ref_de() -> Reference {
+            <u8 as RefDe>::ref_de()
         }
-    }
-
-    impl ReprDe for Transparent {
-        fn repr_de() -> Reference {
-            <u8 as ReprDe>::repr_de()
+        fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+            u8::visit_de_exports(set);
         }
     }
 
@@ -218,16 +257,23 @@ mod test {
         inner: Generic<T>,
     }
 
-    impl<T: ReprSer + ReprDe + ExportVisitor> ExportVisitor for Nested<T> {
-        fn visit_exports(set: &mut HashSet<ZodExport>) {
+    impl<T: RefSer> RefSer for Nested<T> {
+        fn ref_ser() -> Reference {
+            Reference {
+                name: String::from("Nested"),
+                args: vec![T::ref_ser()],
+            }
+        }
+
+        fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
             let exp = ZodExport::builder()
                 .name("Nested")
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
-                        .fields(vec![ZodObjectField::builder()
+                        .fields(vec![ZodNamedField::builder()
                             .name("inner")
-                            .value(Generic::<crate::const_str!('T')>::repr_ser())
+                            .value(Generic::<crate::const_str!('T')>::ref_ser())
                             .build()])
                         .build(),
                 )
@@ -235,47 +281,53 @@ mod test {
 
             set.insert(exp.into());
 
-            T::visit_exports(set)
+            T::visit_ser_exports(set)
         }
     }
 
-    impl<T: ReprSer> ReprSer for Nested<T> {
-        fn repr_ser() -> Reference {
+    impl<T: RefDe> RefDe for Nested<T> {
+        fn ref_de() -> Reference {
             Reference {
                 name: String::from("Nested"),
-                args: vec![T::repr_ser()],
+                args: vec![T::ref_de()],
             }
         }
-    }
+        fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+            let exp = ZodExport::builder()
+                .name("Nested")
+                .args(&["T"])
+                .value(
+                    ZodObject::builder()
+                        .fields(vec![ZodNamedField::builder()
+                            .name("inner")
+                            .value(Generic::<crate::const_str!('T')>::ref_de())
+                            .build()])
+                        .build(),
+                )
+                .build();
 
-    impl<T: ReprDe> ReprDe for Nested<T> {
-        fn repr_de() -> Reference {
-            Reference {
-                name: String::from("Nested"),
-                args: vec![T::repr_de()],
-            }
+            set.insert(exp.into());
+
+            T::visit_de_exports(set)
         }
     }
 
     struct SerOnly;
 
-    impl ExportVisitor for SerOnly {
-        fn visit_exports(_set: &mut HashSet<ZodExport>) {}
-    }
-
-    impl ReprSer for SerOnly {
-        fn repr_ser() -> Reference {
+    impl RefSer for SerOnly {
+        fn ref_ser() -> Reference {
             Reference {
                 name: String::from("SerOnly"),
                 args: Vec::new(),
             }
         }
+        fn visit_ser_exports(_set: &mut HashSet<ZodExport>) {}
     }
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Ts(&Transparent::repr_ser()).to_string(), "String");
-        assert_eq!(Ts(&Transparent::repr_de()).to_string(), "U8");
+        assert_eq!(Ts(&Transparent::ref_ser()).to_string(), "String");
+        assert_eq!(Ts(&Transparent::ref_de()).to_string(), "U8");
     }
 
     #[test]
@@ -288,61 +340,55 @@ mod test {
             .args(&["T"])
             .value(
                 ZodObject::builder()
-                    .fields(vec![ZodObjectField::builder()
+                    .fields(vec![ZodNamedField::builder()
                         .name("inner")
-                        .value(ZodTypeInner::Generic("T"))
+                        .value(Reference::builder().name("T").build())
                         .build()])
                     .build(),
             )
             .build();
 
         assert_eq!(
-            Ts(&Generic::<Transparent>::repr_ser()).to_string(),
+            Ts(&Generic::<Transparent>::ref_ser()).to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::repr_ser()).to_string(),
+            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::ref_ser()).to_string(),
             "Generic<MY_T>"
         );
 
         assert_eq!(
-            Ts(&Generic::<Transparent>::repr_de()).to_string(),
+            Ts(&Generic::<Transparent>::ref_de()).to_string(),
             "Generic<U8>"
         );
 
         assert_eq!(
-            <Generic::<u8>>::collect_exports(),
+            <Generic::<u8>>::collect_ser_exports(),
             [u8_export.clone(), generic_export.clone()]
                 .into_iter()
                 .collect()
         );
 
         assert_eq!(
-            Transparent::collect_exports(),
-            [u8_export.clone(), string_export.clone(),]
+            Transparent::collect_ser_exports(),
+            [string_export.clone()].into_iter().collect()
+        );
+
+        assert_eq!(
+            <Generic::<Transparent>>::collect_ser_exports(),
+            [string_export.clone(), generic_export.clone()]
                 .into_iter()
                 .collect()
         );
 
         assert_eq!(
-            <Generic::<Transparent>>::collect_exports(),
-            [
-                u8_export.clone(),
-                string_export.clone(),
-                generic_export.clone()
-            ]
-            .into_iter()
-            .collect()
-        );
-
-        assert_eq!(
-            <Generic::<SerOnly>>::collect_exports(),
+            <Generic::<SerOnly>>::collect_ser_exports(),
             [generic_export.clone()].into_iter().collect()
         );
 
         assert_eq!(
-            <Generic::<SerOnly>>::repr_ser(),
+            <Generic::<SerOnly>>::ref_ser(),
             Reference {
                 name: String::from("Generic"),
                 args: vec![Reference {
