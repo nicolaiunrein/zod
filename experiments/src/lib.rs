@@ -12,7 +12,7 @@ use std::{collections::HashSet, fmt::Display};
 
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
-use types::{Context, Ts, Zod, ZodExport, ZodType, ZodTypeInner};
+use types::{Role, Ts, Zod, ZodExport, ZodType, ZodTypeInner};
 
 pub fn collect_input_exports<T: InputType>() -> HashSet<ZodExport> {
     let mut set = HashSet::new();
@@ -85,7 +85,7 @@ pub struct Reference {
     #[builder(setter(into))]
     pub ns: String,
 
-    pub context: Context,
+    pub role: Role,
 
     #[builder(default)]
     pub args: Vec<ZodType>,
@@ -114,10 +114,7 @@ impl From<Reference> for ZodTypeInner {
 
 impl<'a> Display for Ts<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "{}.{}.{}",
-            self.0.ns, self.context, self.0.name
-        ))?;
+        f.write_fmt(format_args!("{}.{}.{}", self.0.ns, self.role, self.0.name))?;
         if !self.0.args.is_empty() {
             let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
 
@@ -129,10 +126,7 @@ impl<'a> Display for Ts<'a, Reference> {
 
 impl<'a> Display for Zod<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "{}.{}.{}",
-            self.0.ns, self.context, self.0.name
-        ))?;
+        f.write_fmt(format_args!("{}.{}.{}", self.0.ns, self.role, self.0.name))?;
         if !self.0.args.is_empty() {
             self.0.name.fmt(f)?;
             let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
@@ -170,7 +164,7 @@ mod test {
             Reference::builder()
                 .name("Generic")
                 .ns("Ns")
-                .context(Context::Output)
+                .role(Role::OutputOnly)
                 .args(vec![T::get_output_ref()])
                 .build()
                 .into()
@@ -180,7 +174,7 @@ mod test {
             let export = ZodExport::builder()
                 .ns("Ns")
                 .name("Generic")
-                .context(Context::Output)
+                .context(Role::OutputOnly)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -205,7 +199,7 @@ mod test {
             Reference::builder()
                 .ns("Ns")
                 .name("Generic")
-                .context(Context::Input)
+                .role(Role::InputOnly)
                 .args(vec![T::get_input_ref()])
                 .build()
                 .into()
@@ -215,7 +209,7 @@ mod test {
             let export = ZodExport::builder()
                 .ns("Ns")
                 .name("Generic")
-                .context(Context::Input)
+                .context(Role::InputOnly)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -259,7 +253,7 @@ mod test {
     impl<T: OutputType> OutputType for Nested<T> {
         fn get_output_ref() -> ZodType {
             Reference {
-                context: Context::Output,
+                role: Role::OutputOnly,
                 name: String::from("Nested"),
                 ns: String::from("Ns"),
                 args: vec![T::get_output_ref()],
@@ -271,7 +265,7 @@ mod test {
             let exp = ZodExport::builder()
                 .ns("Ns")
                 .name("Nested")
-                .context(Context::Output)
+                .context(Role::OutputOnly)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -292,7 +286,7 @@ mod test {
     impl<T: InputType> InputType for Nested<T> {
         fn get_input_ref() -> ZodType {
             Reference {
-                context: Context::Input,
+                role: Role::InputOnly,
                 ns: String::from("Ns"),
                 name: String::from("Nested"),
                 args: vec![T::get_input_ref()],
@@ -303,7 +297,7 @@ mod test {
             let exp = ZodExport::builder()
                 .ns("Ns")
                 .name("Nested")
-                .context(Context::Input)
+                .context(Role::InputOnly)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -326,7 +320,7 @@ mod test {
     impl OutputType for OutputOnly {
         fn get_output_ref() -> ZodType {
             Reference {
-                context: Context::Output,
+                role: Role::OutputOnly,
                 ns: String::from("Ns"),
                 name: String::from("OutputOnly"),
                 args: Vec::new(),
@@ -338,7 +332,7 @@ mod test {
                 ZodExport::builder()
                     .ns("Ns")
                     .name("OutputOnly")
-                    .context(Context::Output)
+                    .context(Role::OutputOnly)
                     .value(String::get_output_ref())
                     .build(),
             );
@@ -365,7 +359,7 @@ mod test {
         let generic_input_export = ZodExport::builder()
             .ns("Ns")
             .name("Generic")
-            .context(Context::Input)
+            .context(Role::InputOnly)
             .args(&["T"])
             .value(
                 ZodObject::builder()
@@ -379,7 +373,7 @@ mod test {
 
         let generic_output_export = {
             ZodExport {
-                context: Context::Output,
+                context: Role::OutputOnly,
                 ..generic_input_export.clone()
             }
         };
@@ -387,7 +381,7 @@ mod test {
         let output_only_export = ZodExport::builder()
             .ns("Ns")
             .name("OutputOnly")
-            .context(Context::Output)
+            .context(Role::OutputOnly)
             .value(String::get_output_ref())
             .build();
 
@@ -435,11 +429,11 @@ mod test {
         assert_eq!(
             <Generic::<OutputOnly>>::get_output_ref(),
             Reference {
-                context: Context::Output,
+                role: Role::OutputOnly,
                 ns: String::from("Ns"),
                 name: String::from("Generic"),
                 args: vec![Reference {
-                    context: Context::Output,
+                    role: Role::OutputOnly,
                     ns: String::from("Ns"),
                     name: String::from("OutputOnly"),
                     args: vec![]

@@ -36,18 +36,18 @@ impl Display for Zod<'_, ZodTypeAny> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-pub enum Context {
-    Input,
-    Output,
+pub enum Role {
+    InputOnly,
+    OutputOnly,
     Io,
 }
 
-impl Display for Context {
+impl Display for Role {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Context::Input => f.write_str("input"),
-            Context::Output => f.write_str("output"),
-            Context::Io => f.write_str("io"),
+            Role::InputOnly => f.write_str("input"),
+            Role::OutputOnly => f.write_str("output"),
+            Role::Io => f.write_str("io"),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
-    types::{ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    Context, IoType,
+    types::{Role, ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
+    IoType,
 };
 
 const NAMESPACE: &'static str = "Rs";
@@ -21,7 +21,7 @@ macro_rules! impl_number {
                 $crate::Reference::builder()
                     .ns(NAMESPACE)
                     .name(capitalize(stringify!($ident)))
-                    .context(Context::Io)
+                    .role(Role::Io)
                     .build()
                     .into()
             }
@@ -31,7 +31,7 @@ macro_rules! impl_number {
                     ZodExport::builder()
                         .ns(NAMESPACE)
                         .name(capitalize(stringify!($ident)))
-                        .context(Context::Io)
+                        .context(Role::Io)
                         .value(
                             ZodType::builder()
                                 .inner(ZodNumber)
@@ -92,7 +92,7 @@ impl IoType for bool {
         crate::Reference::builder()
             .ns("Rs")
             .name("Bool")
-            .context(Context::Io)
+            .role(Role::Io)
             .build()
             .into()
     }
@@ -102,7 +102,7 @@ impl IoType for bool {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("Bool")
-                .context(Context::Io)
+                .context(Role::Io)
                 .value(ZodBool)
                 .build(),
         );
@@ -114,7 +114,7 @@ impl IoType for String {
         crate::Reference::builder()
             .ns("Rs")
             .name("String")
-            .context(Context::Io)
+            .role(Role::Io)
             .build()
             .into()
     }
@@ -123,7 +123,7 @@ impl IoType for String {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("String")
-                .context(Context::Io)
+                .context(Role::Io)
                 .value(ZodString)
                 .build(),
         );
