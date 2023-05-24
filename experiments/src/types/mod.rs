@@ -35,8 +35,55 @@ impl Display for Zod<'_, ZodTypeAny> {
     }
 }
 
-pub struct Zod<'a, T>(pub &'a T);
-pub struct Ts<'a, T>(pub &'a T);
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Context {
+    Input,
+    Output,
+    Io,
+}
+
+impl Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Context::Input => f.write_str("input"),
+            Context::Output => f.write_str("output"),
+            Context::Io => f.write_str("io"),
+        }
+    }
+}
+
+pub struct Zod<'a, T>(pub &'a T, pub Context);
+pub struct Ts<'a, T>(pub &'a T, pub Context);
+
+impl<'a, T> Zod<'a, T> {
+    pub fn input(inner: &'a T) -> Self {
+        Self(inner, Context::Input)
+    }
+    pub fn output(inner: &'a T) -> Self {
+        Self(inner, Context::Output)
+    }
+    pub fn io(inner: &'a T) -> Self {
+        Self(inner, Context::Io)
+    }
+    pub fn context(&self) -> Context {
+        self.1
+    }
+}
+
+impl<'a, T> Ts<'a, T> {
+    pub fn input(inner: &'a T) -> Self {
+        Self(inner, Context::Input)
+    }
+    pub fn output(inner: &'a T) -> Self {
+        Self(inner, Context::Output)
+    }
+    pub fn io(inner: &'a T) -> Self {
+        Self(inner, Context::Io)
+    }
+    pub fn context(&self) -> Context {
+        self.1
+    }
+}
 
 impl<T> Deref for Zod<'_, T> {
     type Target = T;

@@ -15,14 +15,22 @@ pub struct ZodUnion {
 
 impl Display for Zod<'_, ZodUnion> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.variants.iter().map(|f| Zod(f)).collect::<Vec<_>>();
+        let variants = self
+            .variants
+            .iter()
+            .map(|f| Zod(f, self.context()))
+            .collect::<Vec<_>>();
         f.write_fmt(format_args!("z.union([{}])", Separated(", ", &variants)))
     }
 }
 
 impl Display for Ts<'_, ZodUnion> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.variants.iter().map(|f| Ts(f)).collect::<Vec<_>>();
+        let variants = self
+            .variants
+            .iter()
+            .map(|f| Ts(f, self.context()))
+            .collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))
     }
 }
@@ -56,17 +64,21 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod(&ZodUnion::builder()
-                .variants(vec![ZodString.into(), ZodNumber.into()])
-                .build())
+            Zod::io(
+                &ZodUnion::builder()
+                    .variants(vec![ZodString.into(), ZodNumber.into()])
+                    .build()
+            )
             .to_string(),
             "z.union([z.string(), z.number()])"
         );
 
         assert_eq!(
-            Ts(&ZodUnion::builder()
-                .variants(vec![ZodString.into(), ZodNumber.into()])
-                .build())
+            Ts::io(
+                &ZodUnion::builder()
+                    .variants(vec![ZodString.into(), ZodNumber.into()])
+                    .build()
+            )
             .to_string(),
             "string | number"
         );

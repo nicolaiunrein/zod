@@ -118,9 +118,19 @@ impl From<Reference> for ZodTypeInner {
 
 impl<'a> Display for Ts<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}.{}", self.0.ns, self.0.name))?;
+        f.write_fmt(format_args!(
+            "{}.{}.{}",
+            self.0.ns,
+            self.context(),
+            self.0.name
+        ))?;
         if !self.0.args.is_empty() {
-            let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
+            let args = self
+                .0
+                .args
+                .iter()
+                .map(|arg| Ts(arg, self.1))
+                .collect::<Vec<_>>();
 
             f.write_fmt(format_args!("<{}>", utils::Separated(", ", &args)))?;
         }
@@ -130,10 +140,20 @@ impl<'a> Display for Ts<'a, Reference> {
 
 impl<'a> Display for Zod<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}.{}", self.0.ns, self.0.name))?;
+        f.write_fmt(format_args!(
+            "{}.{}.{}",
+            self.0.ns,
+            self.context(),
+            self.0.name
+        ))?;
         if !self.0.args.is_empty() {
             self.0.name.fmt(f)?;
-            let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
+            let args = self
+                .0
+                .args
+                .iter()
+                .map(|arg| Zod(arg, self.1))
+                .collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
         }
         Ok(())
@@ -327,8 +347,14 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Ts(&Transparent::get_output_ref()).to_string(), "Rs.String");
-        assert_eq!(Ts(&Transparent::get_input_ref()).to_string(), "Rs.U8");
+        assert_eq!(
+            Ts::io(&Transparent::get_output_ref()).to_string(),
+            "Rs.io.String"
+        );
+        assert_eq!(
+            Ts::io(&Transparent::get_input_ref()).to_string(),
+            "Rs.io.U8"
+        );
     }
 
     #[test]
@@ -351,18 +377,18 @@ mod test {
             .build();
 
         assert_eq!(
-            Ts(&Generic::<Transparent>::get_output_ref()).to_string(),
-            "Ns.Generic<Rs.String>"
+            Ts::io(&Generic::<Transparent>::get_output_ref()).to_string(),
+            "Ns.io.Generic<Rs.io.String>"
         );
 
         assert_eq!(
-            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
-            "Ns.Generic<MY_T>"
+            Ts::io(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
+            "Ns.io.Generic<MY_T>"
         );
 
         assert_eq!(
-            Ts(&Generic::<Transparent>::get_input_ref()).to_string(),
-            "Ns.Generic<Rs.U8>"
+            Ts::io(&Generic::<Transparent>::get_input_ref()).to_string(),
+            "Ns.io.Generic<Rs.io.U8>"
         );
 
         assert_eq!(

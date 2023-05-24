@@ -27,15 +27,19 @@ pub enum ZodTypeInner {
 impl Display for Zod<'_, ZodTypeInner> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
-            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::DiscriminatedUnion(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&Zod(inner), f),
-            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&Zod(inner), f),
+            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
+            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
+            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
+            ZodTypeInner::Reference(inner) => {
+                std::fmt::Display::fmt(&Zod(inner, self.context()), f)
+            }
+            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
+            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
+            ZodTypeInner::DiscriminatedUnion(inner) => {
+                std::fmt::Display::fmt(&Zod(inner, self.context()), f)
+            }
+            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
+            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&Zod(inner, self.context()), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -44,15 +48,17 @@ impl Display for Zod<'_, ZodTypeInner> {
 impl Display for Ts<'_, ZodTypeInner> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
-            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::DiscriminatedUnion(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&Ts(inner), f),
-            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&Ts(inner), f),
+            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::DiscriminatedUnion(inner) => {
+                std::fmt::Display::fmt(&Ts(inner, self.context()), f)
+            }
+            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
+            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&Ts(inner, self.context()), f),
             ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
         }
     }
@@ -72,7 +78,7 @@ pub struct ZodType {
 
 impl Display for Zod<'_, ZodType> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Zod(&self.inner).fmt(f)?;
+        Zod(&self.inner, self.context()).fmt(f)?;
         if self.optional {
             f.write_str(".optional()")?;
         }
@@ -88,7 +94,7 @@ impl Display for Zod<'_, ZodType> {
 
 impl Display for Ts<'_, ZodType> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ts(&self.inner).fmt(f)?;
+        Ts(&self.inner, self.context()).fmt(f)?;
         if self.optional {
             f.write_str(" | undefined")?;
         }
@@ -152,6 +158,6 @@ mod test {
             .inner(ZodNumber)
             .build();
 
-        assert_eq!(Zod(&input).to_string(), "z.number().min(24)");
+        assert_eq!(Zod::io(&input).to_string(), "z.number().min(24)");
     }
 }

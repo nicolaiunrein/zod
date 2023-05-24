@@ -18,7 +18,11 @@ impl Display for Zod<'_, ZodObject> {
         if self.fields.is_empty() {
             f.write_str("z.object({})")
         } else {
-            let fields = self.fields.iter().map(|f| Zod(f)).collect::<Vec<_>>();
+            let fields = self
+                .fields
+                .iter()
+                .map(|f| Zod(f, self.context()))
+                .collect::<Vec<_>>();
             f.write_fmt(format_args!("z.object({{ {} }})", Separated(", ", &fields)))
         }
     }
@@ -29,7 +33,11 @@ impl Display for Ts<'_, ZodObject> {
         if self.fields.is_empty() {
             f.write_str("{}")
         } else {
-            let fields = self.fields.iter().map(|f| Ts(f)).collect::<Vec<_>>();
+            let fields = self
+                .fields
+                .iter()
+                .map(|f| Ts(f, self.context()))
+                .collect::<Vec<_>>();
             f.write_fmt(format_args!("{{ {} }}", Separated(", ", &fields)))
         }
     }
@@ -52,10 +60,14 @@ impl Display for Zod<'_, ZodNamedField> {
             f.write_fmt(format_args!(
                 "{}: {}.optional()",
                 self.name,
-                Zod(&self.value)
+                Zod(&self.value, self.context())
             ))
         } else {
-            f.write_fmt(format_args!("{}: {}", self.name, Zod(&self.value)))
+            f.write_fmt(format_args!(
+                "{}: {}",
+                self.name,
+                Zod(&self.value, self.context())
+            ))
         }
     }
 }
@@ -66,10 +78,14 @@ impl Display for Ts<'_, ZodNamedField> {
             f.write_fmt(format_args!(
                 "{}?: {} | undefined",
                 self.name,
-                Ts(&self.value)
+                Ts(&self.value, self.context())
             ))
         } else {
-            f.write_fmt(format_args!("{}: {}", self.name, Ts(&self.value)))
+            f.write_fmt(format_args!(
+                "{}: {}",
+                self.name,
+                Ts(&self.value, self.context())
+            ))
         }
     }
 }
