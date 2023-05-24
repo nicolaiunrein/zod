@@ -48,14 +48,26 @@ pub struct ZodNamedField {
 
 impl Display for Zod<'_, ZodNamedField> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}: {}", self.name, Zod(&self.value)))
+        if self.optional {
+            f.write_fmt(format_args!(
+                "{}: {}.optional()",
+                self.name,
+                Zod(&self.value)
+            ))
+        } else {
+            f.write_fmt(format_args!("{}: {}", self.name, Zod(&self.value)))
+        }
     }
 }
 
 impl Display for Ts<'_, ZodNamedField> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.optional {
-            f.write_fmt(format_args!("{}?: {}", self.name, Ts(&self.value)))
+            f.write_fmt(format_args!(
+                "{}?: {} | undefined",
+                self.name,
+                Ts(&self.value)
+            ))
         } else {
             f.write_fmt(format_args!("{}: {}", self.name, Ts(&self.value)))
         }

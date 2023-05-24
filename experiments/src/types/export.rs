@@ -145,15 +145,6 @@ impl Display for Ts<'_, ZodExport> {
     }
 }
 
-impl From<ZodExport> for crate::Export {
-    fn from(value: ZodExport) -> Self {
-        Self {
-            ts: Ts(&value).to_string(),
-            zod: Zod(&value).to_string(),
-        }
-    }
-}
-
 impl ToTokens for ZodExport {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
@@ -229,11 +220,11 @@ mod test {
             })))
         );
 
-        // assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: z.string().optional(), my_number: z.number() });");
-        // assert_eq!(
-        //     Ts(&export).to_string(),
-        //     "export interface Test<T1, T2, T3> { my_string?: string | undefined, my_number: number }"
-        // )
+        assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: String.optional(), my_number: U8 });");
+        assert_eq!(
+            Ts(&export).to_string(),
+            "export interface Test<T1, T2, T3> { my_string?: String | undefined, my_number: U8 }"
+        )
     }
 
     #[test]

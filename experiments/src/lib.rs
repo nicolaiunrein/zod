@@ -84,20 +84,6 @@ impl<const C: char, T: const_str::Chain> IoType for const_str::ConstStr<C, T> {
     fn visit_exports(_set: &mut HashSet<ZodExport>) {}
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Export {
-    pub ts: String,
-    pub zod: String,
-}
-
-impl Display for Export {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.ts)?;
-        f.write_str(&self.zod)?;
-        Ok(())
-    }
-}
-
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Reference {
     #[builder(setter(into))]
