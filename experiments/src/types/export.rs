@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{types::crate_name, utils::Separated};
 
-use super::{Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
+use super::{Context, Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
@@ -12,6 +12,9 @@ pub struct ZodExport {
     pub ns: String,
     #[builder(setter(into))]
     pub name: String,
+
+    pub context: Context,
+
     #[builder(default)]
     pub args: &'static [&'static str],
     #[builder(setter(into))]
@@ -177,6 +180,7 @@ mod test {
         let export = ZodExport::builder()
             .ns("Ns")
             .name("Test")
+            .context(Context::Io)
             .args(&["T1", "T2", "T3"])
             .value(
                 ZodObject::builder()
@@ -235,6 +239,7 @@ mod test {
         let export = ZodExport::builder()
             .ns("Ns")
             .name("Test")
+            .context(Context::Io)
             .value(
                 ZodType::builder()
                     .optional()
@@ -251,6 +256,7 @@ mod test {
         let export = ZodExport::builder()
             .ns("Ns")
             .name("MyString")
+            .context(Context::Io)
             .value(ZodType::builder().optional().inner(ZodString).build())
             .build();
 

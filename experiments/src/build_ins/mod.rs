@@ -31,6 +31,7 @@ macro_rules! impl_number {
                     ZodExport::builder()
                         .ns(NAMESPACE)
                         .name(capitalize(stringify!($ident)))
+                        .context(Context::Io)
                         .value(
                             ZodType::builder()
                                 .inner(ZodNumber)
@@ -101,6 +102,7 @@ impl IoType for bool {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("Bool")
+                .context(Context::Io)
                 .value(ZodBool)
                 .build(),
         );
@@ -121,6 +123,7 @@ impl IoType for String {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("String")
+                .context(Context::Io)
                 .value(ZodString)
                 .build(),
         );

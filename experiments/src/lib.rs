@@ -170,7 +170,7 @@ mod test {
             Reference::builder()
                 .name("Generic")
                 .ns("Ns")
-                .context(Context::Io)
+                .context(Context::Output)
                 .args(vec![T::get_output_ref()])
                 .build()
                 .into()
@@ -180,6 +180,7 @@ mod test {
             let export = ZodExport::builder()
                 .ns("Ns")
                 .name("Generic")
+                .context(Context::Output)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -204,7 +205,7 @@ mod test {
             Reference::builder()
                 .ns("Ns")
                 .name("Generic")
-                .context(Context::Io)
+                .context(Context::Input)
                 .args(vec![T::get_input_ref()])
                 .build()
                 .into()
@@ -214,6 +215,7 @@ mod test {
             let export = ZodExport::builder()
                 .ns("Ns")
                 .name("Generic")
+                .context(Context::Input)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -269,6 +271,7 @@ mod test {
             let exp = ZodExport::builder()
                 .ns("Ns")
                 .name("Nested")
+                .context(Context::Output)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -300,6 +303,7 @@ mod test {
             let exp = ZodExport::builder()
                 .ns("Ns")
                 .name("Nested")
+                .context(Context::Input)
                 .args(&["T"])
                 .value(
                     ZodObject::builder()
@@ -334,6 +338,7 @@ mod test {
                 ZodExport::builder()
                     .ns("Ns")
                     .name("OutputOnly")
+                    .context(Context::Output)
                     .value(String::get_output_ref())
                     .build(),
             );
@@ -357,9 +362,10 @@ mod test {
             .next()
             .unwrap();
 
-        let generic_export = ZodExport::builder()
+        let generic_input_export = ZodExport::builder()
             .ns("Ns")
             .name("Generic")
+            .context(Context::Input)
             .args(&["T"])
             .value(
                 ZodObject::builder()
@@ -371,30 +377,38 @@ mod test {
             )
             .build();
 
+        let generic_output_export = {
+            ZodExport {
+                context: Context::Output,
+                ..generic_input_export.clone()
+            }
+        };
+
         let output_only_export = ZodExport::builder()
             .ns("Ns")
             .name("OutputOnly")
+            .context(Context::Output)
             .value(String::get_output_ref())
             .build();
 
         assert_eq!(
             Ts(&Generic::<Transparent>::get_output_ref()).to_string(),
-            "Ns.io.Generic<Rs.io.String>"
+            "Ns.output.Generic<Rs.io.String>"
         );
 
         assert_eq!(
             Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
-            "Ns.io.Generic<MY_T>"
+            "Ns.output.Generic<MY_T>"
         );
 
         assert_eq!(
             Ts(&Generic::<Transparent>::get_input_ref()).to_string(),
-            "Ns.io.Generic<Rs.io.U8>"
+            "Ns.input.Generic<Rs.io.U8>"
         );
 
         assert_eq!(
             collect_output_exports::<Generic::<u8>>(),
-            [u8_export.clone(), generic_export.clone()]
+            [u8_export.clone(), generic_output_export.clone()]
                 .into_iter()
                 .collect()
         );
@@ -406,14 +420,14 @@ mod test {
 
         assert_eq!(
             collect_output_exports::<Generic::<Transparent>>(),
-            [string_export.clone(), generic_export.clone()]
+            [string_export.clone(), generic_output_export.clone()]
                 .into_iter()
                 .collect()
         );
 
         assert_eq!(
             collect_output_exports::<Generic::<OutputOnly>>(),
-            [generic_export.clone(), output_only_export.clone()]
+            [generic_output_export.clone(), output_only_export.clone()]
                 .into_iter()
                 .collect()
         );
@@ -421,7 +435,7 @@ mod test {
         assert_eq!(
             <Generic::<OutputOnly>>::get_output_ref(),
             Reference {
-                context: Context::Io,
+                context: Context::Output,
                 ns: String::from("Ns"),
                 name: String::from("Generic"),
                 args: vec![Reference {
