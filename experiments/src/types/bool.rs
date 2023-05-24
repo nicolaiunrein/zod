@@ -42,8 +42,8 @@ mod test {
 
     #[test]
     fn fmt_ok() {
-        assert_eq!(Zod::io(&ZodBool).to_string(), "z.bool()");
-        assert_eq!(Ts::io(&ZodBool).to_string(), "bool");
+        assert_eq!(Zod(&ZodBool).to_string(), "z.bool()");
+        assert_eq!(Ts(&ZodBool).to_string(), "bool");
     }
 
     #[test]

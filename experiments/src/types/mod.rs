@@ -35,7 +35,7 @@ impl Display for Zod<'_, ZodTypeAny> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Context {
     Input,
     Output,
@@ -52,38 +52,8 @@ impl Display for Context {
     }
 }
 
-pub struct Zod<'a, T>(pub &'a T, pub Context);
-pub struct Ts<'a, T>(pub &'a T, pub Context);
-
-impl<'a, T> Zod<'a, T> {
-    pub fn input(inner: &'a T) -> Self {
-        Self(inner, Context::Input)
-    }
-    pub fn output(inner: &'a T) -> Self {
-        Self(inner, Context::Output)
-    }
-    pub fn io(inner: &'a T) -> Self {
-        Self(inner, Context::Io)
-    }
-    pub fn context(&self) -> Context {
-        self.1
-    }
-}
-
-impl<'a, T> Ts<'a, T> {
-    pub fn input(inner: &'a T) -> Self {
-        Self(inner, Context::Input)
-    }
-    pub fn output(inner: &'a T) -> Self {
-        Self(inner, Context::Output)
-    }
-    pub fn io(inner: &'a T) -> Self {
-        Self(inner, Context::Io)
-    }
-    pub fn context(&self) -> Context {
-        self.1
-    }
-}
+pub struct Zod<'a, T>(pub &'a T);
+pub struct Ts<'a, T>(pub &'a T);
 
 impl<T> Deref for Zod<'_, T> {
     type Target = T;

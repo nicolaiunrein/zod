@@ -24,19 +24,19 @@ impl Display for Zod<'_, ZodExport> {
             f.write_fmt(format_args!(
                 "export const {name} = {value};",
                 name = self.name,
-                value = Zod(&self.value, self.context())
+                value = Zod(&self.value)
             ))
         } else {
             let args = self
                 .args
                 .iter()
-                .map(|name| format!("{name}: {any}", any = Zod(&ZodTypeAny, self.context())))
+                .map(|name| format!("{name}: {any}", any = Zod(&ZodTypeAny)))
                 .collect::<Vec<_>>();
             f.write_fmt(format_args!(
                 "export const {name} = ({args}) => {value};",
                 name = self.name,
                 args = Separated(", ", &args),
-                value = Zod(&self.value, self.context())
+                value = Zod(&self.value)
             ))
         }
     }
@@ -54,7 +54,7 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -62,14 +62,14 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
             ZodTypeInner::Number(ref inner) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -77,7 +77,7 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -85,7 +85,7 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -93,7 +93,7 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -101,7 +101,7 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -109,7 +109,7 @@ impl Display for Ts<'_, ZodExport> {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
-                    value = Ts(inner, self.context()),
+                    value = Ts(inner)
                 ))?;
             }
 
@@ -125,7 +125,7 @@ impl Display for Ts<'_, ZodExport> {
                     f.write_fmt(format_args!(
                         "export interface {name} {obj}",
                         name = self.name,
-                        obj = Ts(obj, self.context()),
+                        obj = Ts(obj)
                     ))?;
                 } else {
                     let args = self
@@ -138,7 +138,7 @@ impl Display for Ts<'_, ZodExport> {
                         "export interface {name}<{args}> {obj}",
                         name = self.name,
                         args = Separated(", ", &args),
-                        obj = Ts(obj, self.context()),
+                        obj = Ts(obj)
                     ))?;
                 }
             }
@@ -223,9 +223,9 @@ mod test {
             })))
         );
 
-        assert_eq!(Zod::io(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: Rs.io.String.optional(), my_number: Rs.io.U8 });");
+        assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: Rs.io.String.optional(), my_number: Rs.io.U8 });");
         assert_eq!(
-            Ts::io(&export).to_string(),
+            Ts(&export).to_string(),
             "export interface Test<T1, T2, T3> { my_string?: Rs.io.String | undefined, my_number: Rs.io.U8 }"
         )
     }
@@ -243,7 +243,7 @@ mod test {
             )
             .build();
 
-        assert_eq!(Ts::io(&export).to_string(), "export interface Test {}")
+        assert_eq!(Ts(&export).to_string(), "export interface Test {}")
     }
 
     #[test]
@@ -267,12 +267,12 @@ mod test {
         );
 
         assert_eq!(
-            Zod::io(&export).to_string(),
+            Zod(&export).to_string(),
             "export const MyString = z.string().optional();"
         );
 
         assert_eq!(
-            Ts::io(&export).to_string(),
+            Ts(&export).to_string(),
             "export type MyString = string | undefined;"
         );
     }

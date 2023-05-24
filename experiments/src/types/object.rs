@@ -18,11 +18,7 @@ impl Display for Zod<'_, ZodObject> {
         if self.fields.is_empty() {
             f.write_str("z.object({})")
         } else {
-            let fields = self
-                .fields
-                .iter()
-                .map(|f| Zod(f, self.context()))
-                .collect::<Vec<_>>();
+            let fields = self.fields.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("z.object({{ {} }})", Separated(", ", &fields)))
         }
     }
@@ -33,11 +29,7 @@ impl Display for Ts<'_, ZodObject> {
         if self.fields.is_empty() {
             f.write_str("{}")
         } else {
-            let fields = self
-                .fields
-                .iter()
-                .map(|f| Ts(f, self.context()))
-                .collect::<Vec<_>>();
+            let fields = self.fields.iter().map(Ts).collect::<Vec<_>>();
             f.write_fmt(format_args!("{{ {} }}", Separated(", ", &fields)))
         }
     }
@@ -60,14 +52,10 @@ impl Display for Zod<'_, ZodNamedField> {
             f.write_fmt(format_args!(
                 "{}: {}.optional()",
                 self.name,
-                Zod(&self.value, self.context())
+                Zod(&self.value)
             ))
         } else {
-            f.write_fmt(format_args!(
-                "{}: {}",
-                self.name,
-                Zod(&self.value, self.context())
-            ))
+            f.write_fmt(format_args!("{}: {}", self.name, Zod(&self.value)))
         }
     }
 }
@@ -78,14 +66,10 @@ impl Display for Ts<'_, ZodNamedField> {
             f.write_fmt(format_args!(
                 "{}?: {} | undefined",
                 self.name,
-                Ts(&self.value, self.context())
+                Ts(&self.value)
             ))
         } else {
-            f.write_fmt(format_args!(
-                "{}: {}",
-                self.name,
-                Ts(&self.value, self.context())
-            ))
+            f.write_fmt(format_args!("{}: {}", self.name, Ts(&self.value)))
         }
     }
 }

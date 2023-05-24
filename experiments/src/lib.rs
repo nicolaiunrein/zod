@@ -12,39 +12,33 @@ use std::{collections::HashSet, fmt::Display};
 
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
-use types::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
+use types::{Context, Ts, Zod, ZodExport, ZodType, ZodTypeInner};
+
+pub fn collect_input_exports<T: InputType>() -> HashSet<ZodExport> {
+    let mut set = HashSet::new();
+    T::visit_input_exports(&mut set);
+    set
+}
+
+pub fn collect_output_exports<T: OutputType>() -> HashSet<ZodExport> {
+    let mut set = HashSet::new();
+    T::visit_output_exports(&mut set);
+    set
+}
 
 pub trait InputType {
     fn get_input_ref() -> ZodType;
-    fn visit_de_exports(_set: &mut HashSet<ZodExport>);
-
-    fn collect_de_exports() -> HashSet<ZodExport> {
-        let mut set = HashSet::new();
-        Self::visit_de_exports(&mut set);
-        set
-    }
+    fn visit_input_exports(_set: &mut HashSet<ZodExport>);
 }
 
 pub trait OutputType {
     fn get_output_ref() -> ZodType;
-    fn visit_ser_exports(_set: &mut HashSet<ZodExport>);
-
-    fn collect_ser_exports() -> HashSet<ZodExport> {
-        let mut set = HashSet::new();
-        Self::visit_ser_exports(&mut set);
-        set
-    }
+    fn visit_output_exports(_set: &mut HashSet<ZodExport>);
 }
 
 pub trait IoType {
     fn get_ref() -> ZodType;
     fn visit_exports(_set: &mut HashSet<ZodExport>);
-
-    fn collect_all_exports() -> HashSet<ZodExport> {
-        let mut set = HashSet::new();
-        Self::visit_exports(&mut set);
-        set
-    }
 }
 
 impl<T> OutputType for T
@@ -55,7 +49,7 @@ where
         Self::get_ref()
     }
 
-    fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
+    fn visit_output_exports(set: &mut HashSet<ZodExport>) {
         Self::visit_exports(set)
     }
 }
@@ -68,7 +62,7 @@ where
         Self::get_ref()
     }
 
-    fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+    fn visit_input_exports(set: &mut HashSet<ZodExport>) {
         Self::visit_exports(set)
     }
 }
@@ -90,6 +84,8 @@ pub struct Reference {
 
     #[builder(setter(into))]
     pub ns: String,
+
+    pub context: Context,
 
     #[builder(default)]
     pub args: Vec<ZodType>,
@@ -120,17 +116,10 @@ impl<'a> Display for Ts<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "{}.{}.{}",
-            self.0.ns,
-            self.context(),
-            self.0.name
+            self.0.ns, self.context, self.0.name
         ))?;
         if !self.0.args.is_empty() {
-            let args = self
-                .0
-                .args
-                .iter()
-                .map(|arg| Ts(arg, self.1))
-                .collect::<Vec<_>>();
+            let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
 
             f.write_fmt(format_args!("<{}>", utils::Separated(", ", &args)))?;
         }
@@ -142,18 +131,11 @@ impl<'a> Display for Zod<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "{}.{}.{}",
-            self.0.ns,
-            self.context(),
-            self.0.name
+            self.0.ns, self.context, self.0.name
         ))?;
         if !self.0.args.is_empty() {
             self.0.name.fmt(f)?;
-            let args = self
-                .0
-                .args
-                .iter()
-                .map(|arg| Zod(arg, self.1))
-                .collect::<Vec<_>>();
+            let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
         }
         Ok(())
@@ -188,12 +170,13 @@ mod test {
             Reference::builder()
                 .name("Generic")
                 .ns("Ns")
+                .context(Context::Io)
                 .args(vec![T::get_output_ref()])
                 .build()
                 .into()
         }
 
-        fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
+        fn visit_output_exports(set: &mut HashSet<ZodExport>) {
             let export = ZodExport::builder()
                 .ns("Ns")
                 .name("Generic")
@@ -209,7 +192,7 @@ mod test {
                 .build();
 
             set.insert(export);
-            T::visit_ser_exports(set)
+            T::visit_output_exports(set)
         }
     }
 
@@ -221,12 +204,13 @@ mod test {
             Reference::builder()
                 .ns("Ns")
                 .name("Generic")
+                .context(Context::Io)
                 .args(vec![T::get_input_ref()])
                 .build()
                 .into()
         }
 
-        fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+        fn visit_input_exports(set: &mut HashSet<ZodExport>) {
             let export = ZodExport::builder()
                 .ns("Ns")
                 .name("Generic")
@@ -242,7 +226,7 @@ mod test {
                 .build();
 
             set.insert(export);
-            T::visit_de_exports(set)
+            T::visit_input_exports(set)
         }
     }
 
@@ -252,8 +236,8 @@ mod test {
         fn get_output_ref() -> ZodType {
             <String as OutputType>::get_output_ref()
         }
-        fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
-            String::visit_ser_exports(set);
+        fn visit_output_exports(set: &mut HashSet<ZodExport>) {
+            String::visit_output_exports(set);
         }
     }
 
@@ -261,8 +245,8 @@ mod test {
         fn get_input_ref() -> ZodType {
             <u8 as InputType>::get_input_ref()
         }
-        fn visit_de_exports(set: &mut HashSet<ZodExport>) {
-            u8::visit_de_exports(set);
+        fn visit_input_exports(set: &mut HashSet<ZodExport>) {
+            u8::visit_input_exports(set);
         }
     }
 
@@ -273,6 +257,7 @@ mod test {
     impl<T: OutputType> OutputType for Nested<T> {
         fn get_output_ref() -> ZodType {
             Reference {
+                context: Context::Output,
                 name: String::from("Nested"),
                 ns: String::from("Ns"),
                 args: vec![T::get_output_ref()],
@@ -280,7 +265,7 @@ mod test {
             .into()
         }
 
-        fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
+        fn visit_output_exports(set: &mut HashSet<ZodExport>) {
             let exp = ZodExport::builder()
                 .ns("Ns")
                 .name("Nested")
@@ -297,20 +282,21 @@ mod test {
 
             set.insert(exp.into());
 
-            T::visit_ser_exports(set)
+            T::visit_output_exports(set)
         }
     }
 
     impl<T: InputType> InputType for Nested<T> {
         fn get_input_ref() -> ZodType {
             Reference {
+                context: Context::Input,
                 ns: String::from("Ns"),
                 name: String::from("Nested"),
                 args: vec![T::get_input_ref()],
             }
             .into()
         }
-        fn visit_de_exports(set: &mut HashSet<ZodExport>) {
+        fn visit_input_exports(set: &mut HashSet<ZodExport>) {
             let exp = ZodExport::builder()
                 .ns("Ns")
                 .name("Nested")
@@ -327,40 +313,49 @@ mod test {
 
             set.insert(exp.into());
 
-            T::visit_de_exports(set)
+            T::visit_input_exports(set)
         }
     }
 
-    struct SerOnly;
+    struct OutputOnly;
 
-    impl OutputType for SerOnly {
+    impl OutputType for OutputOnly {
         fn get_output_ref() -> ZodType {
             Reference {
+                context: Context::Output,
                 ns: String::from("Ns"),
-                name: String::from("SerOnly"),
+                name: String::from("OutputOnly"),
                 args: Vec::new(),
             }
             .into()
         }
-        fn visit_ser_exports(_set: &mut HashSet<ZodExport>) {}
+        fn visit_output_exports(set: &mut HashSet<ZodExport>) {
+            set.insert(
+                ZodExport::builder()
+                    .ns("Ns")
+                    .name("OutputOnly")
+                    .value(String::get_output_ref())
+                    .build(),
+            );
+        }
     }
 
     #[test]
     fn inline_transparent_ok() {
         assert_eq!(
-            Ts::io(&Transparent::get_output_ref()).to_string(),
+            Ts(&Transparent::get_output_ref()).to_string(),
             "Rs.io.String"
         );
-        assert_eq!(
-            Ts::io(&Transparent::get_input_ref()).to_string(),
-            "Rs.io.U8"
-        );
+        assert_eq!(Ts(&Transparent::get_input_ref()).to_string(), "Rs.io.U8");
     }
 
     #[test]
     fn debug() {
-        let u8_export = u8::collect_all_exports().into_iter().next().unwrap();
-        let string_export = String::collect_all_exports().into_iter().next().unwrap();
+        let u8_export = collect_input_exports::<u8>().into_iter().next().unwrap();
+        let string_export = collect_input_exports::<String>()
+            .into_iter()
+            .next()
+            .unwrap();
 
         let generic_export = ZodExport::builder()
             .ns("Ns")
@@ -376,58 +371,81 @@ mod test {
             )
             .build();
 
+        let output_only_export = ZodExport::builder()
+            .ns("Ns")
+            .name("OutputOnly")
+            .value(String::get_output_ref())
+            .build();
+
         assert_eq!(
-            Ts::io(&Generic::<Transparent>::get_output_ref()).to_string(),
+            Ts(&Generic::<Transparent>::get_output_ref()).to_string(),
             "Ns.io.Generic<Rs.io.String>"
         );
 
         assert_eq!(
-            Ts::io(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
+            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
             "Ns.io.Generic<MY_T>"
         );
 
         assert_eq!(
-            Ts::io(&Generic::<Transparent>::get_input_ref()).to_string(),
+            Ts(&Generic::<Transparent>::get_input_ref()).to_string(),
             "Ns.io.Generic<Rs.io.U8>"
         );
 
         assert_eq!(
-            <Generic::<u8>>::collect_ser_exports(),
+            collect_output_exports::<Generic::<u8>>(),
             [u8_export.clone(), generic_export.clone()]
                 .into_iter()
                 .collect()
         );
 
         assert_eq!(
-            Transparent::collect_ser_exports(),
+            collect_output_exports::<Transparent>(),
             [string_export.clone()].into_iter().collect()
         );
 
         assert_eq!(
-            <Generic::<Transparent>>::collect_ser_exports(),
+            collect_output_exports::<Generic::<Transparent>>(),
             [string_export.clone(), generic_export.clone()]
                 .into_iter()
                 .collect()
         );
 
         assert_eq!(
-            <Generic::<SerOnly>>::collect_ser_exports(),
-            [generic_export.clone()].into_iter().collect()
+            collect_output_exports::<Generic::<OutputOnly>>(),
+            [generic_export.clone(), output_only_export.clone()]
+                .into_iter()
+                .collect()
         );
 
         assert_eq!(
-            <Generic::<SerOnly>>::get_output_ref(),
+            <Generic::<OutputOnly>>::get_output_ref(),
             Reference {
+                context: Context::Io,
                 ns: String::from("Ns"),
                 name: String::from("Generic"),
                 args: vec![Reference {
+                    context: Context::Output,
                     ns: String::from("Ns"),
-                    name: String::from("SerOnly"),
+                    name: String::from("OutputOnly"),
                     args: vec![]
                 }
                 .into()]
             }
             .into()
         );
+    }
+
+    #[test]
+    fn reference_context() {
+        assert_eq!(
+            collect_output_exports::<OutputOnly>()
+                .into_iter()
+                .map(|exp| Zod(&exp).to_string())
+                .collect::<HashSet<_>>(),
+            [String::from("export const OutputOnly = Rs.io.String;")]
+                .into_iter()
+                .collect()
+        )
     }
 }

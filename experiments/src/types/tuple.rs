@@ -15,22 +15,14 @@ pub struct ZodTuple {
 
 impl Display for Zod<'_, ZodTuple> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self
-            .variants
-            .iter()
-            .map(|f| Zod(f, self.context()))
-            .collect::<Vec<_>>();
+        let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.tuple([{}])", Separated(", ", &variants)))
     }
 }
 
 impl Display for Ts<'_, ZodTuple> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self
-            .variants
-            .iter()
-            .map(|f| Ts(f, self.context()))
-            .collect::<Vec<_>>();
+        let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("[{}]", Separated(", ", &variants)))
     }
 }
@@ -64,21 +56,17 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod::io(
-                &ZodTuple::builder()
-                    .variants(vec![ZodString.into(), ZodNumber.into()])
-                    .build()
-            )
+            Zod(&ZodTuple::builder()
+                .variants(vec![ZodString.into(), ZodNumber.into()])
+                .build())
             .to_string(),
             "z.tuple([z.string(), z.number()])"
         );
 
         assert_eq!(
-            Ts::io(
-                &ZodTuple::builder()
-                    .variants(vec![ZodString.into(), ZodNumber.into()])
-                    .build()
-            )
+            Ts(&ZodTuple::builder()
+                .variants(vec![ZodString.into(), ZodNumber.into()])
+                .build())
             .to_string(),
             "[string, number]"
         );

@@ -18,11 +18,7 @@ pub struct ZodDiscriminatedUnion {
 
 impl Display for Zod<'_, ZodDiscriminatedUnion> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self
-            .variants
-            .iter()
-            .map(|f| Zod(f, self.context()))
-            .collect::<Vec<_>>();
+        let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!(
             "z.discriminatedUnion(\"{tag}\", [{variants}])",
             tag = self.tag,
@@ -33,11 +29,7 @@ impl Display for Zod<'_, ZodDiscriminatedUnion> {
 
 impl Display for Ts<'_, ZodDiscriminatedUnion> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self
-            .variants
-            .iter()
-            .map(|f| Ts(f, self.context()))
-            .collect::<Vec<_>>();
+        let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))
     }
 }
@@ -87,11 +79,11 @@ mod test {
             ])
             .build();
         assert_eq!(
-            Zod::io(&input).to_string(),
+            Zod(&input).to_string(),
             "z.discriminatedUnion(\"abc\", [z.object({ abc: Rs.io.String }), z.object({})])"
         );
 
-        assert_eq!(Ts::io(&input).to_string(), "{ abc: Rs.io.String } | {}");
+        assert_eq!(Ts(&input).to_string(), "{ abc: Rs.io.String } | {}");
     }
 
     #[test]

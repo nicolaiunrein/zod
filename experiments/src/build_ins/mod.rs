@@ -1,6 +1,6 @@
 use crate::{
     types::{ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    IoType,
+    Context, IoType,
 };
 
 const NAMESPACE: &'static str = "Rs";
@@ -21,6 +21,7 @@ macro_rules! impl_number {
                 $crate::Reference::builder()
                     .ns(NAMESPACE)
                     .name(capitalize(stringify!($ident)))
+                    .context(Context::Io)
                     .build()
                     .into()
             }
@@ -90,6 +91,7 @@ impl IoType for bool {
         crate::Reference::builder()
             .ns("Rs")
             .name("Bool")
+            .context(Context::Io)
             .build()
             .into()
     }
@@ -110,6 +112,7 @@ impl IoType for String {
         crate::Reference::builder()
             .ns("Rs")
             .name("String")
+            .context(Context::Io)
             .build()
             .into()
     }
