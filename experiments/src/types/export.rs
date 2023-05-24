@@ -223,10 +223,10 @@ mod test {
             })))
         );
 
-        assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: String.optional(), my_number: U8 });");
+        assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: Rs.String.optional(), my_number: Rs.U8 });");
         assert_eq!(
             Ts(&export).to_string(),
-            "export interface Test<T1, T2, T3> { my_string?: String | undefined, my_number: U8 }"
+            "export interface Test<T1, T2, T3> { my_string?: Rs.String | undefined, my_number: Rs.U8 }"
         )
     }
 

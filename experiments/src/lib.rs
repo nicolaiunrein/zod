@@ -100,7 +100,10 @@ impl ToTokens for Reference {
         use crate::utils::crate_name;
         let name = &self.name;
         let args = &self.args;
+        let ns = &self.ns;
+
         tokens.extend(quote!(#crate_name::Reference {
+            ns: String::from(#ns),
             name: String::from(#name),
             args: vec![#(#args),*]
         }))
@@ -115,28 +118,25 @@ impl From<Reference> for ZodTypeInner {
 
 impl<'a> Display for Ts<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0.args.is_empty() {
-            f.write_fmt(format_args!("{}", self.0.name))
-        } else {
-            self.0.name.fmt(f)?;
+        f.write_fmt(format_args!("{}.{}", self.0.ns, self.0.name))?;
+        if !self.0.args.is_empty() {
             let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
 
             f.write_fmt(format_args!("<{}>", utils::Separated(", ", &args)))?;
-            Ok(())
         }
+        Ok(())
     }
 }
 
 impl<'a> Display for Zod<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0.args.is_empty() {
-            f.write_fmt(format_args!("{}", self.0.name))
-        } else {
+        f.write_fmt(format_args!("{}.{}", self.0.ns, self.0.name))?;
+        if !self.0.args.is_empty() {
             self.0.name.fmt(f)?;
             let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
-            Ok(())
         }
+        Ok(())
     }
 }
 
@@ -327,8 +327,8 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Ts(&Transparent::get_output_ref()).to_string(), "String");
-        assert_eq!(Ts(&Transparent::get_input_ref()).to_string(), "U8");
+        assert_eq!(Ts(&Transparent::get_output_ref()).to_string(), "Rs.String");
+        assert_eq!(Ts(&Transparent::get_input_ref()).to_string(), "Rs.U8");
     }
 
     #[test]
@@ -352,17 +352,17 @@ mod test {
 
         assert_eq!(
             Ts(&Generic::<Transparent>::get_output_ref()).to_string(),
-            "Generic<String>"
+            "Ns.Generic<Rs.String>"
         );
 
         assert_eq!(
             Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
-            "Generic<MY_T>"
+            "Ns.Generic<MY_T>"
         );
 
         assert_eq!(
             Ts(&Generic::<Transparent>::get_input_ref()).to_string(),
-            "Generic<U8>"
+            "Ns.Generic<Rs.U8>"
         );
 
         assert_eq!(

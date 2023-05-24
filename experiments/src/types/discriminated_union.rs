@@ -80,11 +80,10 @@ mod test {
             .build();
         assert_eq!(
             Zod(&input).to_string(),
-            "z.discriminatedUnion(\"abc\", [z.object({ abc: String }), z.object({})])" // TODO: should be
-                                                                                       // Rs.String
+            "z.discriminatedUnion(\"abc\", [z.object({ abc: Rs.String }), z.object({})])"
         );
 
-        assert_eq!(Ts(&input).to_string(), "{ abc: String } | {}");
+        assert_eq!(Ts(&input).to_string(), "{ abc: Rs.String } | {}");
     }
 
     #[test]
