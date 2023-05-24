@@ -76,6 +76,7 @@ where
 impl<const C: char, T: const_str::Chain> IoType for const_str::ConstStr<C, T> {
     fn get_ref() -> Reference {
         Reference {
+            ns: String::from("todo"),
             name: Self::value().to_string(),
             args: Vec::new(),
         }
@@ -88,6 +89,9 @@ impl<const C: char, T: const_str::Chain> IoType for const_str::ConstStr<C, T> {
 pub struct Reference {
     #[builder(setter(into))]
     pub name: String,
+
+    #[builder(setter(into))]
+    pub ns: String,
 
     #[builder(default)]
     pub args: Vec<Reference>,
@@ -165,6 +169,7 @@ mod test {
         fn get_output_ref() -> Reference {
             Reference::builder()
                 .name("Generic")
+                .ns("Ns")
                 .args(vec![T::get_output_ref()])
                 .build()
         }
@@ -177,7 +182,7 @@ mod test {
                     ZodObject::builder()
                         .fields(vec![ZodNamedField::builder()
                             .name("inner")
-                            .value(Reference::builder().name("T").build())
+                            .value(Reference::builder().ns("Ns").name("T").build())
                             .build()])
                         .build(),
                 )
@@ -194,6 +199,7 @@ mod test {
     {
         fn get_input_ref() -> Reference {
             Reference::builder()
+                .ns("Ns")
                 .name("Generic")
                 .args(vec![T::get_input_ref()])
                 .build()
@@ -207,7 +213,7 @@ mod test {
                     ZodObject::builder()
                         .fields(vec![ZodNamedField::builder()
                             .name("inner")
-                            .value(Reference::builder().name("T").build())
+                            .value(Reference::builder().ns("todo").name("T").build())
                             .build()])
                         .build(),
                 )
@@ -246,6 +252,7 @@ mod test {
         fn get_output_ref() -> Reference {
             Reference {
                 name: String::from("Nested"),
+                ns: String::from("Ns"),
                 args: vec![T::get_output_ref()],
             }
         }
@@ -273,6 +280,7 @@ mod test {
     impl<T: InputType> InputType for Nested<T> {
         fn get_input_ref() -> Reference {
             Reference {
+                ns: String::from("Ns"),
                 name: String::from("Nested"),
                 args: vec![T::get_input_ref()],
             }
@@ -302,6 +310,7 @@ mod test {
     impl OutputType for SerOnly {
         fn get_output_ref() -> Reference {
             Reference {
+                ns: String::from("Ns"),
                 name: String::from("SerOnly"),
                 args: Vec::new(),
             }
@@ -327,7 +336,7 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("inner")
-                        .value(Reference::builder().name("T").build())
+                        .value(Reference::builder().ns("todo").name("T").build())
                         .build()])
                     .build(),
             )
@@ -375,8 +384,10 @@ mod test {
         assert_eq!(
             <Generic::<SerOnly>>::get_output_ref(),
             Reference {
+                ns: String::from("Ns"),
                 name: String::from("Generic"),
                 args: vec![Reference {
+                    ns: String::from("Ns"),
                     name: String::from("SerOnly"),
                     args: vec![]
                 }]

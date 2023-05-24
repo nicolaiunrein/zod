@@ -17,6 +17,7 @@ macro_rules! impl_number {
         impl IoType for $ident {
             fn get_ref() -> crate::Reference {
                 crate::Reference::builder()
+                    .ns("Rs")
                     .name(capitalize(stringify!($ident)))
                     .build()
             }
@@ -82,7 +83,7 @@ impl_number!(
 
 impl IoType for bool {
     fn get_ref() -> crate::Reference {
-        crate::Reference::builder().name("Bool").build()
+        crate::Reference::builder().ns("Rs").name("Bool").build()
     }
 
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
@@ -92,7 +93,7 @@ impl IoType for bool {
 
 impl IoType for String {
     fn get_ref() -> crate::Reference {
-        crate::Reference::builder().name("String").build()
+        crate::Reference::builder().ns("Rs").name("String").build()
     }
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
         set.insert(ZodExport::builder().name("String").value(ZodString).build());
