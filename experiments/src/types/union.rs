@@ -3,7 +3,7 @@ use std::fmt::Display;
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::Crate, utils::Separated};
+use crate::{types::crate_name, utils::Separated};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
@@ -31,7 +31,7 @@ impl ToTokens for ZodUnion {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variants = &self.variants;
 
-        tokens.extend(quote!(#Crate::types::ZodUnion {
+        tokens.extend(quote!(#crate_name::types::ZodUnion {
             variants: vec![#(#variants),*]
         }))
     }

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::Crate, utils::Separated, Reference};
+use crate::{types::crate_name, utils::Separated, Reference};
 
 use super::{Ts, Zod, ZodTypeInner};
 
@@ -65,7 +65,7 @@ impl Display for Ts<'_, ZodNamedField> {
 impl ToTokens for ZodObject {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let fields = &self.fields;
-        tokens.extend(quote!(#Crate::types::ZodObject {
+        tokens.extend(quote!(#crate_name::types::ZodObject {
             fields: vec![#(#fields),*],
         }))
     }
@@ -77,7 +77,7 @@ impl ToTokens for ZodNamedField {
         let value = &self.value;
         let optional = self.optional;
 
-        tokens.extend(quote!(#Crate::types::ZodNamedField {
+        tokens.extend(quote!(#crate_name::types::ZodNamedField {
             name: #name,
             optional: #optional,
             value: #value

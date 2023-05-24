@@ -5,7 +5,7 @@ use std::fmt::Display;
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::Crate, utils::Separated};
+use crate::{types::crate_name, utils::Separated};
 
 use super::{Ts, Zod, ZodObject, ZodTypeInner};
 
@@ -39,7 +39,7 @@ impl ToTokens for ZodDiscriminatedUnion {
         let variants = &self.variants;
         let tag = self.tag;
 
-        tokens.extend(quote!(#Crate::types::ZodDiscriminatedUnion {
+        tokens.extend(quote!(#crate_name::types::ZodDiscriminatedUnion {
             tag: #tag,
             variants: vec![#(#variants),*]
         }))
@@ -57,7 +57,7 @@ mod test {
     use crate::{
         test_utils::{expand_zod, formatted},
         types::ZodNamedField,
-        RefSer,
+        OutputType,
     };
 
     use super::*;
@@ -71,7 +71,7 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(String::ref_ser()) //todo
+                        .value(String::get_output_ref()) //todo
                         .build()])
                     .build()
                     .into(),
@@ -95,7 +95,7 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(String::ref_ser())
+                        .value(String::get_output_ref())
                         .build()])
                     .build()
                     .into(),
@@ -103,7 +103,7 @@ mod test {
             ])
             .build();
 
-        let ref_string = String::ref_ser();
+        let ref_string = String::get_output_ref();
 
         assert_eq!(
             formatted(quote!(#input)),

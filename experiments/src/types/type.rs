@@ -3,7 +3,7 @@ use std::fmt::Display;
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::Crate, Reference};
+use crate::{types::crate_name, Reference};
 
 use super::{
     literal::ZodLiteral, Ts, Zod, ZodBool, ZodDiscriminatedUnion, ZodNumber, ZodObject, ZodString,
@@ -114,7 +114,7 @@ impl ToTokens for ZodType {
         let optional = self.optional;
         let inner = &self.inner;
 
-        tokens.extend(quote!(#Crate::types::ZodType {
+        tokens.extend(quote!(#crate_name::types::ZodType {
             optional: #optional,
             inner: #inner
         }))
@@ -136,7 +136,7 @@ impl ToTokens for ZodTypeInner {
             ZodTypeInner::Generic(inner) => (quote!(Generic), quote!(#inner)),
         };
 
-        tokens.extend(quote!(#Crate::types::ZodTypeInner::#variant(#inner)))
+        tokens.extend(quote!(#crate_name::types::ZodTypeInner::#variant(#inner)))
     }
 }
 

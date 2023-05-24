@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use quote::{quote, ToTokens};
 
-use crate::types::Crate;
+use crate::types::crate_name;
 
 use super::{Ts, Zod, ZodTypeInner};
 
@@ -35,9 +35,9 @@ impl Display for Ts<'_, ZodLiteral> {
 impl ToTokens for ZodLiteral {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            ZodLiteral::String(inner) => quote!(#Crate::types::Literal::String(#inner)),
-            ZodLiteral::Number(inner) => quote!(#Crate::types::Literal::Number(#inner)),
-            ZodLiteral::Bool(inner) => quote!(#Crate::types::Literal::Bool(#inner)),
+            ZodLiteral::String(inner) => quote!(#crate_name::types::Literal::String(#inner)),
+            ZodLiteral::Number(inner) => quote!(#crate_name::types::Literal::Number(#inner)),
+            ZodLiteral::Bool(inner) => quote!(#crate_name::types::Literal::Bool(#inner)),
         });
     }
 }

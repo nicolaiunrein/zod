@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{types::Crate, utils::Separated};
+use crate::{types::crate_name, utils::Separated};
 
 use super::{Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
 use quote::{quote, ToTokens};
@@ -160,7 +160,7 @@ impl ToTokens for ZodExport {
         let args = self.args;
         let value = &self.value;
 
-        tokens.extend(quote!(#Crate::types::ZodExport {
+        tokens.extend(quote!(#crate_name::types::ZodExport {
             name: #name,
             args: &[#(#args),*],
             value: #value
@@ -173,7 +173,7 @@ mod test {
     use crate::{
         test_utils::{expand_zod, formatted},
         types::{ZodNamedField, ZodObject, ZodString},
-        RefSer,
+        OutputType,
     };
     use pretty_assertions::assert_eq;
 
@@ -190,19 +190,19 @@ mod test {
                         ZodNamedField::builder()
                             .name("my_string")
                             .optional()
-                            .value(String::ref_ser())
+                            .value(String::get_output_ref())
                             .build(),
                         ZodNamedField::builder()
                             .name("my_number")
-                            .value(u8::ref_ser())
+                            .value(u8::get_output_ref())
                             .build(),
                     ])
                     .build(),
             )
             .build();
 
-        let string_ref = String::ref_ser();
-        let u8_ref = u8::ref_ser();
+        let string_ref = String::get_output_ref();
+        let u8_ref = u8::get_output_ref();
 
         assert_eq!(
             formatted(&export),

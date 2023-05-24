@@ -9,6 +9,8 @@ mod tuple;
 mod r#type;
 mod union;
 
+use crate::utils::crate_name;
+
 pub use self::r#bool::*;
 pub use discriminated_union::*;
 pub use export::*;
@@ -24,32 +26,6 @@ use quote::quote;
 use quote::ToTokens;
 
 use std::{fmt::Display, ops::Deref};
-
-use proc_macro2::{Ident, Span};
-
-pub(crate) struct Crate;
-
-impl ToTokens for Crate {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        tokens.extend(quote!(#zod::core))
-    }
-}
-
-fn get_crate_name() -> String {
-    proc_macro_crate::crate_name("zod")
-        .map(|found_crate| match found_crate {
-            proc_macro_crate::FoundCrate::Itself => String::from("zod"),
-            proc_macro_crate::FoundCrate::Name(name) => name,
-        })
-        .unwrap_or_else(|_| String::from("zod"))
-}
-
-pub(crate) fn get_zod() -> syn::Path {
-    let name = get_crate_name();
-    let ident = Ident::new(&name, Span::call_site());
-    syn::parse_quote!(::#ident)
-}
 
 pub struct ZodTypeAny;
 
@@ -80,7 +56,7 @@ impl<T> Deref for Ts<'_, T> {
 
 impl ToTokens for ZodTypeAny {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.extend(quote!(#Crate::types::ZodTypeAny))
+        tokens.extend(quote!(#crate_name::types::ZodTypeAny))
     }
 }
 

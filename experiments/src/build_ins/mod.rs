@@ -1,6 +1,6 @@
 use crate::{
     types::{ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    Type,
+    IoType,
 };
 
 /// Capitalizes the first character in s.
@@ -14,8 +14,8 @@ pub fn capitalize(s: &str) -> String {
 
 macro_rules! impl_number {
     ($ident: ident, $suffix: expr) => {
-        impl Type for $ident {
-            fn reference() -> crate::Reference {
+        impl IoType for $ident {
+            fn get_ref() -> crate::Reference {
                 crate::Reference::builder()
                     .name(capitalize(stringify!($ident)))
                     .build()
@@ -80,8 +80,8 @@ impl_number!(
     )
 );
 
-impl Type for bool {
-    fn reference() -> crate::Reference {
+impl IoType for bool {
+    fn get_ref() -> crate::Reference {
         crate::Reference::builder().name("Bool").build()
     }
 
@@ -90,8 +90,8 @@ impl Type for bool {
     }
 }
 
-impl Type for String {
-    fn reference() -> crate::Reference {
+impl IoType for String {
+    fn get_ref() -> crate::Reference {
         crate::Reference::builder().name("String").build()
     }
     fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {

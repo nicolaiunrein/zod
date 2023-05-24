@@ -14,21 +14,8 @@ use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 use types::{Ts, Zod, ZodExport, ZodTypeInner};
 
-use crate::types::Crate;
-
-pub trait RefSer {
-    fn ref_ser() -> Reference;
-    fn visit_ser_exports(_set: &mut HashSet<ZodExport>);
-
-    fn collect_ser_exports() -> HashSet<ZodExport> {
-        let mut set = HashSet::new();
-        Self::visit_ser_exports(&mut set);
-        set
-    }
-}
-
-pub trait RefDe {
-    fn ref_de() -> Reference;
+pub trait InputType {
+    fn get_input_ref() -> Reference;
     fn visit_de_exports(_set: &mut HashSet<ZodExport>);
 
     fn collect_de_exports() -> HashSet<ZodExport> {
@@ -38,23 +25,34 @@ pub trait RefDe {
     }
 }
 
-pub trait Type {
-    fn reference() -> Reference;
+pub trait OutputType {
+    fn get_output_ref() -> Reference;
+    fn visit_ser_exports(_set: &mut HashSet<ZodExport>);
+
+    fn collect_ser_exports() -> HashSet<ZodExport> {
+        let mut set = HashSet::new();
+        Self::visit_ser_exports(&mut set);
+        set
+    }
+}
+
+pub trait IoType {
+    fn get_ref() -> Reference;
     fn visit_exports(_set: &mut HashSet<ZodExport>);
 
-    fn collect_exports() -> HashSet<ZodExport> {
+    fn collect_all_exports() -> HashSet<ZodExport> {
         let mut set = HashSet::new();
         Self::visit_exports(&mut set);
         set
     }
 }
 
-impl<T> RefSer for T
+impl<T> OutputType for T
 where
-    T: Type,
+    T: IoType,
 {
-    fn ref_ser() -> Reference {
-        Self::reference()
+    fn get_output_ref() -> Reference {
+        Self::get_ref()
     }
 
     fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
@@ -62,12 +60,12 @@ where
     }
 }
 
-impl<T> RefDe for T
+impl<T> InputType for T
 where
-    T: Type,
+    T: IoType,
 {
-    fn ref_de() -> Reference {
-        Self::reference()
+    fn get_input_ref() -> Reference {
+        Self::get_ref()
     }
 
     fn visit_de_exports(set: &mut HashSet<ZodExport>) {
@@ -75,8 +73,8 @@ where
     }
 }
 
-impl<const C: char, T: const_str::Chain> Type for const_str::ConstStr<C, T> {
-    fn reference() -> Reference {
+impl<const C: char, T: const_str::Chain> IoType for const_str::ConstStr<C, T> {
+    fn get_ref() -> Reference {
         Reference {
             name: Self::value().to_string(),
             args: Vec::new(),
@@ -111,9 +109,10 @@ pub struct Reference {
 
 impl ToTokens for Reference {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use crate::utils::crate_name;
         let name = &self.name;
         let args = &self.args;
-        tokens.extend(quote!(#Crate::Reference {
+        tokens.extend(quote!(#crate_name::Reference {
             name: String::from(#name),
             args: vec![#(#args),*]
         }))
@@ -173,14 +172,14 @@ mod test {
         inner: T,
     }
 
-    impl<T> RefSer for Generic<T>
+    impl<T> OutputType for Generic<T>
     where
-        T: RefSer,
+        T: OutputType,
     {
-        fn ref_ser() -> Reference {
+        fn get_output_ref() -> Reference {
             Reference::builder()
                 .name("Generic")
-                .args(vec![T::ref_ser()])
+                .args(vec![T::get_output_ref()])
                 .build()
         }
 
@@ -203,14 +202,14 @@ mod test {
         }
     }
 
-    impl<T> RefDe for Generic<T>
+    impl<T> InputType for Generic<T>
     where
-        T: RefDe,
+        T: InputType,
     {
-        fn ref_de() -> Reference {
+        fn get_input_ref() -> Reference {
             Reference::builder()
                 .name("Generic")
-                .args(vec![T::ref_de()])
+                .args(vec![T::get_input_ref()])
                 .build()
         }
 
@@ -235,18 +234,18 @@ mod test {
 
     struct Transparent;
 
-    impl RefSer for Transparent {
-        fn ref_ser() -> Reference {
-            <String as RefSer>::ref_ser()
+    impl OutputType for Transparent {
+        fn get_output_ref() -> Reference {
+            <String as OutputType>::get_output_ref()
         }
         fn visit_ser_exports(set: &mut HashSet<ZodExport>) {
             String::visit_ser_exports(set);
         }
     }
 
-    impl RefDe for Transparent {
-        fn ref_de() -> Reference {
-            <u8 as RefDe>::ref_de()
+    impl InputType for Transparent {
+        fn get_input_ref() -> Reference {
+            <u8 as InputType>::get_input_ref()
         }
         fn visit_de_exports(set: &mut HashSet<ZodExport>) {
             u8::visit_de_exports(set);
@@ -257,11 +256,11 @@ mod test {
         inner: Generic<T>,
     }
 
-    impl<T: RefSer> RefSer for Nested<T> {
-        fn ref_ser() -> Reference {
+    impl<T: OutputType> OutputType for Nested<T> {
+        fn get_output_ref() -> Reference {
             Reference {
                 name: String::from("Nested"),
-                args: vec![T::ref_ser()],
+                args: vec![T::get_output_ref()],
             }
         }
 
@@ -273,7 +272,7 @@ mod test {
                     ZodObject::builder()
                         .fields(vec![ZodNamedField::builder()
                             .name("inner")
-                            .value(Generic::<crate::const_str!('T')>::ref_ser())
+                            .value(Generic::<crate::const_str!('T')>::get_output_ref())
                             .build()])
                         .build(),
                 )
@@ -285,11 +284,11 @@ mod test {
         }
     }
 
-    impl<T: RefDe> RefDe for Nested<T> {
-        fn ref_de() -> Reference {
+    impl<T: InputType> InputType for Nested<T> {
+        fn get_input_ref() -> Reference {
             Reference {
                 name: String::from("Nested"),
-                args: vec![T::ref_de()],
+                args: vec![T::get_input_ref()],
             }
         }
         fn visit_de_exports(set: &mut HashSet<ZodExport>) {
@@ -300,7 +299,7 @@ mod test {
                     ZodObject::builder()
                         .fields(vec![ZodNamedField::builder()
                             .name("inner")
-                            .value(Generic::<crate::const_str!('T')>::ref_de())
+                            .value(Generic::<crate::const_str!('T')>::get_input_ref())
                             .build()])
                         .build(),
                 )
@@ -314,8 +313,8 @@ mod test {
 
     struct SerOnly;
 
-    impl RefSer for SerOnly {
-        fn ref_ser() -> Reference {
+    impl OutputType for SerOnly {
+        fn get_output_ref() -> Reference {
             Reference {
                 name: String::from("SerOnly"),
                 args: Vec::new(),
@@ -326,14 +325,14 @@ mod test {
 
     #[test]
     fn inline_transparent_ok() {
-        assert_eq!(Ts(&Transparent::ref_ser()).to_string(), "String");
-        assert_eq!(Ts(&Transparent::ref_de()).to_string(), "U8");
+        assert_eq!(Ts(&Transparent::get_output_ref()).to_string(), "String");
+        assert_eq!(Ts(&Transparent::get_input_ref()).to_string(), "U8");
     }
 
     #[test]
     fn debug() {
-        let u8_export = u8::collect_exports().into_iter().next().unwrap();
-        let string_export = String::collect_exports().into_iter().next().unwrap();
+        let u8_export = u8::collect_all_exports().into_iter().next().unwrap();
+        let string_export = String::collect_all_exports().into_iter().next().unwrap();
 
         let generic_export = ZodExport::builder()
             .name("Generic")
@@ -349,17 +348,17 @@ mod test {
             .build();
 
         assert_eq!(
-            Ts(&Generic::<Transparent>::ref_ser()).to_string(),
+            Ts(&Generic::<Transparent>::get_output_ref()).to_string(),
             "Generic<String>"
         );
 
         assert_eq!(
-            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::ref_ser()).to_string(),
+            Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
             "Generic<MY_T>"
         );
 
         assert_eq!(
-            Ts(&Generic::<Transparent>::ref_de()).to_string(),
+            Ts(&Generic::<Transparent>::get_input_ref()).to_string(),
             "Generic<U8>"
         );
 
@@ -388,7 +387,7 @@ mod test {
         );
 
         assert_eq!(
-            <Generic::<SerOnly>>::ref_ser(),
+            <Generic::<SerOnly>>::get_output_ref(),
             Reference {
                 name: String::from("Generic"),
                 args: vec![Reference {
