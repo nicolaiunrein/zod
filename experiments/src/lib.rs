@@ -8,23 +8,14 @@ mod utils;
 #[cfg(test)]
 mod test_utils;
 
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    collections::{BTreeMap, HashMap, HashSet},
+    fmt::Display,
+};
 
 use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 use types::{Role, Ts, Zod, ZodExport, ZodType, ZodTypeInner};
-
-pub fn collect_input_exports<T: InputType>() -> HashSet<ZodExport> {
-    let mut set = HashSet::new();
-    T::visit_input_exports(&mut set);
-    set
-}
-
-pub fn collect_output_exports<T: OutputType>() -> HashSet<ZodExport> {
-    let mut set = HashSet::new();
-    T::visit_output_exports(&mut set);
-    set
-}
 
 pub trait InputType {
     fn get_input_ref() -> ZodType;
@@ -132,6 +123,85 @@ impl<'a> Display for Zod<'a, Reference> {
             let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
         }
+        Ok(())
+    }
+}
+
+pub fn collect_input_exports<T: InputType>() -> HashSet<ZodExport> {
+    let mut set = HashSet::new();
+    T::visit_input_exports(&mut set);
+    set
+}
+
+pub fn collect_output_exports<T: OutputType>() -> HashSet<ZodExport> {
+    let mut set = HashSet::new();
+    T::visit_output_exports(&mut set);
+    set
+}
+
+struct NsMap {
+    input: BTreeMap<String, ZodExport>,
+    output: BTreeMap<String, ZodExport>,
+    io: BTreeMap<String, ZodExport>,
+}
+
+pub struct ExportMap(BTreeMap<String, NsMap>);
+
+impl ExportMap {
+    pub fn new(exports: impl IntoIterator<Item = ZodExport>) -> Self {
+        let mut out = BTreeMap::<String, NsMap>::new();
+
+        for export in exports.into_iter() {
+            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
+                input: Default::default(),
+                output: Default::default(),
+                io: Default::default(),
+            });
+
+            match export.context {
+                Role::InputOnly => ns_map.input.insert(export.name.clone(), export),
+                Role::OutputOnly => ns_map.output.insert(export.name.clone(), export),
+                Role::Io => ns_map.io.insert(export.name.clone(), export),
+            };
+        }
+        Self(out)
+    }
+}
+
+impl Display for ExportMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (ns, inner) in self.0.iter() {
+            f.write_fmt(format_args!("export namespace {ns} {{\n{}}}\n", inner))?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for NsMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut fmt_part = |name: &'static str, set: &BTreeMap<String, ZodExport>| {
+            if set.is_empty() {
+                f.write_fmt(format_args!("    export namespace {name} {{}}\n"))?;
+            } else {
+                f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
+                for export in set.values() {
+                    f.write_str("        ")?;
+                    Display::fmt(&Ts(export), f)?;
+                    f.write_str("\n")?;
+                    f.write_str("        ")?;
+                    Display::fmt(&Zod(export), f)?;
+                    f.write_str("\n")?;
+                }
+
+                f.write_str("    }\n")?;
+            }
+            std::fmt::Result::Ok(())
+        };
+
+        fmt_part("input", &self.input)?;
+        fmt_part("output", &self.output)?;
+        fmt_part("io", &self.io)?;
+
         Ok(())
     }
 }
@@ -455,5 +525,58 @@ mod test {
                 .into_iter()
                 .collect()
         )
+    }
+
+    #[test]
+    fn export_map_ok() {
+        let map = ExportMap::new([
+            ZodExport::builder()
+                .name("hello")
+                .ns("Ns")
+                .context(Role::Io)
+                .value(ZodTypeInner::Generic(String::from("MyGeneric")))
+                .build(),
+            ZodExport::builder()
+                .name("world")
+                .ns("Ns2")
+                .context(Role::InputOnly)
+                .value(
+                    ZodObject::builder()
+                        .fields(vec![ZodNamedField::builder()
+                            .name("hello")
+                            .value(
+                                Reference::builder()
+                                    .name("hello")
+                                    .ns("Ns")
+                                    .role(Role::Io)
+                                    .build(),
+                            )
+                            .build()])
+                        .build(),
+                )
+                .build(),
+        ]);
+
+        assert_eq!(
+            map.to_string().trim(),
+            r#"
+export namespace Ns {
+    export namespace input {}
+    export namespace output {}
+    export namespace io {
+        export type hello = MyGeneric;
+        export const hello = MyGeneric;
+    }
+}
+export namespace Ns2 {
+    export namespace input {
+        export interface world { hello: Ns.io.hello }
+        export const world = z.object({ hello: Ns.io.hello });
+    }
+    export namespace output {}
+    export namespace io {}
+}"#
+            .trim()
+        );
     }
 }
