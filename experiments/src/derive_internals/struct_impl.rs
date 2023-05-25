@@ -12,6 +12,7 @@ pub(super) struct StructImpl {
     pub(crate) data: DataStruct,
     pub(crate) role: Role,
     pub(crate) ns: syn::Path,
+    pub(crate) custom_suffix: Option<String>,
 }
 
 impl ToTokens for StructImpl {
@@ -21,8 +22,10 @@ impl ToTokens for StructImpl {
         let ident = &self.ident;
         let name = self.ident.to_string();
         let ns_name = quote_spanned!(ns.span() => <#ns as #zod_core::Namespace>::NAME);
-
-        let custom_suffix = quote!(None);
+        let custom_suffix = match self.custom_suffix {
+            Some(ref suffix) => quote!(Some(#suffix)),
+            None => quote!(None),
+        };
 
         let make_export_stmts = |ty: &syn::Type| {
             let qualified_ty = qualify_ty(ty, parse_quote!(#zod_core::IoType));
@@ -46,8 +49,10 @@ impl ToTokens for StructImpl {
         };
 
         let inner = match &self.data.fields {
-            syn::Fields::Named(fields) => impl_zod_object(fields),
-            syn::Fields::Unnamed(fields) => impl_zod_tuple(fields),
+            syn::Fields::Named(fields) => impl_zod_object(fields.named.iter().map(|f| (f, false))), //todo
+            syn::Fields::Unnamed(fields) => {
+                impl_zod_tuple(fields.unnamed.iter().map(|f| (f, false))) // todo
+            }
             syn::Fields::Unit => todo!(),
         };
 
@@ -94,11 +99,10 @@ impl ToTokens for StructImpl {
     }
 }
 
-fn impl_zod_object(fields: &syn::FieldsNamed) -> TokenStream2 {
-    let fields = fields.named.iter().map(|f| {
+fn impl_zod_object<'a>(fields: impl Iterator<Item = (&'a syn::Field, bool)>) -> TokenStream2 {
+    let fields = fields.map(|(f, optional)| {
         let ident = f.ident.as_ref().expect("named fields");
         let name = ident.to_string();
-        let optional = false; //todo
 
         let ty = &f.ty;
 
@@ -119,15 +123,18 @@ fn impl_zod_object(fields: &syn::FieldsNamed) -> TokenStream2 {
     }.into())
 }
 
-fn impl_zod_tuple(fields: &syn::FieldsUnnamed) -> TokenStream2 {
-    let fields = fields.unnamed.iter().map(|f| {
+fn impl_zod_tuple<'a>(fields: impl Iterator<Item = (&'a syn::Field, bool)>) -> TokenStream2 {
+    let fields = fields.map(|(f, optional)| {
         let ty = &f.ty;
 
         let qualified_ty = qualify_ty(ty, parse_quote!(#zod_core::IoType));
 
         quote_spanned! {
             ty.span() =>
-            #zod_core::types::ZodType::from(#qualified_ty::get_ref())
+            #zod_core::types::ZodType {
+                optional: #optional,
+                ..#qualified_ty::get_ref()
+            }
         }
     });
 

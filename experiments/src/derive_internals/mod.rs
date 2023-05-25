@@ -16,6 +16,7 @@ use syn::DeriveInput;
 
 struct ZodOptions {
     pub namespace: syn::Path,
+    pub custom_suffix: Option<String>,
 }
 
 fn qualify_ty(ty: &syn::Type, trait_path: syn::Path) -> TokenStream2 {
@@ -47,6 +48,7 @@ pub fn impl_zod(role: Role, input: TokenStream2) -> TokenStream2 {
                 ident,
                 role,
                 ns: attrs.namespace,
+                custom_suffix: attrs.custom_suffix,
                 generics,
                 data,
             };
@@ -159,8 +161,16 @@ mod test {
                                 custom_suffix: None,
                                 inner: #zod_core::types::ZodTuple {
                                     fields: vec![
-                                        #zod_core::types::ZodType::from(<String as #zod_core::IoType>::get_ref()),
-                                        #zod_core::types::ZodType::from(<usize as #zod_core::IoType>::get_ref())
+                                        #zod_core::types::ZodType {
+                                            optional: false,
+                                            // TODO: this is not correct! optional on field should
+                                            // be merged with optional type
+                                            ..<String as #zod_core::IoType>::get_ref()
+                                        },
+                                        #zod_core::types::ZodType {
+                                            optional: false,
+                                            ..<usize as #zod_core::IoType>::get_ref()
+                                        }
                                     ]
                                 }.into()
                             }
