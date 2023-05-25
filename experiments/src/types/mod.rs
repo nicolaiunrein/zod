@@ -77,6 +77,16 @@ impl ToTokens for ZodTypeAny {
     }
 }
 
+impl ToTokens for Role {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(match self {
+            Role::InputOnly => quote!(#crate_name::types::Role::InputOnly),
+            Role::OutputOnly => quote!(#crate_name::types::Role::OutputOnly),
+            Role::Io => quote!(#crate_name::types::Role::Io),
+        })
+    }
+}
+
 #[test]
 fn ok() {
     assert_eq!(

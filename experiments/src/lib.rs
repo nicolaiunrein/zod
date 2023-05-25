@@ -2,14 +2,15 @@
 /// The Traits are the same. Find a way to uniform them.
 mod build_ins;
 mod const_str;
+pub mod derive_internals;
 pub mod types;
 mod utils;
 
 #[cfg(test)]
-mod test_utils;
+pub mod test_utils;
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     fmt::Display,
 };
 
