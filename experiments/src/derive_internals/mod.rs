@@ -1,10 +1,22 @@
 mod struct_impl;
 use crate::derive_internals::struct_impl::StructImpl;
 use crate::types::Role;
+use darling::FromDeriveInput;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::DeriveInput;
+
+#[derive(FromDeriveInput)]
+#[darling(
+    attributes(zod),
+    forward_attrs(allow, doc, cfg),
+    supports(struct_named, struct_newtype, struct_tuple, enum_any)
+)]
+
+struct ZodOptions {
+    pub namespace: syn::Path,
+}
 
 fn qualify_ty(ty: &syn::Type, trait_path: syn::Path) -> TokenStream2 {
     let span = ty.span();
@@ -12,23 +24,29 @@ fn qualify_ty(ty: &syn::Type, trait_path: syn::Path) -> TokenStream2 {
 }
 
 pub fn impl_zod(role: Role, input: TokenStream2) -> TokenStream2 {
-    let parsed: DeriveInput = match syn::parse2(input) {
+    let derive_input: DeriveInput = match syn::parse2(input) {
         Ok(parsed) => parsed,
         Err(err) => {
             return err.into_compile_error().into();
         }
     };
 
-    let ident = parsed.ident;
-    let generics = parsed.generics;
-    let ns = String::from("Ns"); //todo
+    let attrs: ZodOptions = match ZodOptions::from_derive_input(&derive_input) {
+        Ok(attrs) => attrs,
+        Err(err) => {
+            return err.write_errors().into();
+        }
+    };
 
-    match parsed.data {
+    let ident = derive_input.ident;
+    let generics = derive_input.generics;
+
+    match derive_input.data {
         syn::Data::Struct(data) => {
             let it = StructImpl {
                 ident,
                 role,
-                ns,
+                ns: attrs.namespace,
                 generics,
                 data,
             };
@@ -49,6 +67,7 @@ mod test {
     #[test]
     fn zod_named_struct_ok() {
         let input = quote! {
+            #[zod(namespace = "Ns")]
             struct Test {
                 inner: String,
                 inner2: usize
@@ -59,10 +78,11 @@ mod test {
 
         let expected = quote! {
             impl #zod_core::IoType for Test {
+                type Namespace = Ns;
                 fn get_ref() -> #zod_core::types::ZodType {
                     #zod_core::Reference {
                         name: ::std::string::String::from("Test"),
-                        ns: ::std::string::String::from("Ns"),
+                        ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
                         role: #role,
                         args: vec![]
                     }.into()
@@ -70,7 +90,7 @@ mod test {
 
                 fn visit_exports(set: &mut ::std::collections::HashSet<#zod_core::types::ZodExport>) {
                     let export = #zod_core::types::ZodExport {
-                        ns: ::std::string::String::from("Ns"),
+                        ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
                         name: ::std::string::String::from("Test"),
                         context: #role,
                         args: &[],
@@ -110,6 +130,7 @@ mod test {
     #[test]
     fn zod_tuple_struct_ok() {
         let input = quote! {
+            #[zod(namespace = "Ns")]
             struct Test(String, usize);
         };
 
@@ -117,10 +138,11 @@ mod test {
 
         let expected = quote! {
             impl #zod_core::IoType for Test {
+                type Namespace = Ns;
                 fn get_ref() -> #zod_core::types::ZodType {
                     #zod_core::Reference {
                         name: ::std::string::String::from("Test"),
-                        ns: ::std::string::String::from("Ns"),
+                        ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
                         role: #role,
                         args: vec![]
                     }.into()
@@ -128,7 +150,7 @@ mod test {
 
                 fn visit_exports(set: &mut ::std::collections::HashSet<#zod_core::types::ZodExport>) {
                         let export = #zod_core::types::ZodExport {
-                            ns: ::std::string::String::from("Ns"),
+                            ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
                             name: ::std::string::String::from("Test"),
                             context: #role,
                             args: &[],

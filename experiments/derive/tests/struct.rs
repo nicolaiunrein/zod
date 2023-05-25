@@ -2,17 +2,25 @@ use zod_derive_experiments::Zod;
 use zod_derive_experiments::ZodInputOnly;
 use zod_derive_experiments::ZodOutputOnly;
 
+struct Ns;
+impl zod_core::Namespace for Ns {
+    const NAME: &'static str = "MyNs";
+}
+
 #[derive(Zod)]
+#[zod(namespace = "Ns")]
 struct StructIo {
     _value: u8,
 }
 
 #[derive(ZodInputOnly)]
+#[zod(namespace = "Ns")]
 struct StructInputOnly {
     pub _value: u8,
 }
 
 #[derive(ZodOutputOnly)]
+#[zod(namespace = "Ns")]
 struct StructOutputOnly {
     pub _value: u8,
 }

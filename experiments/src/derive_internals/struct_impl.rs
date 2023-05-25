@@ -11,7 +11,7 @@ pub(super) struct StructImpl {
     pub(crate) generics: Generics,
     pub(crate) data: DataStruct,
     pub(crate) role: Role,
-    pub(crate) ns: String,
+    pub(crate) ns: syn::Path,
 }
 
 impl ToTokens for StructImpl {
@@ -20,6 +20,7 @@ impl ToTokens for StructImpl {
         let role = self.role;
         let ident = &self.ident;
         let name = self.ident.to_string();
+        let ns_name = quote_spanned!(ns.span() => <#ns as #zod_core::Namespace>::NAME);
 
         let custom_suffix = quote!(None);
 
@@ -62,10 +63,11 @@ impl ToTokens for StructImpl {
             .collect::<Vec<_>>();
 
         tokens.extend(quote!(impl #zod_core::IoType for #ident {
+            type Namespace = #ns;
             fn get_ref() -> #zod_core::types::ZodType {
                 #zod_core::Reference {
                     name: ::std::string::String::from(#name),
-                    ns: ::std::string::String::from(#ns),
+                    ns: ::std::string::String::from(#ns_name),
                     role: #role,
                     args: vec![#(#arg_names),*]
                 }.into()
@@ -73,7 +75,7 @@ impl ToTokens for StructImpl {
 
             fn visit_exports(set: &mut ::std::collections::HashSet<#zod_core::types::ZodExport>) {
                 let export = #zod_core::types::ZodExport {
-                    ns: ::std::string::String::from(#ns),
+                    ns: ::std::string::String::from(#ns_name),
                     name: ::std::string::String::from(#name),
                     context: #role,
                     args: &[#(#arg_names),*],
