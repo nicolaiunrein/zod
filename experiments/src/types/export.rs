@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
-use crate::{types::crate_name, utils::Separated};
+use crate::utils::Separated;
 
 use super::{Role, Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
-use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
@@ -150,24 +149,9 @@ impl Display for Ts<'_, ZodExport> {
     }
 }
 
-impl ToTokens for ZodExport {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let args = self.args;
-        let value = &self.value;
-
-        tokens.extend(quote!(#crate_name::types::ZodExport {
-            name: #name,
-            args: &[#(#args),*],
-            value: #value
-        }))
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::{
-        test_utils::{expand_zod, formatted},
         types::{ZodNamedField, ZodObject, ZodString},
         OutputType,
     };
@@ -198,34 +182,6 @@ mod test {
                     .build(),
             )
             .build();
-
-        let string_ref = String::get_output_ref();
-        let u8_ref = u8::get_output_ref();
-
-        assert_eq!(
-            formatted(&export),
-            formatted(expand_zod(quote!(crate::types::ZodExport {
-                name: "Test",
-                args: &["T1", "T2", "T3"],
-                value: crate::types::ZodType {
-                    optional: false,
-                    inner: crate::types::ZodTypeInner::Object(crate::types::ZodObject {
-                        fields: vec![
-                            crate::types::ZodNamedField {
-                                name: "my_string",
-                                optional: true,
-                                value: #string_ref
-                            },
-                            crate::types::ZodNamedField {
-                                name: "my_number",
-                                optional: false,
-                                value: #u8_ref
-                            }
-                        ]
-                    })
-                }
-            })))
-        );
 
         assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: Rs.io.String.optional(), my_number: Rs.io.U8 });");
         assert_eq!(
@@ -259,18 +215,6 @@ mod test {
             .context(Role::Io)
             .value(ZodType::builder().optional().inner(ZodString).build())
             .build();
-
-        assert_eq!(
-            formatted(&export),
-            formatted(expand_zod(quote!(crate::types::ZodExport {
-                name: "MyString",
-                args: &[],
-                value: crate::types::ZodType {
-                    optional: true,
-                    inner: crate::types::ZodTypeInner::String(crate::types::ZodString)
-                }
-            })))
-        );
 
         assert_eq!(
             Zod(&export).to_string(),

@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
-use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::crate_name, utils::Separated};
+use crate::utils::Separated;
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
@@ -27,16 +26,6 @@ impl Display for Ts<'_, ZodUnion> {
     }
 }
 
-impl ToTokens for ZodUnion {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let variants = &self.variants;
-
-        tokens.extend(quote!(#crate_name::types::ZodUnion {
-            variants: vec![#(#variants),*]
-        }))
-    }
-}
-
 impl From<ZodUnion> for ZodTypeInner {
     fn from(value: ZodUnion) -> Self {
         ZodTypeInner::Union(value)
@@ -45,10 +34,7 @@ impl From<ZodUnion> for ZodTypeInner {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        test_utils::{expand_zod, formatted},
-        types::{ZodNumber, ZodString},
-    };
+    use crate::types::{ZodNumber, ZodString};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -70,28 +56,5 @@ mod test {
             .to_string(),
             "string | number"
         );
-    }
-
-    #[test]
-    fn to_tokens_ok() {
-        let input = ZodUnion::builder()
-            .variants(vec![ZodString.into(), ZodNumber.into()])
-            .build();
-
-        assert_eq!(
-            formatted(quote!(#input)),
-            formatted(expand_zod(quote!(crate::types::ZodUnion {
-                variants: vec![
-                    crate::types::ZodType {
-                        optional: false,
-                        inner: crate::types::ZodTypeInner::String(crate::types::ZodString)
-                    },
-                    crate::types::ZodType {
-                        optional: false,
-                        inner: crate::types::ZodTypeInner::Number(crate::types::ZodNumber)
-                    }
-                ]
-            })))
-        )
     }
 }

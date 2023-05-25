@@ -1,9 +1,15 @@
 use crate::{
     types::{Role, ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    IoType,
+    IoType, Namespace,
 };
 
 const NAMESPACE: &'static str = "Rs";
+
+pub struct Rs;
+
+impl Namespace for Rs {
+    const NAME: &'static str = "Rs";
+}
 
 /// Capitalizes the first character in s.
 pub fn capitalize(s: &str) -> String {
@@ -17,9 +23,10 @@ pub fn capitalize(s: &str) -> String {
 macro_rules! impl_number {
     ($ident: ident, $suffix: expr) => {
         impl IoType for $ident {
+            type Namespace = Rs;
             fn get_ref() -> $crate::types::ZodType {
                 $crate::Reference::builder()
-                    .ns(NAMESPACE)
+                    .ns(Rs::NAME)
                     .name(capitalize(stringify!($ident)))
                     .role(Role::Io)
                     .build()
@@ -88,6 +95,7 @@ impl_number!(
 );
 
 impl IoType for bool {
+    type Namespace = Rs;
     fn get_ref() -> crate::types::ZodType {
         crate::Reference::builder()
             .ns("Rs")
@@ -110,6 +118,7 @@ impl IoType for bool {
 }
 
 impl IoType for String {
+    type Namespace = Rs;
     fn get_ref() -> crate::types::ZodType {
         crate::Reference::builder()
             .ns("Rs")

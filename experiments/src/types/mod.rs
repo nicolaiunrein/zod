@@ -9,7 +9,7 @@ mod tuple;
 mod r#type;
 mod union;
 
-use crate::utils::crate_name;
+use crate::utils::zod_core;
 
 pub use self::r#bool::*;
 pub use discriminated_union::*;
@@ -73,16 +73,16 @@ impl<T> Deref for Ts<'_, T> {
 
 impl ToTokens for ZodTypeAny {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.extend(quote!(#crate_name::types::ZodTypeAny))
+        tokens.extend(quote!(#zod_core::types::ZodTypeAny))
     }
 }
 
 impl ToTokens for Role {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(match self {
-            Role::InputOnly => quote!(#crate_name::types::Role::InputOnly),
-            Role::OutputOnly => quote!(#crate_name::types::Role::OutputOnly),
-            Role::Io => quote!(#crate_name::types::Role::Io),
+            Role::InputOnly => quote!(#zod_core::types::Role::InputOnly),
+            Role::OutputOnly => quote!(#zod_core::types::Role::OutputOnly),
+            Role::Io => quote!(#zod_core::types::Role::Io),
         })
     }
 }
@@ -91,6 +91,6 @@ impl ToTokens for Role {
 fn ok() {
     assert_eq!(
         quote!(#ZodTypeAny).to_string(),
-        quote!(::zod::core::types::ZodTypeAny).to_string()
+        quote!(#zod_core::types::ZodTypeAny).to_string()
     )
 }

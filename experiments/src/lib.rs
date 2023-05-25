@@ -14,29 +14,37 @@ use std::{
     fmt::Display,
 };
 
-use quote::{quote, ToTokens};
+use build_ins::Rs;
 use typed_builder::TypedBuilder;
 use types::{Role, Ts, Zod, ZodExport, ZodType, ZodTypeInner};
 
 pub trait InputType {
+    type Namespace: Namespace;
     fn get_input_ref() -> ZodType;
     fn visit_input_exports(_set: &mut HashSet<ZodExport>);
 }
 
 pub trait OutputType {
+    type Namespace: Namespace;
     fn get_output_ref() -> ZodType;
     fn visit_output_exports(_set: &mut HashSet<ZodExport>);
 }
 
 pub trait IoType {
+    type Namespace: Namespace;
     fn get_ref() -> ZodType;
     fn visit_exports(_set: &mut HashSet<ZodExport>);
+}
+
+pub trait Namespace {
+    const NAME: &'static str;
 }
 
 impl<T> OutputType for T
 where
     T: IoType,
 {
+    type Namespace = T::Namespace;
     fn get_output_ref() -> ZodType {
         Self::get_ref()
     }
@@ -50,6 +58,8 @@ impl<T> InputType for T
 where
     T: IoType,
 {
+    type Namespace = T::Namespace;
+
     fn get_input_ref() -> ZodType {
         Self::get_ref()
     }
@@ -60,6 +70,7 @@ where
 }
 
 impl<const C: char, T: const_str::Chain> IoType for const_str::ConstStr<C, T> {
+    type Namespace = Rs;
     fn get_ref() -> ZodType {
         ZodType::builder()
             .inner(ZodTypeInner::Generic(Self::value().to_string()))
@@ -81,21 +92,6 @@ pub struct Reference {
 
     #[builder(default)]
     pub args: Vec<ZodType>,
-}
-
-impl ToTokens for Reference {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use crate::utils::crate_name;
-        let name = &self.name;
-        let args = &self.args;
-        let ns = &self.ns;
-
-        tokens.extend(quote!(#crate_name::Reference {
-            ns: String::from(#ns),
-            name: String::from(#name),
-            args: vec![#(#args),*]
-        }))
-    }
 }
 
 impl From<Reference> for ZodTypeInner {
@@ -227,14 +223,26 @@ mod test {
         inner: T,
     }
 
+    struct Ns;
+    struct Ns2;
+
+    impl Namespace for Ns {
+        const NAME: &'static str = "Ns";
+    }
+
+    impl Namespace for Ns2 {
+        const NAME: &'static str = "Ns2";
+    }
+
     impl<T> OutputType for Generic<T>
     where
         T: OutputType,
     {
+        type Namespace = Ns;
         fn get_output_ref() -> ZodType {
             Reference::builder()
                 .name("Generic")
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .role(Role::OutputOnly)
                 .args(vec![T::get_output_ref()])
                 .build()
@@ -243,7 +251,7 @@ mod test {
 
         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
             let export = ZodExport::builder()
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .name("Generic")
                 .context(Role::OutputOnly)
                 .args(&["T"])
@@ -266,9 +274,10 @@ mod test {
     where
         T: InputType,
     {
+        type Namespace = Ns;
         fn get_input_ref() -> ZodType {
             Reference::builder()
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .name("Generic")
                 .role(Role::InputOnly)
                 .args(vec![T::get_input_ref()])
@@ -278,7 +287,7 @@ mod test {
 
         fn visit_input_exports(set: &mut HashSet<ZodExport>) {
             let export = ZodExport::builder()
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .name("Generic")
                 .context(Role::InputOnly)
                 .args(&["T"])
@@ -300,6 +309,7 @@ mod test {
     struct Transparent;
 
     impl OutputType for Transparent {
+        type Namespace = Ns;
         fn get_output_ref() -> ZodType {
             <String as OutputType>::get_output_ref()
         }
@@ -309,6 +319,7 @@ mod test {
     }
 
     impl InputType for Transparent {
+        type Namespace = Ns;
         fn get_input_ref() -> ZodType {
             <u8 as InputType>::get_input_ref()
         }
@@ -322,11 +333,12 @@ mod test {
     }
 
     impl<T: OutputType> OutputType for Nested<T> {
+        type Namespace = Ns;
         fn get_output_ref() -> ZodType {
             Reference {
                 role: Role::OutputOnly,
                 name: String::from("Nested"),
-                ns: String::from("Ns"),
+                ns: String::from(Ns::NAME),
                 args: vec![T::get_output_ref()],
             }
             .into()
@@ -334,7 +346,7 @@ mod test {
 
         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
             let exp = ZodExport::builder()
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .name("Nested")
                 .context(Role::OutputOnly)
                 .args(&["T"])
@@ -355,10 +367,11 @@ mod test {
     }
 
     impl<T: InputType> InputType for Nested<T> {
+        type Namespace = Ns;
         fn get_input_ref() -> ZodType {
             Reference {
                 role: Role::InputOnly,
-                ns: String::from("Ns"),
+                ns: String::from(Ns::NAME),
                 name: String::from("Nested"),
                 args: vec![T::get_input_ref()],
             }
@@ -366,7 +379,7 @@ mod test {
         }
         fn visit_input_exports(set: &mut HashSet<ZodExport>) {
             let exp = ZodExport::builder()
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .name("Nested")
                 .context(Role::InputOnly)
                 .args(&["T"])
@@ -389,10 +402,11 @@ mod test {
     struct OutputOnly;
 
     impl OutputType for OutputOnly {
+        type Namespace = Ns;
         fn get_output_ref() -> ZodType {
             Reference {
                 role: Role::OutputOnly,
-                ns: String::from("Ns"),
+                ns: String::from(Ns::NAME),
                 name: String::from("OutputOnly"),
                 args: Vec::new(),
             }
@@ -401,7 +415,7 @@ mod test {
         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
             set.insert(
                 ZodExport::builder()
-                    .ns("Ns")
+                    .ns(Ns::NAME)
                     .name("OutputOnly")
                     .context(Role::OutputOnly)
                     .value(String::get_output_ref())
@@ -428,7 +442,7 @@ mod test {
             .unwrap();
 
         let generic_input_export = ZodExport::builder()
-            .ns("Ns")
+            .ns(Ns::NAME)
             .name("Generic")
             .context(Role::InputOnly)
             .args(&["T"])
@@ -450,7 +464,7 @@ mod test {
         };
 
         let output_only_export = ZodExport::builder()
-            .ns("Ns")
+            .ns(Ns::NAME)
             .name("OutputOnly")
             .context(Role::OutputOnly)
             .value(String::get_output_ref())
@@ -501,11 +515,11 @@ mod test {
             <Generic::<OutputOnly>>::get_output_ref(),
             Reference {
                 role: Role::OutputOnly,
-                ns: String::from("Ns"),
+                ns: String::from(Ns::NAME),
                 name: String::from("Generic"),
                 args: vec![Reference {
                     role: Role::OutputOnly,
-                    ns: String::from("Ns"),
+                    ns: String::from(Ns::NAME),
                     name: String::from("OutputOnly"),
                     args: vec![]
                 }
@@ -533,13 +547,13 @@ mod test {
         let map = ExportMap::new([
             ZodExport::builder()
                 .name("hello")
-                .ns("Ns")
+                .ns(Ns::NAME)
                 .context(Role::Io)
                 .value(ZodTypeInner::Generic(String::from("MyGeneric")))
                 .build(),
             ZodExport::builder()
                 .name("world")
-                .ns("Ns2")
+                .ns(Ns2::NAME)
                 .context(Role::InputOnly)
                 .value(
                     ZodObject::builder()
@@ -548,7 +562,7 @@ mod test {
                             .value(
                                 Reference::builder()
                                     .name("hello")
-                                    .ns("Ns")
+                                    .ns(Ns::NAME)
                                     .role(Role::Io)
                                     .build(),
                             )

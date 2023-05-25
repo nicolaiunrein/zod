@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
-use quote::{quote, ToTokens};
 use typed_builder::TypedBuilder;
 
-use crate::{types::crate_name, Reference};
+use crate::Reference;
 
 use super::{
     literal::ZodLiteral, Ts, Zod, ZodBool, ZodDiscriminatedUnion, ZodNumber, ZodObject, ZodString,
@@ -106,37 +105,6 @@ where
             custom_suffix: None,
             inner: value.into(),
         }
-    }
-}
-
-impl ToTokens for ZodType {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let optional = self.optional;
-        let inner = &self.inner;
-
-        tokens.extend(quote!(#crate_name::types::ZodType {
-            optional: #optional,
-            inner: #inner
-        }))
-    }
-}
-
-impl ToTokens for ZodTypeInner {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let (variant, inner) = match self {
-            ZodTypeInner::String(inner) => (quote!(String), quote!(#inner)),
-            ZodTypeInner::Number(inner) => (quote!(Number), quote!(#inner)),
-            ZodTypeInner::Object(inner) => (quote!(Object), quote!(#inner)),
-            ZodTypeInner::Reference(inner) => (quote!(Arg), quote!(#inner)),
-            ZodTypeInner::Literal(inner) => (quote!(Arg), quote!(#inner)),
-            ZodTypeInner::Union(inner) => (quote!(Arg), quote!(#inner)),
-            ZodTypeInner::DiscriminatedUnion(inner) => (quote!(Arg), quote!(#inner)),
-            ZodTypeInner::Tuple(inner) => (quote!(Arg), quote!(#inner)),
-            ZodTypeInner::Bool(inner) => (quote!(Arg), quote!(#inner)),
-            ZodTypeInner::Generic(inner) => (quote!(Generic), quote!(#inner)),
-        };
-
-        tokens.extend(quote!(#crate_name::types::ZodTypeInner::#variant(#inner)))
     }
 }
 

@@ -23,9 +23,9 @@ where
 }
 
 #[allow(non_camel_case_types)]
-pub(crate) struct crate_name;
+pub(crate) struct zod_core;
 
-impl ToTokens for crate_name {
+impl ToTokens for zod_core {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let p: syn::Path = get_crate_name("zod_core")
             .map(|name| {
