@@ -1,23 +1,35 @@
 use proc_macro2::{Ident, TokenStream as TokenStream2};
-use quote::{quote, ToTokens};
-use syn::{DataStruct, DeriveInput, Generics};
+use quote::{quote, quote_spanned, ToTokens};
+use syn::spanned::Spanned;
+use syn::{parse_quote, DataStruct, DeriveInput, Generics};
 
 use crate::{types::Role, utils::crate_name};
+
+fn qualify_ty(ty: &syn::Type, trait_path: syn::Path) -> TokenStream2 {
+    let span = ty.span();
+    quote_spanned!(span => < #ty as #trait_path>)
+}
 
 fn impl_zod_object(fields: &syn::FieldsNamed) -> TokenStream2 {
     let fields = fields.named.iter().map(|f| {
         let ident = f.ident.as_ref().expect("named fields");
         let name = ident.to_string();
+        let optional = false; //todo
 
         let ty = &f.ty;
 
-        quote! {
-            #crate_name::types::NamedField {
-                name: ::std::string::String::from(#name),
-                value: #crate_name::types::ZodType::from(<#ty as #crate_name::IoType>::get_ref())
+        let qualified_ty = qualify_ty(ty, parse_quote!(#crate_name::IoType));
+
+        quote_spanned! {
+            ty.span() =>
+            #crate_name::types::ZodNamedField {
+                optional: #optional,
+                name: #name,
+                value: #crate_name::types::ZodType::from(#qualified_ty::get_ref())
             }
         }
     });
+
     quote!(#crate_name::types::ZodObject {
         fields: vec![#(#fields),*]
     }.into())
@@ -26,8 +38,12 @@ fn impl_zod_object(fields: &syn::FieldsNamed) -> TokenStream2 {
 fn impl_zod_tuple(fields: &syn::FieldsUnnamed) -> TokenStream2 {
     let fields = fields.unnamed.iter().map(|f| {
         let ty = &f.ty;
-        quote! {
-            #crate_name::types::ZodType::from(<#ty as #crate_name::IoType>::get_ref())
+
+        let qualified_ty = qualify_ty(ty, parse_quote!(#crate_name::IoType));
+
+        quote_spanned! {
+            ty.span() =>
+            #crate_name::types::ZodType::from(#qualified_ty::get_ref())
         }
     });
 
@@ -51,8 +67,10 @@ impl ToTokens for StructImpl {
 
         let custom_suffix = quote!(None);
 
-        let make_export_stmts =
-            |ty: &syn::Type| quote!(<#ty as #crate_name::IoType>::visit_exports(set));
+        let make_export_stmts = |ty: &syn::Type| {
+            let qualified_ty = qualify_ty(ty, parse_quote!(#crate_name::IoType));
+            quote_spanned!(ty.span() => #qualified_ty::visit_exports(set))
+        };
 
         let exports: Vec<_> = match &self.data.fields {
             syn::Fields::Named(fields) => fields
@@ -60,11 +78,13 @@ impl ToTokens for StructImpl {
                 .iter()
                 .map(|f| make_export_stmts(&f.ty))
                 .collect(),
+
             syn::Fields::Unnamed(fields) => fields
                 .unnamed
                 .iter()
                 .map(|f| make_export_stmts(&f.ty))
                 .collect(),
+
             syn::Fields::Unit => todo!(),
         };
 
@@ -95,7 +115,7 @@ impl ToTokens for StructImpl {
                 }.into()
             }
 
-            fn visit_exports(set: &mut HashSet<#crate_name::types::ZodExport>) {
+            fn visit_exports(set: &mut ::std::collections::HashSet<#crate_name::types::ZodExport>) {
                 let export = #crate_name::types::ZodExport {
                     ns: ::std::string::String::from(#ns),
                     name: ::std::string::String::from(#name),
@@ -181,12 +201,14 @@ mod test {
                             custom_suffix: None,
                             inner: #crate_name::types::ZodObject {
                                 fields: vec![
-                                    #crate_name::types::NamedField {
-                                        name: ::std::string::String::from("inner"),
+                                    #crate_name::types::ZodNamedField {
+                                        name: "inner",
+                                        optional: false,
                                         value: #crate_name::types::ZodType::from(<String as #crate_name::IoType>::get_ref())
                                     },
-                                    #crate_name::types::NamedField {
-                                        name: ::std::string::String::from("inner2"),
+                                    #crate_name::types::ZodNamedField {
+                                        name: "inner2",
+                                        optional: false,
                                         value: #crate_name::types::ZodType::from(<usize as #crate_name::IoType>::get_ref())
                                     }
                                 ]
@@ -226,7 +248,7 @@ mod test {
                     }.into()
                 }
 
-                fn visit_exports(set: &mut HashSet<#crate_name::types::ZodExport>) {
+                fn visit_exports(set: &mut ::std::collections::HashSet<#crate_name::types::ZodExport>) {
                         let export = #crate_name::types::ZodExport {
                             ns: ::std::string::String::from("Ns"),
                             name: ::std::string::String::from("Test"),

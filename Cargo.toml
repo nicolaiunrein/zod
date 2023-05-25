@@ -21,7 +21,8 @@ members = [
     "integrations/axum",
     "examples/axum-websocket",
     # todo remove
-    "experiments" 
+    "experiments",
+    "experiments/derive" 
 ]
 
 [dependencies]

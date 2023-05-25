@@ -10,26 +10,26 @@ use super::{Ts, Zod, ZodType, ZodTypeInner};
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodTuple {
     #[builder(default)]
-    pub variants: Vec<ZodType>,
+    pub fields: Vec<ZodType>,
 }
 
 impl Display for Zod<'_, ZodTuple> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
+        let variants = self.fields.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.tuple([{}])", Separated(", ", &variants)))
     }
 }
 
 impl Display for Ts<'_, ZodTuple> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
+        let variants = self.fields.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("[{}]", Separated(", ", &variants)))
     }
 }
 
 impl ToTokens for ZodTuple {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let variants = &self.variants;
+        let variants = &self.fields;
 
         tokens.extend(quote!(#crate_name::types::ZodTuple {
             variants: vec![#(#variants),*]
@@ -57,7 +57,7 @@ mod test {
     fn fmt_ok() {
         assert_eq!(
             Zod(&ZodTuple::builder()
-                .variants(vec![ZodString.into(), ZodNumber.into()])
+                .fields(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),
             "z.tuple([z.string(), z.number()])"
@@ -65,7 +65,7 @@ mod test {
 
         assert_eq!(
             Ts(&ZodTuple::builder()
-                .variants(vec![ZodString.into(), ZodNumber.into()])
+                .fields(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),
             "[string, number]"
@@ -75,7 +75,7 @@ mod test {
     #[test]
     fn to_tokens_ok() {
         let input = ZodTuple::builder()
-            .variants(vec![ZodString.into(), ZodNumber.into()])
+            .fields(vec![ZodString.into(), ZodNumber.into()])
             .build();
 
         assert_eq!(

@@ -27,22 +27,28 @@ pub(crate) struct crate_name;
 
 impl ToTokens for crate_name {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let zod = get_zod();
-        tokens.extend(quote!(#zod::core))
+        let p: syn::Path = get_crate_name("zod_core")
+            .map(|name| {
+                let ident = Ident::new(&name, Span::call_site());
+                syn::parse_quote!(::#ident)
+            })
+            .or_else(|| {
+                get_crate_name("zod").map(|name| {
+                    let ident = Ident::new(&name, Span::call_site());
+                    syn::parse_quote!(::#ident::core)
+                })
+            })
+            .unwrap_or_else(|| syn::parse_quote!(::zod_core));
+
+        tokens.extend(quote!(#p))
     }
 }
 
-fn get_crate_name() -> String {
-    proc_macro_crate::crate_name("zod")
+fn get_crate_name(name: &'static str) -> Option<String> {
+    proc_macro_crate::crate_name(name)
         .map(|found_crate| match found_crate {
-            proc_macro_crate::FoundCrate::Itself => String::from("zod"),
+            proc_macro_crate::FoundCrate::Itself => String::from(name),
             proc_macro_crate::FoundCrate::Name(name) => name,
         })
-        .unwrap_or_else(|_| String::from("zod"))
-}
-
-pub(crate) fn get_zod() -> syn::Path {
-    let name = get_crate_name();
-    let ident = Ident::new(&name, Span::call_site());
-    syn::parse_quote!(::#ident)
+        .ok()
 }

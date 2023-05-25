@@ -1,0 +1,33 @@
+error[E0277]: the trait bound `X: IoType` is not satisfied
+ --> tests/ui/fail_type_not_implementing_IoType.rs:7:20
+  |
+7 |         pub tuple: X,
+  |                    ^ the trait `IoType` is not implemented for `X`
+  |
+  = help: the following other types implement trait `IoType`:
+            Struct
+            bool
+            experiments::const_str::ConstStr<C, T>
+            i16
+            i32
+            i8
+            std::string::String
+            test::Tuple
+          and $N others
+
+error[E0277]: the trait bound `X: IoType` is not satisfied
+  --> tests/ui/fail_type_not_implementing_IoType.rs:11:22
+   |
+11 |     struct Tuple(u8, X);
+   |                      ^ the trait `IoType` is not implemented for `X`
+   |
+   = help: the following other types implement trait `IoType`:
+             Struct
+             bool
+             experiments::const_str::ConstStr<C, T>
+             i16
+             i32
+             i8
+             std::string::String
+             test::Tuple
+           and $N others
