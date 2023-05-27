@@ -1,5 +1,50 @@
-/// The impl is split between Argument types and Response types.
-/// The Traits are the same. Find a way to uniform them.
+//! ## Problem :
+//! The impl is split between Argument types and Response types.
+//! The Traits are the same. Find a way to uniform them.
+//!
+//!
+//! ## Solution:
+//! Remove the Role::Io and IoType alltogether.
+//! The implementor should not care.
+//! We require InputType to be implemented for RPC arguments and OutputType for Rpc response
+//! types. When the exports are equal they should get merged into the io namespace when generating
+//! the code. For references to still be valid either walk all references in all exports and
+//! update to io namespace or transform the exports to alias the export in the io namespace:
+//!
+//! ```
+//! export namespace MyNs {
+//!     export namespace input {
+//!         export const U8 = z.number();
+//!         export type U8 = number
+//!     }
+//!     
+//!     export namespace output {
+//!         export const U8 = z.number();
+//!         export type U8 = number
+//!     }
+//! }
+//! ```
+//! then becomes
+//! ```
+//! export namespace MyNs {
+//!     export namespace io {
+//!         export const U8 = z.number();
+//!         export type U8 = number
+//!     }
+//!     
+//!     export namespace input {
+//!         export const U8 = io.U8;
+//!         export type U8 = io.U8;
+//!     
+//!     }
+//!     
+//!     export namespace output {
+//!         export const U8 = io.U8;
+//!         export type U8 = io.U8;
+//!     }
+//! }
+//! ```
+//!
 mod build_ins;
 mod const_str;
 pub mod derive_internals;
@@ -116,7 +161,6 @@ impl<'a> Display for Zod<'a, Reference> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}.{}.{}", self.0.ns, self.role, self.0.name))?;
         if !self.0.args.is_empty() {
-            self.0.name.fmt(f)?;
             let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
         }

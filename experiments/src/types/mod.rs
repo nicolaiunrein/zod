@@ -42,6 +42,16 @@ pub enum Role {
     Io,
 }
 
+impl Role {
+    pub const fn includes_input(&self) -> bool {
+        match self {
+            Role::InputOnly => true,
+            Role::OutputOnly => false,
+            Role::Io => true,
+        }
+    }
+}
+
 impl Display for Role {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
