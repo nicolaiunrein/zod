@@ -11,7 +11,7 @@
 //! the code. For references to still be valid either walk all references in all exports and
 //! update to io namespace or transform the exports to alias the export in the io namespace:
 //!
-//! ```
+//! ```ts
 //! export namespace MyNs {
 //!     export namespace input {
 //!         export const U8 = z.number();
@@ -25,7 +25,7 @@
 //! }
 //! ```
 //! then becomes
-//! ```
+//! ```ts
 //! export namespace MyNs {
 //!     export namespace io {
 //!         export const U8 = z.number();
@@ -75,54 +75,30 @@ pub trait OutputType {
     fn visit_output_exports(_set: &mut HashSet<ZodExport>);
 }
 
-pub trait IoType {
-    type Namespace: Namespace;
-    fn get_ref() -> ZodType;
-    fn visit_exports(_set: &mut HashSet<ZodExport>);
-}
-
 pub trait Namespace {
     const NAME: &'static str;
 }
 
-impl<T> OutputType for T
-where
-    T: IoType,
-{
-    type Namespace = T::Namespace;
-    fn get_output_ref() -> ZodType {
-        Self::get_ref()
-    }
-
-    fn visit_output_exports(set: &mut HashSet<ZodExport>) {
-        Self::visit_exports(set)
-    }
-}
-
-impl<T> InputType for T
-where
-    T: IoType,
-{
-    type Namespace = T::Namespace;
-
-    fn get_input_ref() -> ZodType {
-        Self::get_ref()
-    }
-
-    fn visit_input_exports(set: &mut HashSet<ZodExport>) {
-        Self::visit_exports(set)
-    }
-}
-
-impl<const C: char, T: const_str::Chain> IoType for const_str::ConstStr<C, T> {
+impl<const C: char, T: const_str::Chain> InputType for const_str::ConstStr<C, T> {
     type Namespace = Rs;
-    fn get_ref() -> ZodType {
+    fn get_input_ref() -> ZodType {
         ZodType::builder()
             .inner(ZodTypeInner::Generic(Self::value().to_string()))
             .build()
     }
 
-    fn visit_exports(_set: &mut HashSet<ZodExport>) {}
+    fn visit_input_exports(_set: &mut HashSet<ZodExport>) {}
+}
+
+impl<const C: char, T: const_str::Chain> OutputType for const_str::ConstStr<C, T> {
+    type Namespace = Rs;
+    fn get_output_ref() -> ZodType {
+        ZodType::builder()
+            .inner(ZodTypeInner::Generic(Self::value().to_string()))
+            .build()
+    }
+
+    fn visit_output_exports(_set: &mut HashSet<ZodExport>) {}
 }
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]

@@ -1,6 +1,6 @@
 use crate::{
     types::{Role, ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    IoType, Namespace,
+    Namespace, InputType, OutputType
 };
 
 const NAMESPACE: &'static str = "Rs";
@@ -22,9 +22,9 @@ pub fn capitalize(s: &str) -> String {
 
 macro_rules! impl_number {
     ($ident: ident, $suffix: expr) => {
-        impl IoType for $ident {
+        impl InputType for $ident {
             type Namespace = Rs;
-            fn get_ref() -> $crate::types::ZodType {
+            fn get_input_ref() -> $crate::types::ZodType {
                 $crate::Reference::builder()
                     .ns(Rs::NAME)
                     .name(capitalize(stringify!($ident)))
@@ -33,7 +33,34 @@ macro_rules! impl_number {
                     .into()
             }
 
-            fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
+            fn visit_input_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
+                set.insert(
+                    ZodExport::builder()
+                        .ns(NAMESPACE)
+                        .name(capitalize(stringify!($ident)))
+                        .context(Role::Io)
+                        .value(
+                            ZodType::builder()
+                                .inner(ZodNumber)
+                                .custom_suffix($suffix)
+                                .build(),
+                        )
+                        .build(),
+                );
+            }
+        }
+        impl OutputType for $ident {
+            type Namespace = Rs;
+            fn get_output_ref() -> $crate::types::ZodType {
+                $crate::Reference::builder()
+                    .ns(Rs::NAME)
+                    .name(capitalize(stringify!($ident)))
+                    .role(Role::Io)
+                    .build()
+                    .into()
+            }
+
+            fn visit_output_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
                 set.insert(
                     ZodExport::builder()
                         .ns(NAMESPACE)
@@ -94,9 +121,9 @@ impl_number!(
     )
 );
 
-impl IoType for bool {
+impl InputType for bool {
     type Namespace = Rs;
-    fn get_ref() -> crate::types::ZodType {
+    fn get_input_ref() -> crate::types::ZodType {
         crate::Reference::builder()
             .ns("Rs")
             .name("Bool")
@@ -105,7 +132,7 @@ impl IoType for bool {
             .into()
     }
 
-    fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
+    fn visit_input_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
         set.insert(
             ZodExport::builder()
                 .ns(NAMESPACE)
@@ -117,9 +144,32 @@ impl IoType for bool {
     }
 }
 
-impl IoType for String {
+impl OutputType for bool {
     type Namespace = Rs;
-    fn get_ref() -> crate::types::ZodType {
+    fn get_output_ref() -> crate::types::ZodType {
+        crate::Reference::builder()
+            .ns("Rs")
+            .name("Bool")
+            .role(Role::Io)
+            .build()
+            .into()
+    }
+
+    fn visit_output_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
+        set.insert(
+            ZodExport::builder()
+                .ns(NAMESPACE)
+                .name("Bool")
+                .context(Role::Io)
+                .value(ZodBool)
+                .build(),
+        );
+    }
+}
+
+impl InputType for String {
+    type Namespace = Rs;
+    fn get_input_ref() -> crate::types::ZodType {
         crate::Reference::builder()
             .ns("Rs")
             .name("String")
@@ -127,7 +177,29 @@ impl IoType for String {
             .build()
             .into()
     }
-    fn visit_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
+    fn visit_input_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
+        set.insert(
+            ZodExport::builder()
+                .ns(NAMESPACE)
+                .name("String")
+                .context(Role::Io)
+                .value(ZodString)
+                .build(),
+        );
+    }
+}
+
+impl OutputType for String {
+    type Namespace = Rs;
+    fn get_output_ref() -> crate::types::ZodType {
+        crate::Reference::builder()
+            .ns("Rs")
+            .name("String")
+            .role(Role::Io)
+            .build()
+            .into()
+    }
+    fn visit_output_exports(set: &mut std::collections::HashSet<crate::types::ZodExport>) {
         set.insert(
             ZodExport::builder()
                 .ns(NAMESPACE)
