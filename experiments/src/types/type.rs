@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::Reference;
+use crate::{IoKind, Reference};
 
 use super::{
     literal::ZodLiteral, Ts, Zod, ZodBool, ZodDiscriminatedUnion, ZodNumber, ZodObject, ZodString,
@@ -23,7 +23,10 @@ pub enum ZodTypeInner<Io> {
     Bool(ZodBool),
 }
 
-impl<Io> Display for Zod<'_, ZodTypeInner<Io>> {
+impl<Io> Display for Zod<'_, ZodTypeInner<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner), f),
@@ -40,7 +43,10 @@ impl<Io> Display for Zod<'_, ZodTypeInner<Io>> {
     }
 }
 
-impl<Io> Display for Ts<'_, ZodTypeInner<Io>> {
+impl<Io> Display for Ts<'_, ZodTypeInner<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner), f),
@@ -69,7 +75,10 @@ pub struct ZodType<Io> {
     pub inner: ZodTypeInner<Io>,
 }
 
-impl<Io> Display for Zod<'_, ZodType<Io>> {
+impl<Io> Display for Zod<'_, ZodType<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Zod(&self.inner).fmt(f)?;
         if self.optional {
@@ -85,7 +94,10 @@ impl<Io> Display for Zod<'_, ZodType<Io>> {
     }
 }
 
-impl<Io> Display for Ts<'_, ZodType<Io>> {
+impl<Io> Display for Ts<'_, ZodType<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ts(&self.inner).fmt(f)?;
         if self.optional {

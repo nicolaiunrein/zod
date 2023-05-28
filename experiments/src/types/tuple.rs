@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::utils::Separated;
+use crate::{utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
@@ -12,14 +12,20 @@ pub struct ZodTuple<Io> {
     pub fields: Vec<ZodType<Io>>,
 }
 
-impl<Io> Display for Zod<'_, ZodTuple<Io>> {
+impl<Io> Display for Zod<'_, ZodTuple<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.fields.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.tuple([{}])", Separated(", ", &variants)))
     }
 }
 
-impl<Io> Display for Ts<'_, ZodTuple<Io>> {
+impl<Io> Display for Ts<'_, ZodTuple<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.fields.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("[{}]", Separated(", ", &variants)))

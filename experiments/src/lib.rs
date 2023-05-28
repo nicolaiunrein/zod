@@ -68,10 +68,16 @@ pub mod kind {
 }
 
 // todo seal this trait
-pub trait IoKind {}
+pub trait IoKind {
+    const NAME: &'static str;
+}
 
-impl IoKind for kind::Input {}
-impl IoKind for kind::Output {}
+impl IoKind for kind::Input {
+    const NAME: &'static str = "input";
+}
+impl IoKind for kind::Output {
+    const NAME: &'static str = "output";
+}
 
 pub struct DependencyVisitor<Io> {
     exports: HashSet<ZodExport<Io>>,
@@ -173,9 +179,12 @@ impl<Io> From<Reference<Io>> for ZodTypeInner<Io> {
     }
 }
 
-impl<'a, Io> Display for Ts<'a, Reference<Io>> {
+impl<'a, Io> Display for Ts<'a, Reference<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}.todo.{}", self.0.ns, self.0.name))?;
+        f.write_fmt(format_args!("{}.{}.{}", self.0.ns, Io::NAME, self.0.name))?;
         if !self.0.args.is_empty() {
             let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
 
@@ -185,9 +194,12 @@ impl<'a, Io> Display for Ts<'a, Reference<Io>> {
     }
 }
 
-impl<'a, Io> Display for Zod<'a, Reference<Io>> {
+impl<'a, Io> Display for Zod<'a, Reference<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}.todo.{}", self.0.ns, self.0.name))?;
+        f.write_fmt(format_args!("{}.{}.{}", self.0.ns, Io::NAME, self.0.name))?;
         if !self.0.args.is_empty() {
             let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;

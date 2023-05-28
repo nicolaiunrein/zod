@@ -1,8 +1,8 @@
-use std::{fmt::Display, marker::PhantomData};
+use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::utils::Separated;
+use crate::{utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
@@ -12,14 +12,20 @@ pub struct ZodUnion<Io> {
     pub variants: Vec<ZodType<Io>>,
 }
 
-impl<Io> Display for Zod<'_, ZodUnion<Io>> {
+impl<Io> Display for Zod<'_, ZodUnion<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.union([{}])", Separated(", ", &variants)))
     }
 }
 
-impl<Io> Display for Ts<'_, ZodUnion<Io>> {
+impl<Io> Display for Ts<'_, ZodUnion<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))

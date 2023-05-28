@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::utils::Separated;
+use crate::{utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
 use typed_builder::TypedBuilder;
@@ -19,7 +19,10 @@ pub struct ZodExport<Io> {
     pub value: ZodType<Io>,
 }
 
-impl<Io> Display for Zod<'_, ZodExport<Io>> {
+impl<Io> Display for Zod<'_, ZodExport<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.args.is_empty() {
             f.write_fmt(format_args!(
@@ -43,7 +46,10 @@ impl<Io> Display for Zod<'_, ZodExport<Io>> {
     }
 }
 
-impl<Io> Display for Ts<'_, ZodExport<Io>> {
+impl<Io> Display for Ts<'_, ZodExport<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let or_undefined = if self.value.optional {
             " | undefined"

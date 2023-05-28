@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::utils::Separated;
+use crate::{utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodObject, ZodTypeInner};
 
@@ -15,7 +15,10 @@ pub struct ZodDiscriminatedUnion<Io> {
     pub variants: Vec<ZodObject<Io>>,
 }
 
-impl<Io> Display for Zod<'_, ZodDiscriminatedUnion<Io>> {
+impl<Io> Display for Zod<'_, ZodDiscriminatedUnion<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!(
@@ -26,7 +29,10 @@ impl<Io> Display for Zod<'_, ZodDiscriminatedUnion<Io>> {
     }
 }
 
-impl<Io> Display for Ts<'_, ZodDiscriminatedUnion<Io>> {
+impl<Io> Display for Ts<'_, ZodDiscriminatedUnion<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))

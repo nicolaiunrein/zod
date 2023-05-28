@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::utils::Separated;
+use crate::{utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
@@ -12,7 +12,10 @@ pub struct ZodObject<Io> {
     pub fields: Vec<ZodNamedField<Io>>,
 }
 
-impl<Io> Display for Zod<'_, ZodObject<Io>> {
+impl<Io> Display for Zod<'_, ZodObject<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.fields.is_empty() {
             f.write_str("z.object({})")
@@ -23,7 +26,10 @@ impl<Io> Display for Zod<'_, ZodObject<Io>> {
     }
 }
 
-impl<Io> Display for Ts<'_, ZodObject<Io>> {
+impl<Io> Display for Ts<'_, ZodObject<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.fields.is_empty() {
             f.write_str("{}")
@@ -45,7 +51,10 @@ pub struct ZodNamedField<Io> {
     pub value: ZodType<Io>,
 }
 
-impl<Io> Display for Zod<'_, ZodNamedField<Io>> {
+impl<Io> Display for Zod<'_, ZodNamedField<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.optional {
             f.write_fmt(format_args!(
@@ -59,7 +68,10 @@ impl<Io> Display for Zod<'_, ZodNamedField<Io>> {
     }
 }
 
-impl<Io> Display for Ts<'_, ZodNamedField<Io>> {
+impl<Io> Display for Ts<'_, ZodNamedField<Io>>
+where
+    Io: IoKind,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.optional {
             f.write_fmt(format_args!(
