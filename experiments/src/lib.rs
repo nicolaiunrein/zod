@@ -178,7 +178,6 @@ impl ExportMap {
             match export.context {
                 Role::InputOnly => ns_map.input.insert(export.name.clone(), export),
                 Role::OutputOnly => ns_map.output.insert(export.name.clone(), export),
-                Role::Io => ns_map.io.insert(export.name.clone(), export),
             };
         }
         Self(out)
@@ -568,7 +567,7 @@ mod test {
             ZodExport::builder()
                 .name("hello")
                 .ns(Ns::NAME)
-                .context(Role::Io)
+                .context(Role::InputOnly)
                 .value(ZodTypeInner::Generic(String::from("MyGeneric")))
                 .build(),
             ZodExport::builder()
@@ -583,7 +582,7 @@ mod test {
                                 Reference::builder()
                                     .name("hello")
                                     .ns(Ns::NAME)
-                                    .role(Role::Io)
+                                    .role(Role::InputOnly)
                                     .build(),
                             )
                             .build()])

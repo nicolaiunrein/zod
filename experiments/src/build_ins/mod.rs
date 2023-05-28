@@ -1,6 +1,6 @@
 use crate::{
     types::{Role, ZodBool, ZodExport, ZodNumber, ZodString, ZodType},
-    Namespace, InputType, OutputType
+    InputType, Namespace, OutputType,
 };
 
 const NAMESPACE: &'static str = "Rs";
@@ -28,7 +28,7 @@ macro_rules! impl_number {
                 $crate::Reference::builder()
                     .ns(Rs::NAME)
                     .name(capitalize(stringify!($ident)))
-                    .role(Role::Io)
+                    .role(Role::InputOnly)
                     .build()
                     .into()
             }
@@ -38,7 +38,7 @@ macro_rules! impl_number {
                     ZodExport::builder()
                         .ns(NAMESPACE)
                         .name(capitalize(stringify!($ident)))
-                        .context(Role::Io)
+                        .context(Role::InputOnly)
                         .value(
                             ZodType::builder()
                                 .inner(ZodNumber)
@@ -55,7 +55,7 @@ macro_rules! impl_number {
                 $crate::Reference::builder()
                     .ns(Rs::NAME)
                     .name(capitalize(stringify!($ident)))
-                    .role(Role::Io)
+                    .role(Role::InputOnly)
                     .build()
                     .into()
             }
@@ -65,7 +65,7 @@ macro_rules! impl_number {
                     ZodExport::builder()
                         .ns(NAMESPACE)
                         .name(capitalize(stringify!($ident)))
-                        .context(Role::Io)
+                        .context(Role::InputOnly)
                         .value(
                             ZodType::builder()
                                 .inner(ZodNumber)
@@ -127,7 +127,7 @@ impl InputType for bool {
         crate::Reference::builder()
             .ns("Rs")
             .name("Bool")
-            .role(Role::Io)
+            .role(Role::InputOnly)
             .build()
             .into()
     }
@@ -137,7 +137,7 @@ impl InputType for bool {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("Bool")
-                .context(Role::Io)
+                .context(Role::InputOnly)
                 .value(ZodBool)
                 .build(),
         );
@@ -150,7 +150,7 @@ impl OutputType for bool {
         crate::Reference::builder()
             .ns("Rs")
             .name("Bool")
-            .role(Role::Io)
+            .role(Role::InputOnly)
             .build()
             .into()
     }
@@ -160,7 +160,7 @@ impl OutputType for bool {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("Bool")
-                .context(Role::Io)
+                .context(Role::InputOnly)
                 .value(ZodBool)
                 .build(),
         );
@@ -173,7 +173,7 @@ impl InputType for String {
         crate::Reference::builder()
             .ns("Rs")
             .name("String")
-            .role(Role::Io)
+            .role(Role::InputOnly)
             .build()
             .into()
     }
@@ -182,7 +182,7 @@ impl InputType for String {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("String")
-                .context(Role::Io)
+                .context(Role::InputOnly)
                 .value(ZodString)
                 .build(),
         );
@@ -195,7 +195,7 @@ impl OutputType for String {
         crate::Reference::builder()
             .ns("Rs")
             .name("String")
-            .role(Role::Io)
+            .role(Role::InputOnly)
             .build()
             .into()
     }
@@ -204,7 +204,7 @@ impl OutputType for String {
             ZodExport::builder()
                 .ns(NAMESPACE)
                 .name("String")
-                .context(Role::Io)
+                .context(Role::InputOnly)
                 .value(ZodString)
                 .build(),
         );

@@ -76,7 +76,7 @@ mod test {
             }
         };
 
-        let role = Role::Io;
+        let role = Role::InputOnly;
 
         let expected = quote! {
             impl #zod_core::IoType for Test {
@@ -124,7 +124,7 @@ mod test {
         };
 
         assert_eq!(
-            impl_zod(Role::Io, input).to_formatted_string(),
+            impl_zod(Role::InputOnly, input).to_formatted_string(),
             expected.to_formatted_string()
         )
     }
@@ -136,7 +136,7 @@ mod test {
             struct Test(String, usize);
         };
 
-        let role = Role::Io;
+        let role = Role::InputOnly;
 
         let expected = quote! {
             impl #zod_core::IoType for Test {
@@ -184,7 +184,7 @@ mod test {
         };
 
         assert_eq!(
-            impl_zod(Role::Io, input).to_formatted_string(),
+            impl_zod(Role::InputOnly, input).to_formatted_string(),
             expected.to_formatted_string()
         )
     }

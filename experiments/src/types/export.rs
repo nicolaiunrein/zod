@@ -164,7 +164,7 @@ mod test {
         let export = ZodExport::builder()
             .ns("Ns")
             .name("Test")
-            .context(Role::Io)
+            .context(Role::InputOnly)
             .args(&["T1", "T2", "T3"])
             .value(
                 ZodObject::builder()
@@ -195,7 +195,7 @@ mod test {
         let export = ZodExport::builder()
             .ns("Ns")
             .name("Test")
-            .context(Role::Io)
+            .context(Role::InputOnly)
             .value(
                 ZodType::builder()
                     .optional()
@@ -212,7 +212,7 @@ mod test {
         let export = ZodExport::builder()
             .ns("Ns")
             .name("MyString")
-            .context(Role::Io)
+            .context(Role::InputOnly)
             .value(ZodType::builder().optional().inner(ZodString).build())
             .build();
 

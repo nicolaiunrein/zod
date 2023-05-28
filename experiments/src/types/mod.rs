@@ -39,17 +39,6 @@ impl Display for Zod<'_, ZodTypeAny> {
 pub enum Role {
     InputOnly,
     OutputOnly,
-    Io,
-}
-
-impl Role {
-    pub const fn includes_input(&self) -> bool {
-        match self {
-            Role::InputOnly => true,
-            Role::OutputOnly => false,
-            Role::Io => true,
-        }
-    }
 }
 
 impl Display for Role {
@@ -57,7 +46,6 @@ impl Display for Role {
         match self {
             Role::InputOnly => f.write_str("input"),
             Role::OutputOnly => f.write_str("output"),
-            Role::Io => f.write_str("io"),
         }
     }
 }
@@ -92,7 +80,6 @@ impl ToTokens for Role {
         tokens.extend(match self {
             Role::InputOnly => quote!(#zod_core::types::Role::InputOnly),
             Role::OutputOnly => quote!(#zod_core::types::Role::OutputOnly),
-            Role::Io => quote!(#zod_core::types::Role::Io),
         })
     }
 }
