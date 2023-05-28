@@ -42,7 +42,7 @@ impl ToTokens for ZodLiteral {
     }
 }
 
-impl From<ZodLiteral> for ZodTypeInner {
+impl<Io> From<ZodLiteral> for ZodTypeInner<Io> {
     fn from(value: ZodLiteral) -> Self {
         Self::Literal(value)
     }

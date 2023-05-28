@@ -10,20 +10,20 @@ use super::{
 };
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
-pub enum ZodTypeInner {
+pub enum ZodTypeInner<Io> {
     String(ZodString),
     Number(ZodNumber),
-    Object(ZodObject),
-    Reference(Reference),
+    Object(ZodObject<Io>),
+    Reference(Reference<Io>),
     Generic(String),
     Literal(ZodLiteral),
-    Union(ZodUnion),
-    DiscriminatedUnion(ZodDiscriminatedUnion),
-    Tuple(ZodTuple),
+    Union(ZodUnion<Io>),
+    DiscriminatedUnion(ZodDiscriminatedUnion<Io>),
+    Tuple(ZodTuple<Io>),
     Bool(ZodBool),
 }
 
-impl Display for Zod<'_, ZodTypeInner> {
+impl<Io> Display for Zod<'_, ZodTypeInner<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Zod(inner), f),
@@ -40,7 +40,7 @@ impl Display for Zod<'_, ZodTypeInner> {
     }
 }
 
-impl Display for Ts<'_, ZodTypeInner> {
+impl<Io> Display for Ts<'_, ZodTypeInner<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             ZodTypeInner::String(inner) => std::fmt::Display::fmt(&Ts(inner), f),
@@ -58,7 +58,7 @@ impl Display for Ts<'_, ZodTypeInner> {
 }
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodType {
+pub struct ZodType<Io> {
     #[builder(setter(strip_bool))]
     pub optional: bool,
 
@@ -66,10 +66,10 @@ pub struct ZodType {
     pub custom_suffix: Option<String>,
 
     #[builder(setter(into))]
-    pub inner: ZodTypeInner,
+    pub inner: ZodTypeInner<Io>,
 }
 
-impl Display for Zod<'_, ZodType> {
+impl<Io> Display for Zod<'_, ZodType<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Zod(&self.inner).fmt(f)?;
         if self.optional {
@@ -85,7 +85,7 @@ impl Display for Zod<'_, ZodType> {
     }
 }
 
-impl Display for Ts<'_, ZodType> {
+impl<Io> Display for Ts<'_, ZodType<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ts(&self.inner).fmt(f)?;
         if self.optional {
@@ -95,9 +95,9 @@ impl Display for Ts<'_, ZodType> {
     }
 }
 
-impl<T> From<T> for ZodType
+impl<T, Io> From<T> for ZodType<Io>
 where
-    T: Into<ZodTypeInner>,
+    T: Into<ZodTypeInner<Io>>,
 {
     fn from(value: T) -> Self {
         ZodType {

@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, marker::PhantomData};
 
 use typed_builder::TypedBuilder;
 
@@ -7,27 +7,27 @@ use crate::utils::Separated;
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodUnion {
+pub struct ZodUnion<Io> {
     #[builder(default)]
-    pub variants: Vec<ZodType>,
+    pub variants: Vec<ZodType<Io>>,
 }
 
-impl Display for Zod<'_, ZodUnion> {
+impl<Io> Display for Zod<'_, ZodUnion<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.union([{}])", Separated(", ", &variants)))
     }
 }
 
-impl Display for Ts<'_, ZodUnion> {
+impl<Io> Display for Ts<'_, ZodUnion<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))
     }
 }
 
-impl From<ZodUnion> for ZodTypeInner {
-    fn from(value: ZodUnion) -> Self {
+impl<Io> From<ZodUnion<Io>> for ZodTypeInner<Io> {
+    fn from(value: ZodUnion<Io>) -> Self {
         ZodTypeInner::Union(value)
     }
 }
@@ -42,7 +42,7 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod(&ZodUnion::builder()
+            Zod(&ZodUnion<marker::Input>::builder()
                 .variants(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),

@@ -7,12 +7,12 @@ use crate::utils::Separated;
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodObject {
+pub struct ZodObject<Io> {
     #[builder(default)]
-    pub fields: Vec<ZodNamedField>,
+    pub fields: Vec<ZodNamedField<Io>>,
 }
 
-impl Display for Zod<'_, ZodObject> {
+impl<Io> Display for Zod<'_, ZodObject<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.fields.is_empty() {
             f.write_str("z.object({})")
@@ -23,7 +23,7 @@ impl Display for Zod<'_, ZodObject> {
     }
 }
 
-impl Display for Ts<'_, ZodObject> {
+impl<Io> Display for Ts<'_, ZodObject<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.fields.is_empty() {
             f.write_str("{}")
@@ -35,17 +35,17 @@ impl Display for Ts<'_, ZodObject> {
 }
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodNamedField {
+pub struct ZodNamedField<Io> {
     pub name: &'static str,
 
     #[builder(setter(strip_bool))]
     pub optional: bool,
 
     #[builder(setter(into))]
-    pub value: ZodType,
+    pub value: ZodType<Io>,
 }
 
-impl Display for Zod<'_, ZodNamedField> {
+impl<Io> Display for Zod<'_, ZodNamedField<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.optional {
             f.write_fmt(format_args!(
@@ -59,7 +59,7 @@ impl Display for Zod<'_, ZodNamedField> {
     }
 }
 
-impl Display for Ts<'_, ZodNamedField> {
+impl<Io> Display for Ts<'_, ZodNamedField<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.optional {
             f.write_fmt(format_args!(
@@ -73,8 +73,8 @@ impl Display for Ts<'_, ZodNamedField> {
     }
 }
 
-impl From<ZodObject> for ZodTypeInner {
-    fn from(value: ZodObject) -> Self {
+impl<Io> From<ZodObject<Io>> for ZodTypeInner<Io> {
+    fn from(value: ZodObject<Io>) -> Self {
         Self::Object(value)
     }
 }

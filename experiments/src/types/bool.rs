@@ -17,7 +17,7 @@ impl Display for Ts<'_, ZodBool> {
     }
 }
 
-impl From<ZodBool> for ZodTypeInner {
+impl<Io> From<ZodBool> for ZodTypeInner<Io> {
     fn from(value: ZodBool) -> Self {
         ZodTypeInner::Bool(value)
     }

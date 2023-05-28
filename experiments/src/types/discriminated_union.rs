@@ -9,13 +9,13 @@ use crate::utils::Separated;
 use super::{Ts, Zod, ZodObject, ZodTypeInner};
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodDiscriminatedUnion {
+pub struct ZodDiscriminatedUnion<Io> {
     tag: &'static str,
     #[builder(default)]
-    pub variants: Vec<ZodObject>,
+    pub variants: Vec<ZodObject<Io>>,
 }
 
-impl Display for Zod<'_, ZodDiscriminatedUnion> {
+impl<Io> Display for Zod<'_, ZodDiscriminatedUnion<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!(
@@ -26,15 +26,15 @@ impl Display for Zod<'_, ZodDiscriminatedUnion> {
     }
 }
 
-impl Display for Ts<'_, ZodDiscriminatedUnion> {
+impl<Io> Display for Ts<'_, ZodDiscriminatedUnion<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))
     }
 }
 
-impl From<ZodDiscriminatedUnion> for ZodTypeInner {
-    fn from(value: ZodDiscriminatedUnion) -> Self {
+impl<Io> From<ZodDiscriminatedUnion<Io>> for ZodTypeInner<Io> {
+    fn from(value: ZodDiscriminatedUnion<Io>) -> Self {
         ZodTypeInner::DiscriminatedUnion(value)
     }
 }

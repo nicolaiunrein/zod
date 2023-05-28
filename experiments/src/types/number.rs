@@ -27,7 +27,7 @@ impl ToTokens for ZodNumber {
     }
 }
 
-impl From<ZodNumber> for ZodTypeInner {
+impl<Io> From<ZodNumber> for ZodTypeInner<Io> {
     fn from(value: ZodNumber) -> Self {
         ZodTypeInner::Number(value)
     }

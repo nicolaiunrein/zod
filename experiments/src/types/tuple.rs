@@ -7,27 +7,27 @@ use crate::utils::Separated;
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
 #[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
-pub struct ZodTuple {
+pub struct ZodTuple<Io> {
     #[builder(default)]
-    pub fields: Vec<ZodType>,
+    pub fields: Vec<ZodType<Io>>,
 }
 
-impl Display for Zod<'_, ZodTuple> {
+impl<Io> Display for Zod<'_, ZodTuple<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.fields.iter().map(Zod).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.tuple([{}])", Separated(", ", &variants)))
     }
 }
 
-impl Display for Ts<'_, ZodTuple> {
+impl<Io> Display for Ts<'_, ZodTuple<Io>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variants = self.fields.iter().map(Ts).collect::<Vec<_>>();
         f.write_fmt(format_args!("[{}]", Separated(", ", &variants)))
     }
 }
 
-impl From<ZodTuple> for ZodTypeInner {
-    fn from(value: ZodTuple) -> Self {
+impl<Io> From<ZodTuple<Io>> for ZodTypeInner<Io> {
+    fn from(value: ZodTuple<Io>) -> Self {
         ZodTypeInner::Tuple(value)
     }
 }
