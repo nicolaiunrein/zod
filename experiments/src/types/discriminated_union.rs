@@ -4,11 +4,11 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::{utils::Separated, IoKind};
+use crate::{kind, utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodObject, ZodTypeInner};
 
-#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodDiscriminatedUnion<Io> {
     tag: &'static str,
     #[builder(default)]
@@ -45,9 +45,29 @@ impl<Io> From<ZodDiscriminatedUnion<Io>> for ZodTypeInner<Io> {
     }
 }
 
+impl From<ZodDiscriminatedUnion<kind::Input>> for ZodDiscriminatedUnion<kind::EitherIo> {
+    fn from(other: ZodDiscriminatedUnion<kind::Input>) -> Self {
+        Self {
+            tag: other.tag,
+            variants: other.variants.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+}
+
+impl From<ZodDiscriminatedUnion<kind::Output>> for ZodDiscriminatedUnion<kind::EitherIo> {
+    fn from(other: ZodDiscriminatedUnion<kind::Output>) -> Self {
+        Self {
+            tag: other.tag,
+            variants: other.variants.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+}
+
+crate::make_eq!(ZodDiscriminatedUnion { tag, variants });
+
 #[cfg(test)]
 mod test {
-    use crate::{types::ZodNamedField, OutputType};
+    use crate::{kind, types::ZodNamedField, Type};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -60,18 +80,17 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(String::get_output_ref()) //todo
+                        .value(<String as Type<kind::Input>>::get_ref())
                         .build()])
-                    .build()
-                    .into(),
-                ZodObject::builder().build().into(),
+                    .build(),
+                ZodObject::builder().build(),
             ])
             .build();
         assert_eq!(
             Zod(&input).to_string(),
-            "z.discriminatedUnion(\"abc\", [z.object({ abc: Rs.io.String }), z.object({})])"
+            "z.discriminatedUnion(\"abc\", [z.object({ abc: Rs.input.String }), z.object({})])"
         );
 
-        assert_eq!(Ts(&input).to_string(), "{ abc: Rs.io.String } | {}");
+        assert_eq!(Ts(&input).to_string(), "{ abc: Rs.input.String } | {}");
     }
 }

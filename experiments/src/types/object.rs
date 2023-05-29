@@ -2,15 +2,33 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::{utils::Separated, IoKind};
+use crate::{kind, utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
-#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodObject<Io> {
     #[builder(default)]
     pub fields: Vec<ZodNamedField<Io>>,
 }
+
+impl From<ZodObject<kind::Input>> for ZodObject<kind::EitherIo> {
+    fn from(other: ZodObject<kind::Input>) -> Self {
+        Self {
+            fields: other.fields.into_iter().map(|f| f.into()).collect(),
+        }
+    }
+}
+
+impl From<ZodObject<kind::Output>> for ZodObject<kind::EitherIo> {
+    fn from(other: ZodObject<kind::Output>) -> Self {
+        Self {
+            fields: other.fields.into_iter().map(|f| f.into()).collect(),
+        }
+    }
+}
+
+crate::make_eq!(ZodObject { fields });
 
 impl<Io> Display for Zod<'_, ZodObject<Io>>
 where
@@ -40,7 +58,7 @@ where
     }
 }
 
-#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodNamedField<Io> {
     pub name: &'static str,
 
@@ -90,3 +108,29 @@ impl<Io> From<ZodObject<Io>> for ZodTypeInner<Io> {
         Self::Object(value)
     }
 }
+
+impl From<ZodNamedField<kind::Input>> for ZodNamedField<kind::EitherIo> {
+    fn from(other: ZodNamedField<kind::Input>) -> Self {
+        Self {
+            name: other.name,
+            optional: other.optional,
+            value: other.value.into(),
+        }
+    }
+}
+
+impl From<ZodNamedField<kind::Output>> for ZodNamedField<kind::EitherIo> {
+    fn from(other: ZodNamedField<kind::Output>) -> Self {
+        Self {
+            name: other.name,
+            optional: other.optional,
+            value: other.value.into(),
+        }
+    }
+}
+
+crate::make_eq!(ZodNamedField {
+    name,
+    optional,
+    value
+});

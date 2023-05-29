@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use crate::{utils::Separated, IoKind};
+use crate::{kind, utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
 use typed_builder::TypedBuilder;
 
-#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodExport<Io> {
     #[builder(setter(into))]
     pub ns: String,
@@ -58,6 +58,14 @@ where
         };
         match self.value.inner {
             ZodTypeInner::Reference(ref inner) => {
+                f.write_fmt(format_args!(
+                    "export type {name} = {value}{or_undefined};",
+                    name = self.name,
+                    value = Ts(inner)
+                ))?;
+            }
+
+            ZodTypeInner::Alias(ref inner) => {
                 f.write_fmt(format_args!(
                     "export type {name} = {value}{or_undefined};",
                     name = self.name,
@@ -153,6 +161,48 @@ where
         Ok(())
     }
 }
+
+impl From<ZodExport<kind::Input>> for ZodExport<kind::EitherIo> {
+    fn from(other: ZodExport<kind::Input>) -> Self {
+        Self {
+            ns: other.ns,
+            name: other.name,
+            args: other.args,
+            value: other.value.into(),
+        }
+    }
+}
+
+impl From<ZodExport<kind::Output>> for ZodExport<kind::EitherIo> {
+    fn from(other: ZodExport<kind::Output>) -> Self {
+        Self {
+            ns: other.ns,
+            name: other.name,
+            args: other.args,
+            value: other.value.into(),
+        }
+    }
+}
+
+crate::make_eq!(ZodExport {
+    ns,
+    name,
+    args,
+    value
+});
+
+// impl<A, B> PartialEq<ZodExport<A>> for ZodExport<B> {
+//     fn eq(&self, other: &ZodExport<A>) -> bool {
+//         let Self {
+//             ns,
+//             name,
+//             args,
+//             value,
+//         } = self;
+//
+//         ns == &other.ns && name == &other.name && args == &other.args && value == &other.value
+//     }
+// }
 
 // #[cfg(test)]
 // mod test {

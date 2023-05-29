@@ -46,7 +46,7 @@
 //! ```
 //!
 mod build_ins;
-mod const_str;
+pub mod const_str;
 pub mod derive_internals;
 pub mod types;
 mod utils;
@@ -54,20 +54,44 @@ mod utils;
 #[cfg(test)]
 pub mod test_utils;
 
-use std::{collections::HashSet, fmt::Display, marker::PhantomData};
+use std::{
+    collections::{BTreeMap, HashSet},
+    fmt::Display,
+    marker::PhantomData,
+};
 
+use build_ins::Rs;
 use typed_builder::TypedBuilder;
 use types::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
 
+// TODO: rename to Kind
 pub mod kind {
     #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
     pub struct Input;
 
     #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
     pub struct Output;
+
+    /// special marker for ExportMap
+    #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+    pub(crate) enum EitherIo {
+        Input,
+        Output,
+    }
+
+    impl From<Input> for EitherIo {
+        fn from(_: Input) -> Self {
+            EitherIo::Input
+        }
+    }
+    impl From<Output> for EitherIo {
+        fn from(_: Output) -> Self {
+            EitherIo::Output
+        }
+    }
 }
 
-// todo seal this trait
+// TODO: seal this trait
 pub trait IoKind {
     const NAME: &'static str;
 }
@@ -77,6 +101,9 @@ impl IoKind for kind::Input {
 }
 impl IoKind for kind::Output {
     const NAME: &'static str = "output";
+}
+impl IoKind for kind::EitherIo {
+    const NAME: &'static str = "io";
 }
 
 pub struct DependencyVisitor<Io> {
@@ -94,6 +121,13 @@ impl<Io> DependencyVisitor<Io> {
     }
 }
 
+#[macro_export]
+macro_rules! make_args {
+    ($($ident: ident),+) => {
+        vec![$((stringify!($ident), $ident::get_ref().into()))+]
+    }
+}
+
 pub trait Type<Io>
 where
     Io: Clone,
@@ -102,8 +136,13 @@ where
     const NAME: &'static str;
 
     fn value() -> ZodType<Io>;
-    fn args() -> Vec<(&'static str, ZodType<Io>)>;
-    fn visit_dependencies(visitor: &mut DependencyVisitor<Io>);
+
+    fn args() -> Vec<(&'static str, ZodType<Io>)> {
+        Vec::new()
+    }
+
+    // TODO: make required
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>) {}
 
     fn export() -> ZodExport<Io> {
         ZodExport {
@@ -136,29 +175,31 @@ pub trait Namespace {
     const NAME: &'static str;
 }
 
-// impl<const C: char, T: const_str::Chain> InputType for const_str::ConstStr<C, T> {
-//     type Namespace = Rs;
-//     fn get_input_ref() -> ZodType {
-//         ZodType::builder()
-//             .inner(ZodTypeInner::Generic(Self::value().to_string()))
-//             .build()
-//     }
-//
-//     fn visit_input_exports(_set: &mut HashSet<ZodExport>) {}
-// }
-//
-// impl<const C: char, T: const_str::Chain> OutputType for const_str::ConstStr<C, T> {
-//     type Namespace = Rs;
-//     fn get_output_ref() -> ZodType {
-//         ZodType::builder()
-//             .inner(ZodTypeInner::Generic(Self::value().to_string()))
-//             .build()
-//     }
-//
-//     fn visit_output_exports(_set: &mut HashSet<ZodExport>) {}
-// }
+impl<const C: char, T: const_str::Chain> Type<kind::Input> for const_str::ConstStr<C, T> {
+    type Ns = Rs;
+    const NAME: &'static str = "";
 
-#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
+    fn get_ref() -> Reference<kind::Input> {
+        todo!()
+    }
+    fn value() -> ZodType<kind::Input> {
+        panic!("todo... not supported")
+    }
+}
+
+impl<const C: char, T: const_str::Chain> Type<kind::Output> for const_str::ConstStr<C, T> {
+    type Ns = Rs;
+    const NAME: &'static str = "";
+
+    fn get_ref() -> Reference<kind::Output> {
+        todo!()
+    }
+    fn value() -> ZodType<kind::Output> {
+        panic!("todo... not supported")
+    }
+}
+
+#[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct Reference<Io> {
     #[builder(setter(into))]
     pub name: String,
@@ -173,9 +214,33 @@ pub struct Reference<Io> {
     _phantom: PhantomData<Io>,
 }
 
-impl<Io> From<Reference<Io>> for ZodTypeInner<Io> {
-    fn from(value: Reference<Io>) -> Self {
-        ZodTypeInner::Reference(value)
+/// Type alias into the common namespace. The fields are pub(crate) to ensure this type is only
+/// constructed when processing the export map
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+pub struct Alias {
+    pub(crate) name: String,
+    pub(crate) ns: String,
+}
+
+impl<'a> Display for Zod<'a, Alias> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "{}.{}.{}",
+            self.ns,
+            kind::EitherIo::NAME,
+            self.name
+        ))
+    }
+}
+
+impl<'a> Display for Ts<'a, Alias> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "{}.{}.{}",
+            self.ns,
+            kind::EitherIo::NAME,
+            self.name
+        ))
     }
 }
 
@@ -208,6 +273,47 @@ where
     }
 }
 
+impl<T> From<Reference<T>> for ZodTypeInner<T> {
+    fn from(value: Reference<T>) -> Self {
+        ZodTypeInner::Reference(value)
+    }
+}
+
+impl From<Reference<kind::Input>> for Reference<kind::EitherIo> {
+    fn from(other: Reference<kind::Input>) -> Self {
+        Self {
+            name: other.name,
+            ns: other.ns,
+            args: other.args.into_iter().map(|arg| arg.into()).collect(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl From<Reference<kind::Output>> for Reference<kind::EitherIo> {
+    fn from(other: Reference<kind::Output>) -> Self {
+        Self {
+            name: other.name,
+            ns: other.ns,
+            args: other.args.into_iter().map(|arg| arg.into()).collect(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<A, B> PartialEq<Reference<A>> for Reference<B> {
+    fn eq(&self, other: &Reference<A>) -> bool {
+        let Self {
+            name,
+            ns,
+            args,
+            _phantom,
+        } = self;
+
+        name == &other.name && ns == &other.ns && args == &other.args
+    }
+}
+
 // pub fn collect_input_exports<T: InputType>() -> HashSet<ZodExport> {
 //     let mut set = HashSet::new();
 //     T::visit_input_exports(&mut set);
@@ -219,72 +325,149 @@ where
 //     T::visit_output_exports(&mut set);
 //     set
 // }
+//
+macro_rules! make_eq {
+    ($name: ident { $($fields: ident),* }) => {
+        impl<A, B> PartialEq<$name<A>> for $name<B> {
+            fn eq(&self, other: &$name<A>) -> bool {
+                let Self {
+                    $($fields),*
+                } = self;
 
-// struct NsMap {
-//     input: BTreeMap<String, ZodExport>,
-//     output: BTreeMap<String, ZodExport>,
-//     io: BTreeMap<String, ZodExport>,
-// }
-//
-// pub struct ExportMap(BTreeMap<String, NsMap>);
-//
-// impl ExportMap {
-//     pub fn new(exports: impl IntoIterator<Item = ZodExport>) -> Self {
-//         let mut out = BTreeMap::<String, NsMap>::new();
-//
-//         for export in exports.into_iter() {
-//             let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
-//                 input: Default::default(),
-//                 output: Default::default(),
-//                 io: Default::default(),
-//             });
-//
-//             match export.context {
-//                 Role::InputOnly => ns_map.input.insert(export.name.clone(), export),
-//                 Role::OutputOnly => ns_map.output.insert(export.name.clone(), export),
-//             };
-//         }
-//         Self(out)
-//     }
-// }
-//
-// impl Display for ExportMap {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         for (ns, inner) in self.0.iter() {
-//             f.write_fmt(format_args!("export namespace {ns} {{\n{}}}\n", inner))?;
-//         }
-//         Ok(())
-//     }
-// }
-//
-// impl Display for NsMap {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let mut fmt_part = |name: &'static str, set: &BTreeMap<String, ZodExport>| {
-//             if set.is_empty() {
-//                 f.write_fmt(format_args!("    export namespace {name} {{}}\n"))?;
-//             } else {
-//                 f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
-//                 for export in set.values() {
-//                     f.write_str("        ")?;
-//                     Display::fmt(&Ts(export), f)?;
-//                     f.write_str("\n")?;
-//                     f.write_str("        ")?;
-//                     Display::fmt(&Zod(export), f)?;
-//                     f.write_str("\n")?;
-//                 }
-//
-//                 f.write_str("    }\n")?;
-//             }
-//             std::fmt::Result::Ok(())
-//         };
-//
-//         fmt_part("input", &self.input)?;
-//         fmt_part("output", &self.output)?;
-//         fmt_part("io", &self.io)?;
-//
-//         Ok(())
-//     }
-// }
+                // $(
+                //     if $fields != &other.$fields {
+                //         return false
+                //     }
+                // )*
+                // true
+                $($fields == &other.$fields)&&*
+            }
+        }
+    }
+}
+pub(crate) use make_eq;
+
+struct NsMap {
+    input: BTreeMap<String, ZodExport<kind::Input>>,
+    output: BTreeMap<String, ZodExport<kind::Output>>,
+    io: BTreeMap<String, ZodExport<kind::EitherIo>>,
+}
+
+impl NsMap {
+    fn insert_input(&mut self, name: String, mut input: ZodExport<kind::Input>) {
+        if let Some(output) = self.output.get_mut(&name) {
+            if &mut input == output {
+                let merged = ZodExport::<kind::EitherIo>::from(input.clone());
+
+                let alias = Alias {
+                    name: merged.name.clone(),
+                    ns: merged.ns.clone(),
+                };
+
+                input.value = ZodTypeInner::Alias(alias.clone()).into();
+                output.value = ZodTypeInner::Alias(alias).into();
+                self.io.insert(name.clone(), merged);
+            }
+        }
+        self.input.insert(name, input);
+    }
+
+    fn insert_output(&mut self, name: String, mut output: ZodExport<kind::Output>) {
+        if let Some(input) = self.input.get_mut(&name) {
+            if &mut output == input {
+                let merged = ZodExport::<kind::EitherIo>::from(output.clone());
+
+                let alias = Alias {
+                    name: merged.name.clone(),
+                    ns: merged.ns.clone(),
+                };
+
+                output.value = ZodTypeInner::Alias(alias.clone()).into();
+                input.value = ZodTypeInner::Alias(alias).into();
+                self.io.insert(name.clone(), merged);
+            }
+        }
+        self.output.insert(name, output);
+    }
+}
+
+pub struct ExportMap(BTreeMap<String, NsMap>);
+
+impl ExportMap {
+    pub fn new(
+        input_exports: impl IntoIterator<Item = ZodExport<kind::Input>>,
+        output_exports: impl IntoIterator<Item = ZodExport<kind::Output>>,
+    ) -> Self {
+        let mut out = BTreeMap::<String, NsMap>::new();
+
+        for export in input_exports.into_iter() {
+            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
+                input: Default::default(),
+                output: Default::default(),
+                io: Default::default(),
+            });
+
+            ns_map.insert_input(export.name.clone(), export);
+        }
+
+        for export in output_exports.into_iter() {
+            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
+                input: Default::default(),
+                output: Default::default(),
+                io: Default::default(),
+            });
+
+            ns_map.insert_output(export.name.clone(), export);
+        }
+
+        Self(out)
+    }
+}
+
+impl Display for ExportMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (ns, inner) in self.0.iter() {
+            f.write_fmt(format_args!("export namespace {ns} {{\n{}}}\n", inner))?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for NsMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt_part<T>(
+            f: &mut std::fmt::Formatter<'_>,
+            set: &BTreeMap<String, ZodExport<T>>,
+        ) -> std::fmt::Result
+        where
+            T: IoKind,
+        {
+            let name = T::NAME;
+            if set.is_empty() {
+                f.write_fmt(format_args!("    export namespace {name} {{}}\n"))?;
+            } else {
+                f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
+                for export in set.values() {
+                    f.write_str("        ")?;
+                    Display::fmt(&Ts(export), f)?;
+                    f.write_str("\n")?;
+                    f.write_str("        ")?;
+                    Display::fmt(&Zod(export), f)?;
+                    f.write_str("\n")?;
+                }
+
+                f.write_str("    }\n")?;
+            }
+            std::fmt::Result::Ok(())
+        }
+
+        fmt_part(f, &self.input)?;
+        fmt_part(f, &self.output)?;
+        fmt_part(f, &self.io)?;
+
+        Ok(())
+    }
+}
 
 // ------------------------------------------------------------
 // ------------------------------------------------------------
@@ -292,389 +475,213 @@ where
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 //
-// #[cfg(test)]
-// mod test {
 //
-//     #![allow(dead_code)]
-//     use super::*;
-//
-//     use pretty_assertions::assert_eq;
-//
-//     use types::*;
-//
-//     struct Generic<T> {
-//         inner: T,
-//     }
-//
-//     struct Ns;
-//     struct Ns2;
-//
-//     impl Namespace for Ns {
-//         const NAME: &'static str = "Ns";
-//     }
-//
-//     impl Namespace for Ns2 {
-//         const NAME: &'static str = "Ns2";
-//     }
-//
-//     impl<T> OutputType for Generic<T>
-//     where
-//         T: OutputType,
-//     {
-//         type Namespace = Ns;
-//         fn get_output_ref() -> ZodType {
-//             Reference::builder()
-//                 .name("Generic")
-//                 .ns(Ns::NAME)
-//                 .role(Role::OutputOnly)
-//                 .args(vec![T::get_output_ref()])
-//                 .build()
-//                 .into()
-//         }
-//
-//         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
-//             let export = ZodExport::builder()
-//                 .ns(Ns::NAME)
-//                 .name("Generic")
-//                 .context(Role::OutputOnly)
-//                 .args(&["T"])
-//                 .value(
-//                     ZodObject::builder()
-//                         .fields(vec![ZodNamedField::builder()
-//                             .name("inner")
-//                             .value(ZodTypeInner::Generic(String::from("T")))
-//                             .build()])
-//                         .build(),
-//                 )
-//                 .build();
-//
-//             set.insert(export);
-//             T::visit_output_exports(set)
-//         }
-//     }
-//
-//     impl<T> InputType for Generic<T>
-//     where
-//         T: InputType,
-//     {
-//         type Namespace = Ns;
-//         fn get_input_ref() -> ZodType {
-//             Reference::builder()
-//                 .ns(Ns::NAME)
-//                 .name("Generic")
-//                 .role(Role::InputOnly)
-//                 .args(vec![T::get_input_ref()])
-//                 .build()
-//                 .into()
-//         }
-//
-//         fn visit_input_exports(set: &mut HashSet<ZodExport>) {
-//             let export = ZodExport::builder()
-//                 .ns(Ns::NAME)
-//                 .name("Generic")
-//                 .context(Role::InputOnly)
-//                 .args(&["T"])
-//                 .value(
-//                     ZodObject::builder()
-//                         .fields(vec![ZodNamedField::builder()
-//                             .name("inner")
-//                             .value(ZodTypeInner::Generic(String::from("T")))
-//                             .build()])
-//                         .build(),
-//                 )
-//                 .build();
-//
-//             set.insert(export);
-//             T::visit_input_exports(set)
-//         }
-//     }
-//
-//     struct Transparent;
-//
-//     impl OutputType for Transparent {
-//         type Namespace = Ns;
-//         fn get_output_ref() -> ZodType {
-//             <String as OutputType>::get_output_ref()
-//         }
-//         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
-//             String::visit_output_exports(set);
-//         }
-//     }
-//
-//     impl InputType for Transparent {
-//         type Namespace = Ns;
-//         fn get_input_ref() -> ZodType {
-//             <u8 as InputType>::get_input_ref()
-//         }
-//         fn visit_input_exports(set: &mut HashSet<ZodExport>) {
-//             u8::visit_input_exports(set);
-//         }
-//     }
-//
-//     struct Nested<T> {
-//         inner: Generic<T>,
-//     }
-//
-//     impl<T: OutputType> OutputType for Nested<T> {
-//         type Namespace = Ns;
-//         fn get_output_ref() -> ZodType {
-//             Reference {
-//                 role: Role::OutputOnly,
-//                 name: String::from("Nested"),
-//                 ns: String::from(Ns::NAME),
-//                 args: vec![T::get_output_ref()],
-//             }
-//             .into()
-//         }
-//
-//         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
-//             let exp = ZodExport::builder()
-//                 .ns(Ns::NAME)
-//                 .name("Nested")
-//                 .context(Role::OutputOnly)
-//                 .args(&["T"])
-//                 .value(
-//                     ZodObject::builder()
-//                         .fields(vec![ZodNamedField::builder()
-//                             .name("inner")
-//                             .value(Generic::<crate::const_str!('T')>::get_output_ref())
-//                             .build()])
-//                         .build(),
-//                 )
-//                 .build();
-//
-//             set.insert(exp.into());
-//
-//             T::visit_output_exports(set)
-//         }
-//     }
-//
-//     impl<T: InputType> InputType for Nested<T> {
-//         type Namespace = Ns;
-//         fn get_input_ref() -> ZodType {
-//             Reference {
-//                 role: Role::InputOnly,
-//                 ns: String::from(Ns::NAME),
-//                 name: String::from("Nested"),
-//                 args: vec![T::get_input_ref()],
-//             }
-//             .into()
-//         }
-//         fn visit_input_exports(set: &mut HashSet<ZodExport>) {
-//             let exp = ZodExport::builder()
-//                 .ns(Ns::NAME)
-//                 .name("Nested")
-//                 .context(Role::InputOnly)
-//                 .args(&["T"])
-//                 .value(
-//                     ZodObject::builder()
-//                         .fields(vec![ZodNamedField::builder()
-//                             .name("inner")
-//                             .value(Generic::<crate::const_str!('T')>::get_input_ref())
-//                             .build()])
-//                         .build(),
-//                 )
-//                 .build();
-//
-//             set.insert(exp.into());
-//
-//             T::visit_input_exports(set)
-//         }
-//     }
-//
-//     struct OutputOnly;
-//
-//     impl OutputType for OutputOnly {
-//         type Namespace = Ns;
-//         fn get_output_ref() -> ZodType {
-//             Reference {
-//                 role: Role::OutputOnly,
-//                 ns: String::from(Ns::NAME),
-//                 name: String::from("OutputOnly"),
-//                 args: Vec::new(),
-//             }
-//             .into()
-//         }
-//         fn visit_output_exports(set: &mut HashSet<ZodExport>) {
-//             set.insert(
-//                 ZodExport::builder()
-//                     .ns(Ns::NAME)
-//                     .name("OutputOnly")
-//                     .context(Role::OutputOnly)
-//                     .value(String::get_output_ref())
-//                     .build(),
-//             );
-//         }
-//     }
-//
-//     #[test]
-//     fn inline_transparent_ok() {
-//         assert_eq!(
-//             Ts(&Transparent::get_output_ref()).to_string(),
-//             "Rs.io.String"
-//         );
-//         assert_eq!(Ts(&Transparent::get_input_ref()).to_string(), "Rs.io.U8");
-//     }
-//
-//     #[test]
-//     fn debug() {
-//         let u8_export = collect_input_exports::<u8>().into_iter().next().unwrap();
-//         let string_export = collect_input_exports::<String>()
-//             .into_iter()
-//             .next()
-//             .unwrap();
-//
-//         let generic_input_export = ZodExport::builder()
-//             .ns(Ns::NAME)
-//             .name("Generic")
-//             .context(Role::InputOnly)
-//             .args(&["T"])
-//             .value(
-//                 ZodObject::builder()
-//                     .fields(vec![ZodNamedField::builder()
-//                         .name("inner")
-//                         .value(ZodTypeInner::Generic(String::from("T")))
-//                         .build()])
-//                     .build(),
-//             )
-//             .build();
-//
-//         let generic_output_export = {
-//             ZodExport {
-//                 context: Role::OutputOnly,
-//                 ..generic_input_export.clone()
-//             }
-//         };
-//
-//         let output_only_export = ZodExport::builder()
-//             .ns(Ns::NAME)
-//             .name("OutputOnly")
-//             .context(Role::OutputOnly)
-//             .value(String::get_output_ref())
-//             .build();
-//
-//         assert_eq!(
-//             Ts(&Generic::<Transparent>::get_output_ref()).to_string(),
-//             "Ns.output.Generic<Rs.io.String>"
-//         );
-//
-//         assert_eq!(
-//             Ts(&Generic::<crate::const_str!('M', 'Y', '_', 'T')>::get_output_ref()).to_string(),
-//             "Ns.output.Generic<MY_T>"
-//         );
-//
-//         assert_eq!(
-//             Ts(&Generic::<Transparent>::get_input_ref()).to_string(),
-//             "Ns.input.Generic<Rs.io.U8>"
-//         );
-//
-//         assert_eq!(
-//             collect_output_exports::<Generic::<u8>>(),
-//             [u8_export.clone(), generic_output_export.clone()]
-//                 .into_iter()
-//                 .collect()
-//         );
-//
-//         assert_eq!(
-//             collect_output_exports::<Transparent>(),
-//             [string_export.clone()].into_iter().collect()
-//         );
-//
-//         assert_eq!(
-//             collect_output_exports::<Generic::<Transparent>>(),
-//             [string_export.clone(), generic_output_export.clone()]
-//                 .into_iter()
-//                 .collect()
-//         );
-//
-//         assert_eq!(
-//             collect_output_exports::<Generic::<OutputOnly>>(),
-//             [generic_output_export.clone(), output_only_export.clone()]
-//                 .into_iter()
-//                 .collect()
-//         );
-//
-//         assert_eq!(
-//             <Generic::<OutputOnly>>::get_output_ref(),
-//             Reference {
-//                 role: Role::OutputOnly,
-//                 ns: String::from(Ns::NAME),
-//                 name: String::from("Generic"),
-//                 args: vec![Reference {
-//                     role: Role::OutputOnly,
-//                     ns: String::from(Ns::NAME),
-//                     name: String::from("OutputOnly"),
-//                     args: vec![]
-//                 }
-//                 .into()]
-//             }
-//             .into()
-//         );
-//     }
-//
-//     #[test]
-//     fn reference_context() {
-//         assert_eq!(
-//             collect_output_exports::<OutputOnly>()
-//                 .into_iter()
-//                 .map(|exp| Zod(&exp).to_string())
-//                 .collect::<HashSet<_>>(),
-//             [String::from("export const OutputOnly = Rs.io.String;")]
-//                 .into_iter()
-//                 .collect()
-//         )
-//     }
-//
-//     #[test]
-//     fn export_map_ok() {
-//         let map = ExportMap::new([
-//             ZodExport::builder()
-//                 .name("hello")
-//                 .ns(Ns::NAME)
-//                 .context(Role::InputOnly)
-//                 .value(ZodTypeInner::Generic(String::from("MyGeneric")))
-//                 .build(),
-//             ZodExport::builder()
-//                 .name("world")
-//                 .ns(Ns2::NAME)
-//                 .context(Role::InputOnly)
-//                 .value(
-//                     ZodObject::builder()
-//                         .fields(vec![ZodNamedField::builder()
-//                             .name("hello")
-//                             .value(
-//                                 Reference::builder()
-//                                     .name("hello")
-//                                     .ns(Ns::NAME)
-//                                     .role(Role::InputOnly)
-//                                     .build(),
-//                             )
-//                             .build()])
-//                         .build(),
-//                 )
-//                 .build(),
-//         ]);
-//
-//         assert_eq!(
-//             map.to_string().trim(),
-//             r#"
-// export namespace Ns {
-//     export namespace input {}
-//     export namespace output {}
-//     export namespace io {
-//         export type hello = MyGeneric;
-//         export const hello = MyGeneric;
-//     }
-// }
-// export namespace Ns2 {
-//     export namespace input {
-//         export interface world { hello: Ns.io.hello }
-//         export const world = z.object({ hello: Ns.io.hello });
-//     }
-//     export namespace output {}
-//     export namespace io {}
-// }"#
-//             .trim()
-//         );
-//     }
-// }
+
+#[cfg(test)]
+mod test {
+
+    #![allow(dead_code)]
+    use crate::kind::{Input, Output};
+
+    use super::*;
+
+    use pretty_assertions::assert_eq;
+
+    use types::*;
+
+    struct Generic<T> {
+        inner: T,
+    }
+
+    struct Ns;
+    struct Ns2;
+
+    impl Namespace for Ns {
+        const NAME: &'static str = "Ns";
+    }
+
+    impl Namespace for Ns2 {
+        const NAME: &'static str = "Ns2";
+    }
+
+    impl<T> Type<Input> for Generic<T>
+    where
+        T: Type<Input>,
+    {
+        type Ns = Ns;
+        const NAME: &'static str = "Generic";
+
+        fn value() -> ZodType<Input> {
+            ZodObject::builder()
+                .fields(vec![ZodNamedField::builder()
+                    .name("inner")
+                    .value(ZodTypeInner::Generic(String::from("T")))
+                    .build()])
+                .build()
+                .into()
+        }
+
+        fn args() -> Vec<(&'static str, ZodType<Input>)> {
+            vec![("T", T::get_ref().into())] //todo
+        }
+    }
+
+    impl<T> Type<Output> for Generic<T>
+    where
+        T: Type<Output>,
+    {
+        type Ns = Ns;
+        const NAME: &'static str = "Generic";
+
+        fn value() -> ZodType<Output> {
+            ZodObject::builder()
+                .fields(vec![ZodNamedField::builder()
+                    .name("inner")
+                    .value(ZodTypeInner::Generic(String::from("T")))
+                    .build()])
+                .build()
+                .into()
+        }
+
+        fn args() -> Vec<(&'static str, ZodType<Output>)> {
+            vec![("T", T::get_ref().into())]
+        }
+    }
+
+    struct Alias;
+
+    impl Type<kind::Input> for Alias {
+        type Ns = Ns;
+        const NAME: &'static str = "Alias";
+
+        fn value() -> ZodType<kind::Input> {
+            u8::get_ref().into()
+        }
+    }
+
+    impl Type<kind::Output> for Alias {
+        type Ns = Ns;
+        const NAME: &'static str = "Alias";
+
+        fn value() -> ZodType<kind::Output> {
+            String::get_ref().into()
+        }
+    }
+
+    struct Nested<T> {
+        inner: Generic<T>,
+    }
+
+    impl<T: Type<Input>> Type<Input> for Nested<T> {
+        type Ns = Ns;
+        const NAME: &'static str = "Nested";
+
+        fn value() -> ZodType<Input> {
+            ZodObject::builder()
+                .fields(vec![ZodNamedField::builder()
+                    .name("inner")
+                    .value(<Generic<crate::const_str!('T')> as Type<Input>>::get_ref())
+                    .build()])
+                .build()
+                .into()
+        }
+
+        fn args() -> Vec<(&'static str, ZodType<Input>)> {
+            make_args!(T)
+        }
+    }
+
+    struct OutputOnly;
+
+    impl Type<kind::Output> for OutputOnly {
+        type Ns = Ns;
+        const NAME: &'static str = "OutputOnly";
+
+        fn value() -> ZodType<kind::Output> {
+            String::get_ref().into()
+        }
+    }
+
+    #[test]
+    fn inline_transparent_ok() {
+        assert_eq!(
+            Ts(&<Alias as Type<Input>>::export()).to_string(),
+            "export type Alias = Rs.input.U8;"
+        );
+
+        assert_eq!(
+            Ts(&<Alias as Type<Output>>::export()).to_string(),
+            "export type Alias = Rs.output.String;"
+        );
+    }
+
+    #[test]
+    fn ok1() {
+        assert_eq!(
+            Ts(&<Generic::<Alias> as Type<kind::Output>>::get_ref()).to_string(),
+            "Ns.output.Generic<Ns.output.Alias>"
+        );
+        assert_eq!(
+            Ts(&<Generic::<Alias> as Type<kind::Input>>::get_ref()).to_string(),
+            "Ns.input.Generic<Ns.input.Alias>"
+        );
+    }
+
+    #[test]
+    fn export_map_ok() {
+        let map = ExportMap::new(
+            [
+                ZodExport::builder()
+                    .name("hello")
+                    .ns(Ns::NAME)
+                    .value(ZodTypeInner::Generic(String::from("MyGeneric")))
+                    .build(),
+                ZodExport::builder()
+                    .name("world")
+                    .ns(Ns2::NAME)
+                    .value(
+                        ZodObject::builder()
+                            .fields(vec![ZodNamedField::builder()
+                                .name("hello")
+                                .value(Reference::builder().name("hello").ns(Ns::NAME).build())
+                                .build()])
+                            .build(),
+                    )
+                    .build(),
+            ],
+            [ZodExport::builder()
+                .name("hello")
+                .ns(Ns::NAME)
+                .value(ZodTypeInner::Generic(String::from("MyGeneric")))
+                .build()],
+        );
+
+        assert_eq!(
+            map.to_string().trim(),
+            r#"
+export namespace Ns {
+    export namespace input {
+        export type hello = Ns.io.hello;
+        export const hello = Ns.io.hello;
+    }
+    export namespace output {
+        export type hello = Ns.io.hello;
+        export const hello = Ns.io.hello;
+    }
+    export namespace io {
+        export type hello = MyGeneric;
+        export const hello = MyGeneric;
+    }
+}
+export namespace Ns2 {
+    export namespace input {
+        export interface world { hello: Ns.input.hello }
+        export const world = z.object({ hello: Ns.input.hello });
+    }
+    export namespace output {}
+    export namespace io {}
+}"#
+            .trim()
+        );
+    }
+}

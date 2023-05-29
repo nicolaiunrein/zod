@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::{utils::Separated, IoKind};
+use crate::{kind, utils::Separated, IoKind};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
-#[derive(TypedBuilder, PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodUnion<Io> {
     #[builder(default)]
     pub variants: Vec<ZodType<Io>>,
@@ -38,9 +38,30 @@ impl<Io> From<ZodUnion<Io>> for ZodTypeInner<Io> {
     }
 }
 
+impl From<ZodUnion<kind::Input>> for ZodUnion<kind::EitherIo> {
+    fn from(other: ZodUnion<kind::Input>) -> Self {
+        Self {
+            variants: other.variants.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+}
+
+impl From<ZodUnion<kind::Output>> for ZodUnion<kind::EitherIo> {
+    fn from(other: ZodUnion<kind::Output>) -> Self {
+        Self {
+            variants: other.variants.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+}
+
+crate::make_eq!(ZodUnion { variants });
+
 #[cfg(test)]
 mod test {
-    use crate::types::{ZodNumber, ZodString};
+    use crate::{
+        kind,
+        types::{ZodNumber, ZodString},
+    };
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -48,7 +69,7 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod(&ZodUnion<marker::Input>::builder()
+            Zod(&ZodUnion::<kind::Input>::builder()
                 .variants(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),
@@ -56,7 +77,7 @@ mod test {
         );
 
         assert_eq!(
-            Ts(&ZodUnion::builder()
+            Ts(&ZodUnion::<kind::Input>::builder()
                 .variants(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),
