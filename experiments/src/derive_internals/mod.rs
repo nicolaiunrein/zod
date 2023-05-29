@@ -28,14 +28,14 @@ pub fn impl_zod(role: Role, input: TokenStream2) -> TokenStream2 {
     let derive_input: DeriveInput = match syn::parse2(input) {
         Ok(parsed) => parsed,
         Err(err) => {
-            return err.into_compile_error().into();
+            return err.into_compile_error();
         }
     };
 
     let attrs: ZodOptions = match ZodOptions::from_derive_input(&derive_input) {
         Ok(attrs) => attrs,
         Err(err) => {
-            return err.write_errors().into();
+            return err.write_errors();
         }
     };
 

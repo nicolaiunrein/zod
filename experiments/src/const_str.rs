@@ -10,7 +10,7 @@ pub struct ConstStr<const C: char, T> {
 
 impl<const C: char, T> ConstStr<C, T> {
     pub fn value() -> Formatter<Self> {
-        Formatter::new()
+        Formatter::default()
     }
 }
 
@@ -30,8 +30,8 @@ pub struct Formatter<T> {
     _inner: PhantomData<T>,
 }
 
-impl<T> Formatter<T> {
-    pub fn new() -> Self {
+impl<T> Default for Formatter<T> {
+    fn default() -> Self {
         Self {
             _inner: PhantomData,
         }

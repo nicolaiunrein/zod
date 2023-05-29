@@ -146,7 +146,7 @@ where
                     let args = self
                         .args
                         .iter()
-                        .map(|name| format!("{name}"))
+                        .map(|name| name.to_string())
                         .collect::<Vec<_>>();
 
                     f.write_fmt(format_args!(

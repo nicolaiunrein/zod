@@ -126,8 +126,8 @@ where
 impl From<ZodType<kind::Input>> for ZodType<kind::EitherIo> {
     fn from(other: ZodType<kind::Input>) -> Self {
         ZodType {
-            optional: other.optional.into(),
-            custom_suffix: other.custom_suffix.into(),
+            optional: other.optional,
+            custom_suffix: other.custom_suffix,
             inner: other.inner.into(),
         }
     }
@@ -136,8 +136,8 @@ impl From<ZodType<kind::Input>> for ZodType<kind::EitherIo> {
 impl From<ZodType<kind::Output>> for ZodType<kind::EitherIo> {
     fn from(other: ZodType<kind::Output>) -> Self {
         ZodType {
-            optional: other.optional.into(),
-            custom_suffix: other.custom_suffix.into(),
+            optional: other.optional,
+            custom_suffix: other.custom_suffix,
             inner: other.inner.into(),
         }
     }
@@ -152,19 +152,19 @@ crate::make_eq!(ZodType {
 impl From<ZodTypeInner<kind::Input>> for ZodTypeInner<kind::EitherIo> {
     fn from(other: ZodTypeInner<kind::Input>) -> Self {
         match other {
-            ZodTypeInner::String(inner) => ZodTypeInner::String(inner.into()),
-            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner.into()),
+            ZodTypeInner::String(inner) => ZodTypeInner::String(inner),
+            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner),
             ZodTypeInner::Object(inner) => ZodTypeInner::Object(inner.into()),
             ZodTypeInner::Reference(inner) => ZodTypeInner::Reference(inner.into()),
             ZodTypeInner::Alias(inner) => ZodTypeInner::Alias(inner),
-            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner.into()),
-            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner.into()),
+            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner),
+            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner),
             ZodTypeInner::Union(inner) => ZodTypeInner::Union(inner.into()),
             ZodTypeInner::DiscriminatedUnion(inner) => {
                 ZodTypeInner::DiscriminatedUnion(inner.into())
             }
             ZodTypeInner::Tuple(inner) => ZodTypeInner::Tuple(inner.into()),
-            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner.into()),
+            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner),
         }
     }
 }
@@ -172,19 +172,19 @@ impl From<ZodTypeInner<kind::Input>> for ZodTypeInner<kind::EitherIo> {
 impl From<ZodTypeInner<kind::Output>> for ZodTypeInner<kind::EitherIo> {
     fn from(other: ZodTypeInner<kind::Output>) -> Self {
         match other {
-            ZodTypeInner::String(inner) => ZodTypeInner::String(inner.into()),
-            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner.into()),
+            ZodTypeInner::String(inner) => ZodTypeInner::String(inner),
+            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner),
             ZodTypeInner::Object(inner) => ZodTypeInner::Object(inner.into()),
             ZodTypeInner::Reference(inner) => ZodTypeInner::Reference(inner.into()),
             ZodTypeInner::Alias(inner) => ZodTypeInner::Alias(inner),
-            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner.into()),
-            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner.into()),
+            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner),
+            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner),
             ZodTypeInner::Union(inner) => ZodTypeInner::Union(inner.into()),
             ZodTypeInner::DiscriminatedUnion(inner) => {
                 ZodTypeInner::DiscriminatedUnion(inner.into())
             }
             ZodTypeInner::Tuple(inner) => ZodTypeInner::Tuple(inner.into()),
-            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner.into()),
+            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner),
         }
     }
 }

@@ -11,7 +11,7 @@ where
     Item: fmt::Display + 'a,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut iterator = self.1.into_iter();
+        let mut iterator = self.1.iter();
         if let Some(x) = iterator.next() {
             write!(f, "{}", x)?;
             for item in iterator {
