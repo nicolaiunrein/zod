@@ -51,12 +51,10 @@ where
                             quote!(#zod_core::types::ZodLiteral::String(#name).into())
                         }
                         _ => {
-                            
                             let value = StructImpl {
                                 fields: orig.fields.clone(),
                                 kind,
                             };
-                            
                             quote! {
                                 #zod_core::types::ZodObject {
                                     fields: ::std::vec![
@@ -86,31 +84,24 @@ where
                                     }.into()
                                 }
                             },
-                            
                             syn::Fields::Named(fields) => {
-                                
                                 let first = ZodNamedFieldImpl {
                                     name: tag.clone(),
                                     optional: false,
                                     kind,
                                     value: FieldValue::Literal(name, ident.span())
                                 };
-                                
                                 let fields = fields.named.iter().map(|f| ZodNamedFieldImpl {
                                         name: f.ident.as_ref().expect("Named field").to_string(),
                                         optional: false,
                                         kind,
                                         value: f.ty.clone().into()
                                     });
-                                
                                 let obj = ZodObjectImpl {
                                     fields: std::iter::once(first).chain(fields).collect(),
                                 };
-                                
                                 quote!(#obj.into())
-                                
                             }
-                            
                             syn::Fields::Unnamed(fields) => {
                                 if fields.unnamed.len() == 1 {
                                     todo!("Serde supports object merging")
@@ -120,7 +111,6 @@ where
                             }
                         }
                     },
-                    
                     TagType::Adjacently { tag, content } => match orig.fields {
                         syn::Fields::Unit => {
                             // same as Externally
@@ -141,7 +131,6 @@ where
                                 fields: orig.fields.clone(),
                                 kind,
                             };
-                            
                             quote! {
                                 #zod_core::types::ZodObject {
                                     fields: ::std::vec![
@@ -170,12 +159,9 @@ where
                                     fields: orig.fields.clone(),
                                     kind,
                                 };
-                                
                                 quote!(#value.into())
                             }
                         }
-                        
-                        
                     }
                 }
             })
@@ -197,9 +183,7 @@ where
                     }
                 }
             }
-            TagType::Internally { tag } |
-                
-            TagType::Adjacently { tag, .. } => {
+            TagType::Internally { tag } | TagType::Adjacently { tag, .. } => {
                 quote! {
                     #zod_core::types::ZodDiscriminatedUnion {
                         tag: #tag,
@@ -396,19 +380,19 @@ mod test {
             expected.to_formatted_string().unwrap()
         );
     }
-    
+
     #[test]
     fn internally_tagged_ok() {
         let kind = Kind::Input;
 
         let tag_label = "my_tag";
 
-        let tag = TagType::Internally{
+        let tag = TagType::Internally {
             tag: String::from(tag_label),
         };
 
         let tagged = |name: &'static str, fields: syn::FieldsNamed| {
-            let fields = fields.named.iter().map(|f|{
+            let fields = fields.named.iter().map(|f| {
                 let name = f.ident.as_ref().unwrap().to_string();
                 let value = FieldValue::from(f.ty.clone());
                 ZodNamedFieldImpl {
@@ -442,10 +426,7 @@ mod test {
                     },],
                 }.into()
             },
-            tagged(
-                "Struct1",
-                parse_quote!({ inner: String }),
-            ),
+            tagged("Struct1", parse_quote!({ inner: String })),
             tagged(
                 "Struct2",
                 parse_quote!({ inner_string: String, inner_u8: u8 }),
