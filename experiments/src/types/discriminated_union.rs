@@ -10,7 +10,7 @@ use super::{Ts, Zod, ZodObject, ZodTypeInner};
 
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodDiscriminatedUnion<Io> {
-    tag: &'static str,
+    pub tag: &'static str,
     #[builder(default)]
     pub variants: Vec<ZodObject<Io>>,
 }

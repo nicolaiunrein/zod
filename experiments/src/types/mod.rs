@@ -14,6 +14,7 @@ use crate::utils::zod_core;
 pub use self::r#bool::*;
 pub use discriminated_union::*;
 pub use export::*;
+pub use literal::*;
 pub use number::*;
 pub use object::*;
 pub use r#type::*;

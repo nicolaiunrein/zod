@@ -27,7 +27,7 @@ where
                             name,
                             optional: false, // TODO
                             kind,
-                            ty,
+                            value: ty.into(),
                         }
                     })
                     .collect(),
@@ -52,8 +52,8 @@ where
     }
 }
 
-struct ZodObjectImpl<Io> {
-    fields: Vec<ZodNamedFieldImpl<Io>>,
+pub(crate) struct ZodObjectImpl<Io> {
+    pub(crate) fields: Vec<ZodNamedFieldImpl<Io>>,
 }
 
 impl<Io> ToTokens for ZodObjectImpl<Io>
@@ -112,13 +112,13 @@ mod test {
                 name: String::from("inner_string"),
                 optional: false,
                 kind,
-                ty: parse_quote!(String),
+                value: FieldValue::Type(parse_quote!(String)),
             },
             ZodNamedFieldImpl {
                 name: String::from("inner_u8"),
                 optional: false,
                 kind,
-                ty: parse_quote!(u8),
+                value: FieldValue::Type(parse_quote!(u8)),
             },
         ];
 
@@ -174,13 +174,13 @@ mod test {
                 name: String::from("inner_u8"),
                 optional: true,
                 kind: Kind::Input,
-                ty: parse_quote!(u8),
+                value: FieldValue::Type(parse_quote!(u8)),
             },
             ZodNamedFieldImpl {
                 name: String::from("inner_string"),
                 optional: true,
                 kind: Kind::Input,
-                ty: parse_quote!(::std::string::String),
+                value: FieldValue::Type(parse_quote!(String)),
             },
         ];
 

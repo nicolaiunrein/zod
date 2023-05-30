@@ -1,14 +1,26 @@
 use crate::utils::zod_core;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct ZodNamedFieldImpl<Io> {
+#[derive(Clone, Debug)]
+pub(crate) enum FieldValue {
+    Literal(String, Span),
+    Type(syn::Type),
+}
+
+impl From<syn::Type> for FieldValue {
+    fn from(value: syn::Type) -> Self {
+        Self::Type(value)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct ZodNamedFieldImpl<Io> {
     pub name: String,
     pub optional: bool,
     pub kind: Io,
-    pub ty: syn::Type,
+    pub value: FieldValue,
 }
 
 impl<Io> ToTokens for ZodNamedFieldImpl<Io>
@@ -19,15 +31,23 @@ where
         let name = &self.name;
         let optional = &self.optional;
         let kind = self.kind;
-        let ty = &self.ty;
-        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::Type::<#kind>>);
+        let (qualified_value, span) = match self.value {
+            FieldValue::Literal(ref value, span) => (
+                quote_spanned!(span => #zod_core::types::ZodLiteral::String(#value).into()),
+                span,
+            ),
+            FieldValue::Type(ref ty) => (
+                quote_spanned!(ty.span() => <#ty as #zod_core::Type::<#kind>>::get_ref().into()),
+                ty.span(),
+            ),
+        };
 
         tokens.extend(quote_spanned! {
-            ty.span() =>
+            span =>
             #zod_core::types::ZodNamedField {
                 name: #name,
                 optional: #optional,
-                value: #qualified_ty::get_ref().into(),
+                value: #qualified_value,
             }
         })
     }
@@ -76,7 +96,7 @@ mod test {
             name: String::from("hello"),
             kind,
             optional: false,
-            ty: parse_quote!(String),
+            value: FieldValue::Type(parse_quote!(String)),
         }
         .into_token_stream();
 

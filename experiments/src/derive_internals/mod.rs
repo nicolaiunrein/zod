@@ -9,7 +9,10 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
 use r#enum::EnumImpl;
 use r#struct::StructImpl;
+use serde_derive_internals::attr::TagType as SerdeTagType;
 use syn::DeriveInput;
+
+use self::r#enum::TagType;
 
 impl ToTokens for Kind::Input {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
@@ -35,6 +38,22 @@ struct ZodOptions {
     pub custom_suffix: Option<String>,
 }
 
+impl From<&SerdeTagType> for TagType {
+    fn from(value: &SerdeTagType) -> Self {
+        match value {
+            SerdeTagType::External => TagType::Externally,
+            SerdeTagType::Internal { tag } => TagType::Internally {
+                tag: tag.to_owned(),
+            },
+            SerdeTagType::Adjacent { tag, content } => TagType::Adjacently {
+                tag: tag.to_owned(),
+                content: content.to_owned(),
+            },
+            SerdeTagType::None => TagType::Untagged,
+        }
+    }
+}
+
 /// convert input into the generated code providing a kind.
 pub fn impl_zod<Io>(kind: Io, input: TokenStream2) -> TokenStream2
 where
@@ -46,6 +65,10 @@ where
             return err.into_compile_error();
         }
     };
+
+    let cx = serde_derive_internals::Ctxt::new();
+    let serde_attrs = serde_derive_internals::attr::Container::from_ast(&cx, &derive_input);
+    cx.check().unwrap();
 
     let attrs: ZodOptions = match ZodOptions::from_derive_input(&derive_input) {
         Ok(attrs) => attrs,
@@ -64,16 +87,13 @@ where
         }
         .into_token_stream(),
 
-        // syn::Data::Enum(data) => EnumImpl {
-        //     kind,
-        //     ns: attrs.namespace,
-        //     custom_suffix: attrs.custom_suffix,
-        //     generics,
-        //     variants: data.variants.into_iter().collect(),
-        // }
-        // .into_token_stream(),
+        syn::Data::Enum(data) => EnumImpl {
+            tag: serde_attrs.tag().into(),
+            kind,
+            variants: data.variants.into_iter().collect(),
+        }
+        .into_token_stream(),
         syn::Data::Union(_) => todo!(),
-        _ => todo!(),
     };
 
     let ns = attrs.namespace;
@@ -230,6 +250,7 @@ mod test {
         };
 
         let inner = EnumImpl {
+            tag: Default::default(),
             kind,
             variants: vec![
                 parse_quote!(Unit),
