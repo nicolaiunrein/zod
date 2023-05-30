@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use zod_derive_experiments::Zod;
 
 struct Ns;
