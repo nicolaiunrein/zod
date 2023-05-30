@@ -93,7 +93,8 @@ where
             variants: data.variants.into_iter().collect(),
         }
         .into_token_stream(),
-        syn::Data::Union(_) => todo!(),
+
+        syn::Data::Union(_) => todo!("todo... not supported"),
     };
 
     let ns = attrs.namespace;

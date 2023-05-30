@@ -320,8 +320,7 @@ mod test {
                     #zod_core::types::ZodNamedField {
                         name: #content_label,
                         optional: false,
-                        value: #inner
-
+                        value: #inner.into()
                     }
                     ],
                 }.into()
