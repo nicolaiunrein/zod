@@ -57,27 +57,62 @@ where
     let ident = derive_input.ident;
     let generics = derive_input.generics;
 
-    match derive_input.data {
+    let inner = match derive_input.data {
         syn::Data::Struct(data) => StructImpl {
             kind,
-            ident,
-            ns: attrs.namespace,
-            custom_suffix: attrs.custom_suffix,
-            generics,
             fields: data.fields,
         }
         .into_token_stream(),
 
-        syn::Data::Enum(data) => EnumImpl {
-            kind,
-            ident,
-            ns: attrs.namespace,
-            custom_suffix: attrs.custom_suffix,
-            generics,
-            variants: data.variants.into_iter().collect(),
-        }
-        .into_token_stream(),
+        // syn::Data::Enum(data) => EnumImpl {
+        //     kind,
+        //     ns: attrs.namespace,
+        //     custom_suffix: attrs.custom_suffix,
+        //     generics,
+        //     variants: data.variants.into_iter().collect(),
+        // }
+        // .into_token_stream(),
         syn::Data::Union(_) => todo!(),
+        _ => todo!(),
+    };
+
+    let ns = attrs.namespace;
+    let name = ident.to_string();
+
+    let arg_idents = generics
+        .params
+        .iter()
+        .map(|p| match p {
+            syn::GenericParam::Lifetime(_) => todo!(),
+            syn::GenericParam::Type(param) => &param.ident,
+            syn::GenericParam::Const(_) => todo!(),
+        })
+        .collect::<Vec<_>>();
+
+    let custom_suffix = match attrs.custom_suffix {
+        Some(suffix) => quote!(::std::option::Option::Some(::std::string::String::from(
+            #suffix
+        ))),
+        None => quote!(None),
+    };
+
+    quote! {
+        impl #zod_core::Type<#kind> for #ident {
+            type Ns = #ns;
+            const NAME: &'static str = #name;
+
+            fn value() -> #zod_core::types::ZodType<#kind> {
+                #zod_core::types::ZodType {
+                    optional: false,
+                    custom_suffix: #custom_suffix,
+                    inner: #inner.into()
+                }
+            }
+
+            fn args() -> #zod_core::GenericArguments<#kind> {
+                #zod_core::make_args!(#(#arg_idents),*)
+            }
+        }
     }
 }
 
@@ -91,6 +126,7 @@ mod test {
 
     #[test]
     fn impl_zod_for_struct_with_named_fields_ok() {
+        let kind = Kind::Input;
         let input = quote! {
             #[zod(namespace = "Ns")]
             struct Test {
@@ -99,15 +135,32 @@ mod test {
             }
         };
 
-        let expected = StructImpl {
-            ident: parse_quote!(Test),
-            generics: Default::default(),
+        let inner = StructImpl {
             fields: syn::Fields::Named(parse_quote!({ inner_string: String, inner_u8: u8 })),
-            kind: Kind::Input,
-            ns: parse_quote!(Ns),
-            custom_suffix: None,
-        }
-        .into_token_stream();
+            kind,
+        };
+
+        let custom_suffix = quote!(None);
+
+        let expected = quote! {
+            impl #zod_core::Type<#kind> for Test {
+                type Ns = Ns;
+                const NAME: &'static str = "Test";
+
+                fn value() -> #zod_core::types::ZodType<#kind> {
+                    #zod_core::types::ZodType {
+                        optional: false,
+                        custom_suffix: #custom_suffix,
+                        inner: #inner.into()
+                    }
+                }
+
+                fn args() -> #zod_core::GenericArguments<#kind> {
+                    #zod_core::make_args!()
+                }
+            }
+
+        };
 
         assert_eq!(
             impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
@@ -117,20 +170,38 @@ mod test {
 
     #[test]
     fn impl_zod_for_struct_with_tuple_fields_ok() {
+        let kind = Kind::Input;
         let input = quote! {
             #[zod(namespace = "Ns")]
             struct Test(String, u8);
         };
 
-        let expected = StructImpl {
-            ident: parse_quote!(Test),
-            generics: Default::default(),
+        let custom_suffix = quote!(None);
+
+        let inner = StructImpl {
             fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-            kind: Kind::Input,
-            ns: parse_quote!(Ns),
-            custom_suffix: None,
-        }
-        .into_token_stream();
+            kind,
+        };
+
+        let expected = quote! {
+            impl #zod_core::Type<#kind> for Test {
+                type Ns = Ns;
+                const NAME: &'static str = "Test";
+
+                fn value() -> #zod_core::types::ZodType<#kind> {
+                    #zod_core::types::ZodType {
+                        optional: false,
+                        custom_suffix: #custom_suffix,
+                        inner: #inner.into()
+                    }
+                }
+
+                fn args() -> #zod_core::GenericArguments<#kind> {
+                    #zod_core::make_args!()
+                }
+            }
+
+        };
 
         assert_eq!(
             impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
@@ -138,9 +209,9 @@ mod test {
         )
     }
 
-    #[ignore]
     #[test]
     fn impl_zod_for_enum() {
+        let kind = Kind::Input;
         let input = quote! {
             #[zod(namespace = "Ns")]
             enum Test {
@@ -158,7 +229,42 @@ mod test {
             }
         };
 
-        let expected: TokenStream2 = todo!();
+        let inner = EnumImpl {
+            kind,
+            variants: vec![
+                parse_quote!(Unit),
+                parse_quote!(Tuple1(String)),
+                parse_quote!(Tuple2(String, u8)),
+                parse_quote!(Struct0 {}),
+                parse_quote!(Struct1 { inner: String }),
+                parse_quote!(Struct2 {
+                    inner_string: String,
+                    inner_u8: u8
+                }),
+            ],
+        };
+
+        let custom_suffix = quote!(None);
+
+        let expected = quote! {
+            impl #zod_core::Type<#kind> for Test {
+                type Ns = Ns;
+                const NAME: &'static str = "Test";
+
+                fn value() -> #zod_core::types::ZodType<#kind> {
+                    #zod_core::types::ZodType {
+                        optional: false,
+                        custom_suffix: #custom_suffix,
+                        inner: #inner.into()
+                    }
+                }
+
+                fn args() -> #zod_core::GenericArguments<#kind> {
+                    #zod_core::make_args!()
+                }
+            }
+
+        };
 
         assert_eq!(
             impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
