@@ -35,21 +35,6 @@ impl Display for Zod<'_, ZodTypeAny> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-pub enum Role {
-    InputOnly,
-    OutputOnly,
-}
-
-impl Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Role::InputOnly => f.write_str("input"),
-            Role::OutputOnly => f.write_str("output"),
-        }
-    }
-}
-
 pub struct Zod<'a, T>(pub &'a T);
 pub struct Ts<'a, T>(pub &'a T);
 
@@ -72,15 +57,6 @@ impl<T> Deref for Ts<'_, T> {
 impl ToTokens for ZodTypeAny {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(quote!(#zod_core::types::ZodTypeAny))
-    }
-}
-
-impl ToTokens for Role {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.extend(match self {
-            Role::InputOnly => quote!(#zod_core::types::Role::InputOnly),
-            Role::OutputOnly => quote!(#zod_core::types::Role::OutputOnly),
-        })
     }
 }
 

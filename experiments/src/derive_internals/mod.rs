@@ -1,6 +1,5 @@
 mod struct_impl;
 use crate::derive_internals::struct_impl::StructImpl;
-use crate::types::Role;
 use darling::FromDeriveInput;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
@@ -24,7 +23,7 @@ fn qualify_ty(ty: &syn::Type, trait_path: syn::Path) -> TokenStream2 {
     quote_spanned!(span => < #ty as #trait_path>)
 }
 
-pub fn impl_zod(role: Role, input: TokenStream2) -> TokenStream2 {
+pub fn impl_zod<Io>(role: Io, input: TokenStream2) -> TokenStream2 {
     let derive_input: DeriveInput = match syn::parse2(input) {
         Ok(parsed) => parsed,
         Err(err) => {
@@ -45,8 +44,8 @@ pub fn impl_zod(role: Role, input: TokenStream2) -> TokenStream2 {
     match derive_input.data {
         syn::Data::Struct(data) => {
             let it = StructImpl {
-                ident,
                 role,
+                ident,
                 ns: attrs.namespace,
                 custom_suffix: attrs.custom_suffix,
                 generics,
@@ -63,7 +62,7 @@ pub fn impl_zod(role: Role, input: TokenStream2) -> TokenStream2 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{test_utils::TokenStreamExt, types::Role, utils::zod_core};
+    use crate::{test_utils::TokenStreamExt, utils::zod_core};
     use pretty_assertions::assert_eq;
 
     #[test]

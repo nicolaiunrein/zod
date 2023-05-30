@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::{kind, Alias, IoKind, Reference};
+use crate::{Alias, IoKind, Kind, Reference};
 
 use super::{
     literal::ZodLiteral, Ts, Zod, ZodBool, ZodDiscriminatedUnion, ZodNumber, ZodObject, ZodString,
@@ -123,21 +123,21 @@ where
     }
 }
 
-impl From<ZodType<kind::Input>> for ZodType<kind::EitherIo> {
-    fn from(other: ZodType<kind::Input>) -> Self {
+impl From<ZodType<Kind::Input>> for ZodType<Kind::EitherIo> {
+    fn from(other: ZodType<Kind::Input>) -> Self {
         ZodType {
-            optional: other.optional,
-            custom_suffix: other.custom_suffix,
+            optional: other.optional.into(),
+            custom_suffix: other.custom_suffix.into(),
             inner: other.inner.into(),
         }
     }
 }
 
-impl From<ZodType<kind::Output>> for ZodType<kind::EitherIo> {
-    fn from(other: ZodType<kind::Output>) -> Self {
+impl From<ZodType<Kind::Output>> for ZodType<Kind::EitherIo> {
+    fn from(other: ZodType<Kind::Output>) -> Self {
         ZodType {
-            optional: other.optional,
-            custom_suffix: other.custom_suffix,
+            optional: other.optional.into(),
+            custom_suffix: other.custom_suffix.into(),
             inner: other.inner.into(),
         }
     }
@@ -149,42 +149,42 @@ crate::make_eq!(ZodType {
     inner
 });
 
-impl From<ZodTypeInner<kind::Input>> for ZodTypeInner<kind::EitherIo> {
-    fn from(other: ZodTypeInner<kind::Input>) -> Self {
+impl From<ZodTypeInner<Kind::Input>> for ZodTypeInner<Kind::EitherIo> {
+    fn from(other: ZodTypeInner<Kind::Input>) -> Self {
         match other {
-            ZodTypeInner::String(inner) => ZodTypeInner::String(inner),
-            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner),
+            ZodTypeInner::String(inner) => ZodTypeInner::String(inner.into()),
+            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner.into()),
             ZodTypeInner::Object(inner) => ZodTypeInner::Object(inner.into()),
             ZodTypeInner::Reference(inner) => ZodTypeInner::Reference(inner.into()),
             ZodTypeInner::Alias(inner) => ZodTypeInner::Alias(inner),
-            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner),
-            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner),
+            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner.into()),
+            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner.into()),
             ZodTypeInner::Union(inner) => ZodTypeInner::Union(inner.into()),
             ZodTypeInner::DiscriminatedUnion(inner) => {
                 ZodTypeInner::DiscriminatedUnion(inner.into())
             }
             ZodTypeInner::Tuple(inner) => ZodTypeInner::Tuple(inner.into()),
-            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner),
+            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner.into()),
         }
     }
 }
 
-impl From<ZodTypeInner<kind::Output>> for ZodTypeInner<kind::EitherIo> {
-    fn from(other: ZodTypeInner<kind::Output>) -> Self {
+impl From<ZodTypeInner<Kind::Output>> for ZodTypeInner<Kind::EitherIo> {
+    fn from(other: ZodTypeInner<Kind::Output>) -> Self {
         match other {
-            ZodTypeInner::String(inner) => ZodTypeInner::String(inner),
-            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner),
+            ZodTypeInner::String(inner) => ZodTypeInner::String(inner.into()),
+            ZodTypeInner::Number(inner) => ZodTypeInner::Number(inner.into()),
             ZodTypeInner::Object(inner) => ZodTypeInner::Object(inner.into()),
             ZodTypeInner::Reference(inner) => ZodTypeInner::Reference(inner.into()),
             ZodTypeInner::Alias(inner) => ZodTypeInner::Alias(inner),
-            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner),
-            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner),
+            ZodTypeInner::Generic(inner) => ZodTypeInner::Generic(inner.into()),
+            ZodTypeInner::Literal(inner) => ZodTypeInner::Literal(inner.into()),
             ZodTypeInner::Union(inner) => ZodTypeInner::Union(inner.into()),
             ZodTypeInner::DiscriminatedUnion(inner) => {
                 ZodTypeInner::DiscriminatedUnion(inner.into())
             }
             ZodTypeInner::Tuple(inner) => ZodTypeInner::Tuple(inner.into()),
-            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner),
+            ZodTypeInner::Bool(inner) => ZodTypeInner::Bool(inner.into()),
         }
     }
 }
@@ -210,14 +210,14 @@ impl<A, B> PartialEq<ZodTypeInner<A>> for ZodTypeInner<B> {
 
 #[cfg(test)]
 mod test {
-    use crate::kind;
+    use crate::Kind;
 
     use super::*;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn custom_ok() {
-        let input = ZodType::<kind::Input>::builder()
+        let input = ZodType::<Kind::Input>::builder()
             .custom_suffix(String::from(".min(24)"))
             .inner(ZodNumber)
             .build();

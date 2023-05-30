@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::{kind, utils::Separated, IoKind};
+use crate::{utils::Separated, IoKind, Kind};
 
 use super::{Ts, Zod, ZodObject, ZodTypeInner};
 
@@ -45,8 +45,8 @@ impl<Io> From<ZodDiscriminatedUnion<Io>> for ZodTypeInner<Io> {
     }
 }
 
-impl From<ZodDiscriminatedUnion<kind::Input>> for ZodDiscriminatedUnion<kind::EitherIo> {
-    fn from(other: ZodDiscriminatedUnion<kind::Input>) -> Self {
+impl From<ZodDiscriminatedUnion<Kind::Input>> for ZodDiscriminatedUnion<Kind::EitherIo> {
+    fn from(other: ZodDiscriminatedUnion<Kind::Input>) -> Self {
         Self {
             tag: other.tag,
             variants: other.variants.into_iter().map(|v| v.into()).collect(),
@@ -54,8 +54,8 @@ impl From<ZodDiscriminatedUnion<kind::Input>> for ZodDiscriminatedUnion<kind::Ei
     }
 }
 
-impl From<ZodDiscriminatedUnion<kind::Output>> for ZodDiscriminatedUnion<kind::EitherIo> {
-    fn from(other: ZodDiscriminatedUnion<kind::Output>) -> Self {
+impl From<ZodDiscriminatedUnion<Kind::Output>> for ZodDiscriminatedUnion<Kind::EitherIo> {
+    fn from(other: ZodDiscriminatedUnion<Kind::Output>) -> Self {
         Self {
             tag: other.tag,
             variants: other.variants.into_iter().map(|v| v.into()).collect(),
@@ -67,7 +67,7 @@ crate::make_eq!(ZodDiscriminatedUnion { tag, variants });
 
 #[cfg(test)]
 mod test {
-    use crate::{kind, types::ZodNamedField, Type};
+    use crate::{types::ZodNamedField, Kind, Type};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -80,7 +80,7 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(<String as Type<kind::Input>>::get_ref())
+                        .value(<String as Type<Kind::Input>>::get_ref())
                         .build()])
                     .build(),
                 ZodObject::builder().build(),

@@ -1,7 +1,7 @@
 use crate::{
-    kind::Input,
-    kind::Output,
     types::{ZodBool, ZodNumber, ZodString, ZodType},
+    Kind::Input,
+    Kind::Output,
     Namespace, Type,
 };
 use paste::paste;

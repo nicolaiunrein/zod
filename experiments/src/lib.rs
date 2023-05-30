@@ -4,9 +4,8 @@
 //!
 //!
 //! ## Solution:
-//! Remove the Role::Io and IoType alltogether.
 //! The implementor should not care.
-//! We require InputType to be implemented for RPC arguments and OutputType for Rpc response
+//! We require `Type<Kind::Input>` to be implemented for RPC arguments and `Type<Kind::Output>` for Rpc response
 //! types. When the exports are equal they should get merged into the io namespace when generating
 //! the code. For references to still be valid either walk all references in all exports and
 //! update to io namespace or transform the exports to alias the export in the io namespace:
@@ -64,8 +63,8 @@ use build_ins::Rs;
 use typed_builder::TypedBuilder;
 use types::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
 
-// TODO: rename to Kind
-pub mod kind {
+#[allow(non_snake_case)]
+pub mod Kind {
     #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
     pub struct Input;
 
@@ -96,13 +95,13 @@ pub trait IoKind {
     const NAME: &'static str;
 }
 
-impl IoKind for kind::Input {
+impl IoKind for Kind::Input {
     const NAME: &'static str = "input";
 }
-impl IoKind for kind::Output {
+impl IoKind for Kind::Output {
     const NAME: &'static str = "output";
 }
-impl IoKind for kind::EitherIo {
+impl IoKind for Kind::EitherIo {
     const NAME: &'static str = "io";
 }
 
@@ -175,26 +174,26 @@ pub trait Namespace {
     const NAME: &'static str;
 }
 
-impl<const C: char, T: const_str::Chain> Type<kind::Input> for const_str::ConstStr<C, T> {
+impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
 
-    fn get_ref() -> Reference<kind::Input> {
+    fn get_ref() -> Reference<Kind::Input> {
         todo!()
     }
-    fn value() -> ZodType<kind::Input> {
+    fn value() -> ZodType<Kind::Input> {
         panic!("todo... not supported")
     }
 }
 
-impl<const C: char, T: const_str::Chain> Type<kind::Output> for const_str::ConstStr<C, T> {
+impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::ConstStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
 
-    fn get_ref() -> Reference<kind::Output> {
+    fn get_ref() -> Reference<Kind::Output> {
         todo!()
     }
-    fn value() -> ZodType<kind::Output> {
+    fn value() -> ZodType<Kind::Output> {
         panic!("todo... not supported")
     }
 }
@@ -210,7 +209,7 @@ pub struct Reference<Io> {
     #[builder(default)]
     pub args: Vec<ZodType<Io>>,
 
-    #[builder(default)]
+    #[builder(default, setter(skip))]
     _phantom: PhantomData<Io>,
 }
 
@@ -227,7 +226,7 @@ impl<'a> Display for Zod<'a, Alias> {
         f.write_fmt(format_args!(
             "{}.{}.{}",
             self.ns,
-            kind::EitherIo::NAME,
+            Kind::EitherIo::NAME,
             self.name
         ))
     }
@@ -238,7 +237,7 @@ impl<'a> Display for Ts<'a, Alias> {
         f.write_fmt(format_args!(
             "{}.{}.{}",
             self.ns,
-            kind::EitherIo::NAME,
+            Kind::EitherIo::NAME,
             self.name
         ))
     }
@@ -279,8 +278,8 @@ impl<T> From<Reference<T>> for ZodTypeInner<T> {
     }
 }
 
-impl From<Reference<kind::Input>> for Reference<kind::EitherIo> {
-    fn from(other: Reference<kind::Input>) -> Self {
+impl From<Reference<Kind::Input>> for Reference<Kind::EitherIo> {
+    fn from(other: Reference<Kind::Input>) -> Self {
         Self {
             name: other.name,
             ns: other.ns,
@@ -290,8 +289,8 @@ impl From<Reference<kind::Input>> for Reference<kind::EitherIo> {
     }
 }
 
-impl From<Reference<kind::Output>> for Reference<kind::EitherIo> {
-    fn from(other: Reference<kind::Output>) -> Self {
+impl From<Reference<Kind::Output>> for Reference<Kind::EitherIo> {
+    fn from(other: Reference<Kind::Output>) -> Self {
         Self {
             name: other.name,
             ns: other.ns,
@@ -314,18 +313,6 @@ impl<A, B> PartialEq<Reference<A>> for Reference<B> {
     }
 }
 
-// pub fn collect_input_exports<T: InputType>() -> HashSet<ZodExport> {
-//     let mut set = HashSet::new();
-//     T::visit_input_exports(&mut set);
-//     set
-// }
-//
-// pub fn collect_output_exports<T: OutputType>() -> HashSet<ZodExport> {
-//     let mut set = HashSet::new();
-//     T::visit_output_exports(&mut set);
-//     set
-// }
-//
 macro_rules! make_eq {
     ($name: ident { $($fields: ident),* }) => {
         impl<A, B> PartialEq<$name<A>> for $name<B> {
@@ -334,12 +321,6 @@ macro_rules! make_eq {
                     $($fields),*
                 } = self;
 
-                // $(
-                //     if $fields != &other.$fields {
-                //         return false
-                //     }
-                // )*
-                // true
                 $($fields == &other.$fields)&&*
             }
         }
@@ -348,16 +329,16 @@ macro_rules! make_eq {
 pub(crate) use make_eq;
 
 struct NsMap {
-    input: BTreeMap<String, ZodExport<kind::Input>>,
-    output: BTreeMap<String, ZodExport<kind::Output>>,
-    io: BTreeMap<String, ZodExport<kind::EitherIo>>,
+    input: BTreeMap<String, ZodExport<Kind::Input>>,
+    output: BTreeMap<String, ZodExport<Kind::Output>>,
+    io: BTreeMap<String, ZodExport<Kind::EitherIo>>,
 }
 
 impl NsMap {
-    fn insert_input(&mut self, name: String, mut input: ZodExport<kind::Input>) {
+    fn insert_input(&mut self, name: String, mut input: ZodExport<Kind::Input>) {
         if let Some(output) = self.output.get_mut(&name) {
             if &mut input == output {
-                let merged = ZodExport::<kind::EitherIo>::from(input.clone());
+                let merged = ZodExport::<Kind::EitherIo>::from(input.clone());
 
                 let alias = Alias {
                     name: merged.name.clone(),
@@ -372,10 +353,10 @@ impl NsMap {
         self.input.insert(name, input);
     }
 
-    fn insert_output(&mut self, name: String, mut output: ZodExport<kind::Output>) {
+    fn insert_output(&mut self, name: String, mut output: ZodExport<Kind::Output>) {
         if let Some(input) = self.input.get_mut(&name) {
             if &mut output == input {
-                let merged = ZodExport::<kind::EitherIo>::from(output.clone());
+                let merged = ZodExport::<Kind::EitherIo>::from(output.clone());
 
                 let alias = Alias {
                     name: merged.name.clone(),
@@ -395,8 +376,8 @@ pub struct ExportMap(BTreeMap<String, NsMap>);
 
 impl ExportMap {
     pub fn new(
-        input_exports: impl IntoIterator<Item = ZodExport<kind::Input>>,
-        output_exports: impl IntoIterator<Item = ZodExport<kind::Output>>,
+        input_exports: impl IntoIterator<Item = ZodExport<Kind::Input>>,
+        output_exports: impl IntoIterator<Item = ZodExport<Kind::Output>>,
     ) -> Self {
         let mut out = BTreeMap::<String, NsMap>::new();
 
@@ -481,7 +462,7 @@ impl Display for NsMap {
 mod test {
 
     #![allow(dead_code)]
-    use crate::kind::{Input, Output};
+    use crate::Kind::{Input, Output};
 
     use super::*;
 
@@ -550,20 +531,20 @@ mod test {
 
     struct Alias;
 
-    impl Type<kind::Input> for Alias {
+    impl Type<Kind::Input> for Alias {
         type Ns = Ns;
         const NAME: &'static str = "Alias";
 
-        fn value() -> ZodType<kind::Input> {
+        fn value() -> ZodType<Kind::Input> {
             u8::get_ref().into()
         }
     }
 
-    impl Type<kind::Output> for Alias {
+    impl Type<Kind::Output> for Alias {
         type Ns = Ns;
         const NAME: &'static str = "Alias";
 
-        fn value() -> ZodType<kind::Output> {
+        fn value() -> ZodType<Kind::Output> {
             String::get_ref().into()
         }
     }
@@ -593,11 +574,11 @@ mod test {
 
     struct OutputOnly;
 
-    impl Type<kind::Output> for OutputOnly {
+    impl Type<Kind::Output> for OutputOnly {
         type Ns = Ns;
         const NAME: &'static str = "OutputOnly";
 
-        fn value() -> ZodType<kind::Output> {
+        fn value() -> ZodType<Kind::Output> {
             String::get_ref().into()
         }
     }
@@ -618,11 +599,11 @@ mod test {
     #[test]
     fn ok1() {
         assert_eq!(
-            Ts(&<Generic::<Alias> as Type<kind::Output>>::get_ref()).to_string(),
+            Ts(&<Generic::<Alias> as Type<Kind::Output>>::get_ref()).to_string(),
             "Ns.output.Generic<Ns.output.Alias>"
         );
         assert_eq!(
-            Ts(&<Generic::<Alias> as Type<kind::Input>>::get_ref()).to_string(),
+            Ts(&<Generic::<Alias> as Type<Kind::Input>>::get_ref()).to_string(),
             "Ns.input.Generic<Ns.input.Alias>"
         );
     }

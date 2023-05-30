@@ -4,21 +4,20 @@ use syn::spanned::Spanned;
 use syn::{parse_quote, DataStruct, Generics};
 
 use crate::derive_internals::qualify_ty;
-use crate::{types::Role, utils::zod_core};
+use crate::utils::zod_core;
 
-pub(super) struct StructImpl {
+pub(super) struct StructImpl<Io> {
     pub(crate) ident: Ident,
     pub(crate) generics: Generics,
     pub(crate) data: DataStruct,
-    pub(crate) role: Role,
+    pub(crate) role: Io,
     pub(crate) ns: syn::Path,
     pub(crate) custom_suffix: Option<String>,
 }
 
-impl ToTokens for StructImpl {
+impl<Io> ToTokens for StructImpl<Io> {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let ns = &self.ns;
-        let role = self.role;
         let ident = &self.ident;
         let name = self.ident.to_string();
         let ns_name = quote_spanned!(ns.span() => <#ns as #zod_core::Namespace>::NAME);
@@ -73,7 +72,6 @@ impl ToTokens for StructImpl {
                 #zod_core::Reference {
                     name: ::std::string::String::from(#name),
                     ns: ::std::string::String::from(#ns_name),
-                    role: #role,
                     args: vec![#(#arg_names),*]
                 }.into()
             }
@@ -82,7 +80,6 @@ impl ToTokens for StructImpl {
                 let export = #zod_core::types::ZodExport {
                     ns: ::std::string::String::from(#ns_name),
                     name: ::std::string::String::from(#name),
-                    context: #role,
                     args: &[#(#arg_names),*],
                     value: #zod_core::types::ZodType {
                         optional: false,

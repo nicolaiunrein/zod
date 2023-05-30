@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use typed_builder::TypedBuilder;
 
-use crate::{kind, utils::Separated, IoKind};
+use crate::{utils::Separated, IoKind, Kind};
 
 use super::{Ts, Zod, ZodType, ZodTypeInner};
 
@@ -38,16 +38,16 @@ impl<Io> From<ZodTuple<Io>> for ZodTypeInner<Io> {
     }
 }
 
-impl From<ZodTuple<kind::Input>> for ZodTuple<kind::EitherIo> {
-    fn from(other: ZodTuple<kind::Input>) -> Self {
+impl From<ZodTuple<Kind::Input>> for ZodTuple<Kind::EitherIo> {
+    fn from(other: ZodTuple<Kind::Input>) -> Self {
         Self {
             fields: other.fields.into_iter().map(|f| f.into()).collect(),
         }
     }
 }
 
-impl From<ZodTuple<kind::Output>> for ZodTuple<kind::EitherIo> {
-    fn from(other: ZodTuple<kind::Output>) -> Self {
+impl From<ZodTuple<Kind::Output>> for ZodTuple<Kind::EitherIo> {
+    fn from(other: ZodTuple<Kind::Output>) -> Self {
         Self {
             fields: other.fields.into_iter().map(|f| f.into()).collect(),
         }
@@ -59,8 +59,8 @@ crate::make_eq!(ZodTuple { fields });
 #[cfg(test)]
 mod test {
     use crate::{
-        kind,
         types::{ZodNumber, ZodString},
+        Kind,
     };
 
     use super::*;
@@ -69,7 +69,7 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod(&ZodTuple::<kind::Input>::builder()
+            Zod(&ZodTuple::<Kind::Input>::builder()
                 .fields(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),
@@ -77,7 +77,7 @@ mod test {
         );
 
         assert_eq!(
-            Ts(&ZodTuple::<kind::Input>::builder()
+            Ts(&ZodTuple::<Kind::Input>::builder()
                 .fields(vec![ZodString.into(), ZodNumber.into()])
                 .build())
             .to_string(),

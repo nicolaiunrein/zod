@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{kind, utils::Separated, IoKind};
+use crate::{utils::Separated, IoKind, Kind};
 
 use super::{Ts, Zod, ZodType, ZodTypeAny, ZodTypeInner};
 use typed_builder::TypedBuilder;
@@ -146,7 +146,7 @@ where
                     let args = self
                         .args
                         .iter()
-                        .map(|name| name.to_string())
+                        .map(|name| format!("{name}"))
                         .collect::<Vec<_>>();
 
                     f.write_fmt(format_args!(
@@ -162,8 +162,8 @@ where
     }
 }
 
-impl From<ZodExport<kind::Input>> for ZodExport<kind::EitherIo> {
-    fn from(other: ZodExport<kind::Input>) -> Self {
+impl From<ZodExport<Kind::Input>> for ZodExport<Kind::EitherIo> {
+    fn from(other: ZodExport<Kind::Input>) -> Self {
         Self {
             ns: other.ns,
             name: other.name,
@@ -173,8 +173,8 @@ impl From<ZodExport<kind::Input>> for ZodExport<kind::EitherIo> {
     }
 }
 
-impl From<ZodExport<kind::Output>> for ZodExport<kind::EitherIo> {
-    fn from(other: ZodExport<kind::Output>) -> Self {
+impl From<ZodExport<Kind::Output>> for ZodExport<Kind::EitherIo> {
+    fn from(other: ZodExport<Kind::Output>) -> Self {
         Self {
             ns: other.ns,
             name: other.name,
@@ -191,94 +191,78 @@ crate::make_eq!(ZodExport {
     value
 });
 
-// impl<A, B> PartialEq<ZodExport<A>> for ZodExport<B> {
-//     fn eq(&self, other: &ZodExport<A>) -> bool {
-//         let Self {
-//             ns,
-//             name,
-//             args,
-//             value,
-//         } = self;
-//
-//         ns == &other.ns && name == &other.name && args == &other.args && value == &other.value
-//     }
-// }
+#[cfg(test)]
+mod test {
+    use crate::{
+        types::{ZodNamedField, ZodObject, ZodString},
+        Type,
+    };
+    use pretty_assertions::assert_eq;
 
-// #[cfg(test)]
-// mod test {
-//     use crate::{
-//         types::{ZodNamedField, ZodObject, ZodString},
-//         OutputType,
-//     };
-//     use pretty_assertions::assert_eq;
-//
-//     use super::*;
-//
-//     #[test]
-//     fn export_object() {
-//         let export = ZodExport::builder()
-//             .ns("Ns")
-//             .name("Test")
-//             .context(Role::InputOnly)
-//             .args(&["T1", "T2", "T3"])
-//             .value(
-//                 ZodObject::builder()
-//                     .fields(vec![
-//                         ZodNamedField::builder()
-//                             .name("my_string")
-//                             .optional()
-//                             .value(String::get_output_ref())
-//                             .build(),
-//                         ZodNamedField::builder()
-//                             .name("my_number")
-//                             .value(u8::get_output_ref())
-//                             .build(),
-//                     ])
-//                     .build(),
-//             )
-//             .build();
-//
-//         assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: Rs.io.String.optional(), my_number: Rs.io.U8 });");
-//         assert_eq!(
-//             Ts(&export).to_string(),
-//             "export interface Test<T1, T2, T3> { my_string?: Rs.io.String | undefined, my_number: Rs.io.U8 }"
-//         )
-//     }
-//
-//     #[test]
-//     fn optional_interface() {
-//         let export = ZodExport::builder()
-//             .ns("Ns")
-//             .name("Test")
-//             .context(Role::InputOnly)
-//             .value(
-//                 ZodType::builder()
-//                     .optional()
-//                     .inner(ZodObject::builder().build())
-//                     .build(),
-//             )
-//             .build();
-//
-//         assert_eq!(Ts(&export).to_string(), "export interface Test {}")
-//     }
-//
-//     #[test]
-//     fn export_string() {
-//         let export = ZodExport::builder()
-//             .ns("Ns")
-//             .name("MyString")
-//             .context(Role::InputOnly)
-//             .value(ZodType::builder().optional().inner(ZodString).build())
-//             .build();
-//
-//         assert_eq!(
-//             Zod(&export).to_string(),
-//             "export const MyString = z.string().optional();"
-//         );
-//
-//         assert_eq!(
-//             Ts(&export).to_string(),
-//             "export type MyString = string | undefined;"
-//         );
-//     }
-// }
+    use super::*;
+
+    #[test]
+    fn export_object() {
+        let export = ZodExport::<Kind::Input>::builder()
+            .ns("Ns")
+            .name("Test")
+            .args(vec!["T1", "T2", "T3"])
+            .value(
+                ZodObject::builder()
+                    .fields(vec![
+                        ZodNamedField::builder()
+                            .name("my_string")
+                            .optional()
+                            .value(String::get_ref())
+                            .build(),
+                        ZodNamedField::builder()
+                            .name("my_number")
+                            .value(u8::get_ref())
+                            .build(),
+                    ])
+                    .build(),
+            )
+            .build();
+
+        assert_eq!(Zod(&export).to_string(), "export const Test = (T1: z.ZodTypeAny, T2: z.ZodTypeAny, T3: z.ZodTypeAny) => z.object({ my_string: Rs.input.String.optional(), my_number: Rs.input.U8 });");
+        assert_eq!(
+            Ts(&export).to_string(),
+            "export interface Test<T1, T2, T3> { my_string?: Rs.input.String | undefined, my_number: Rs.input.U8 }"
+        )
+    }
+
+    #[test]
+    fn optional_interface() {
+        let export = ZodExport::<Kind::Input>::builder()
+            .ns("Ns")
+            .name("Test")
+            .value(
+                ZodType::builder()
+                    .optional()
+                    .inner(ZodObject::builder().build())
+                    .build(),
+            )
+            .build();
+
+        assert_eq!(Ts(&export).to_string(), "export interface Test {}")
+    }
+
+    #[test]
+    fn export_string() {
+        let export = ZodExport::<Kind::Input>::builder()
+            .ns("Ns")
+            .name("MyString")
+            .value(ZodType::builder().optional().inner(ZodString).build())
+            .build();
+
+        assert_eq!(
+            Zod(&export).to_string(),
+            "export const MyString = z.string().optional();"
+        );
+
+        assert_eq!(
+            Ts(&export).to_string(),
+            "export type MyString = string | undefined;"
+        );
+    }
+}
