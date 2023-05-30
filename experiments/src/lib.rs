@@ -43,6 +43,34 @@
 //!     }
 //! }
 //! ```
+//! ## TODO
+//! - [x] Implement basic codegen with generics
+//! - [] Disallow trait bounds on structs and enums
+//! - [] support tuple style enums with inner objects
+//! - [] Implement RPC part
+//! - [] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
+//!
+//!    - [] rename
+//!    - [] rename-all
+//!    - [x] tag
+//!         - [x] internally
+//!         - [x] externally
+//!         - [x] adjacently
+//!         - [x] untagged
+//!    - [] skip
+//!    - [] skip_deserializing
+//!    - [] default
+//!    - [] transparent structs
+//!    - [] flatten
+//!
+//! - [] Restrict non-default fields in tuple structs to only come before the first default field
+//! - [] create namespace macro
+//! - [] codegen options (eg. schema prefix/suffix, type prefix/suffix)
+//! - [] write detailed intro
+//! - [] write rust-docs
+//! - [ ] add integration tests with jest
+//! - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
+//! - [ ] add camelCasing for method names
 //!
 mod build_ins;
 pub mod const_str;

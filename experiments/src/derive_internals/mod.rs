@@ -117,8 +117,10 @@ where
         None => quote!(None),
     };
 
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
     quote! {
-        impl #zod_core::Type<#kind> for #ident {
+        impl #impl_generics #zod_core::Type<#kind> for #ident #ty_generics #where_clause {
             type Ns = #ns;
             const NAME: &'static str = #name;
 
