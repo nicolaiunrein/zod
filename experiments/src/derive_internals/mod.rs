@@ -1,9 +1,13 @@
+mod r#enum;
+mod fields;
 mod r#struct;
+
 use crate::utils::zod_core;
 use crate::Kind;
 use darling::FromDeriveInput;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
+use r#enum::EnumImpl;
 use r#struct::StructImpl;
 use syn::DeriveInput;
 
@@ -31,8 +35,8 @@ struct ZodOptions {
     pub custom_suffix: Option<String>,
 }
 
-/// convert input into the generated code providing a role.
-pub fn impl_zod<Io>(role: Io, input: TokenStream2) -> TokenStream2
+/// convert input into the generated code providing a kind.
+pub fn impl_zod<Io>(kind: Io, input: TokenStream2) -> TokenStream2
 where
     Io: ToTokens + Copy,
 {
@@ -55,7 +59,7 @@ where
 
     match derive_input.data {
         syn::Data::Struct(data) => StructImpl {
-            role,
+            kind,
             ident,
             ns: attrs.namespace,
             custom_suffix: attrs.custom_suffix,
@@ -64,7 +68,15 @@ where
         }
         .into_token_stream(),
 
-        syn::Data::Enum(_) => todo!(),
+        syn::Data::Enum(data) => EnumImpl {
+            kind,
+            ident,
+            ns: attrs.namespace,
+            custom_suffix: attrs.custom_suffix,
+            generics,
+            variants: data.variants.into_iter().collect(),
+        }
+        .into_token_stream(),
         syn::Data::Union(_) => todo!(),
     }
 }
@@ -91,7 +103,7 @@ mod test {
             ident: parse_quote!(Test),
             generics: Default::default(),
             fields: syn::Fields::Named(parse_quote!({ inner_string: String, inner_u8: u8 })),
-            role: Kind::Input,
+            kind: Kind::Input,
             ns: parse_quote!(Ns),
             custom_suffix: None,
         }
@@ -114,7 +126,7 @@ mod test {
             ident: parse_quote!(Test),
             generics: Default::default(),
             fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-            role: Kind::Input,
+            kind: Kind::Input,
             ns: parse_quote!(Ns),
             custom_suffix: None,
         }

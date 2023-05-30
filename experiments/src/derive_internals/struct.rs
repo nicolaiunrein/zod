@@ -1,14 +1,14 @@
+use super::fields::*;
 use crate::utils::zod_core;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
-use quote::{quote, quote_spanned, ToTokens};
-use syn::spanned::Spanned;
+use quote::{quote, ToTokens};
 use syn::{Fields, Generics};
 
 pub(super) struct StructImpl<Io> {
     pub(crate) ident: Ident,
     pub(crate) generics: Generics,
     pub(crate) fields: Fields,
-    pub(crate) role: Io,
+    pub(crate) kind: Io,
     pub(crate) ns: syn::Path,
     pub(crate) custom_suffix: Option<String>,
 }
@@ -39,32 +39,32 @@ where
     }
 
     fn expand_inner(&self) -> TokenStream2 {
-        let role = self.role;
+        let kind = self.kind;
         match &self.fields {
-            syn::Fields::Named(fields) => ZodObject {
+            syn::Fields::Named(fields) => ZodObjectImpl {
                 fields: fields
                     .named
                     .iter()
                     .map(|f| {
                         let name = f.ident.as_ref().expect("named field").to_string();
                         let ty = f.ty.clone();
-                        ZodNamedField {
+                        ZodNamedFieldImpl {
                             name,
                             optional: false, // TODO
-                            role,
+                            kind,
                             ty,
                         }
                     })
                     .collect(),
             }
             .to_token_stream(),
-            syn::Fields::Unnamed(fields) => ZodTuple {
+            syn::Fields::Unnamed(fields) => ZodTupleImpl {
                 fields: fields
                     .unnamed
                     .iter()
-                    .map(|f| ZodUnnamedField {
+                    .map(|f| ZodUnnamedFieldImpl {
                         optional: false, // TODO
-                        role,
+                        kind,
                         ty: f.ty.clone(),
                     })
                     .collect(),
@@ -83,16 +83,16 @@ where
         let ns = &self.ns;
         let ident = &self.ident;
         let name = self.ident.to_string();
-        let role = &self.role;
+        let kind = &self.kind;
         let inner = self.expand_inner();
         let arg_idents = self.args();
         let custom_suffix = self.expand_suffix();
 
-        tokens.extend(quote!(impl #zod_core::Type<#role> for #ident {
+        tokens.extend(quote!(impl #zod_core::Type<#kind> for #ident {
             type Ns = #ns;
             const NAME: &'static str = #name;
 
-            fn value() -> #zod_core::types::ZodType<#role> {
+            fn value() -> #zod_core::types::ZodType<#kind> {
                 #zod_core::types::ZodType {
                     optional: false,
                     custom_suffix: #custom_suffix,
@@ -100,37 +100,36 @@ where
                 }
             }
 
-            fn args() -> #zod_core::GenericArguments<#role> {
+            fn args() -> #zod_core::GenericArguments<#kind> {
                 #zod_core::make_args!(#(#arg_idents),*)
             }
         }))
     }
 }
 
-struct ZodObject<Io> {
-    fields: Vec<ZodNamedField<Io>>,
+struct ZodObjectImpl<Io> {
+    fields: Vec<ZodNamedFieldImpl<Io>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct ZodNamedField<Io> {
-    name: String,
-    optional: bool,
-    role: Io,
-    ty: syn::Type,
+impl<Io> ToTokens for ZodObjectImpl<Io>
+where
+    Io: ToTokens + Copy,
+{
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        let fields = &self.fields;
+        tokens.extend(quote! {
+            #zod_core::types::ZodObject {
+                fields: ::std::vec![#(#fields),*]
+            }
+        })
+    }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct ZodUnnamedField<Io> {
-    role: Io,
-    optional: bool,
-    ty: syn::Type,
+struct ZodTupleImpl<Io> {
+    fields: Vec<ZodUnnamedFieldImpl<Io>>,
 }
 
-struct ZodTuple<Io> {
-    fields: Vec<ZodUnnamedField<Io>>,
-}
-
-impl<Io> ToTokens for ZodTuple<Io>
+impl<Io> ToTokens for ZodTupleImpl<Io>
 where
     Io: ToTokens + Copy,
 {
@@ -144,62 +143,6 @@ where
     }
 }
 
-impl<Io> ToTokens for ZodUnnamedField<Io>
-where
-    Io: ToTokens + Copy,
-{
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let optional = &self.optional;
-        let ty = &self.ty;
-        let role = self.role;
-        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::Type::<#role>>);
-
-        tokens.extend(quote_spanned! {
-            ty.span() =>
-            #zod_core::types::ZodType {
-                optional: #optional,
-                ..#qualified_ty::get_ref().into()
-            }
-        })
-    }
-}
-
-impl<Io> ToTokens for ZodNamedField<Io>
-where
-    Io: ToTokens + Copy,
-{
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let name = &self.name;
-        let optional = &self.optional;
-        let role = self.role;
-        let ty = &self.ty;
-        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::Type::<#role>>);
-
-        tokens.extend(quote_spanned! {
-            ty.span() =>
-            #zod_core::types::ZodNamedField {
-                name: #name,
-                optional: #optional,
-                value: #qualified_ty::get_ref().into(),
-            }
-        })
-    }
-}
-
-impl<Io> ToTokens for ZodObject<Io>
-where
-    Io: ToTokens + Copy,
-{
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let fields = &self.fields;
-        tokens.extend(quote! {
-            #zod_core::types::ZodObject {
-                fields: ::std::vec![#(#fields),*]
-            }
-        })
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::{test_utils::TokenStreamExt, Kind};
@@ -210,7 +153,7 @@ mod test {
 
     #[test]
     fn named_struct_ok() {
-        let role = Kind::Input;
+        let kind = Kind::Input;
         let input = StructImpl {
             ident: parse_quote!(Test),
             generics: parse_quote!(<T1, T2>),
@@ -218,22 +161,22 @@ mod test {
                 inner_string: String,
                 inner_u8: u8,
             })),
-            role,
+            kind,
             ns: parse_quote!(Ns),
             custom_suffix: Some(String::from(".is_ok()")),
         };
 
         let zod_fields = vec![
-            ZodNamedField {
+            ZodNamedFieldImpl {
                 name: String::from("inner_string"),
                 optional: false,
-                role,
+                kind,
                 ty: parse_quote!(String),
             },
-            ZodNamedField {
+            ZodNamedFieldImpl {
                 name: String::from("inner_u8"),
                 optional: false,
-                role,
+                kind,
                 ty: parse_quote!(u8),
             },
         ];
@@ -243,7 +186,7 @@ mod test {
                 type Ns = Ns;
                 const NAME: &'static str = "Test";
 
-                fn value() -> #zod_core::types::ZodType<#role> {
+                fn value() -> #zod_core::types::ZodType<#kind> {
                     #zod_core::types::ZodType {
                         optional: false,
                         custom_suffix: ::std::option::Option::Some(::std::string::String::from(".is_ok()")),
@@ -253,7 +196,7 @@ mod test {
                     }
                 }
 
-                fn args() -> #zod_core::GenericArguments<#role> {
+                fn args() -> #zod_core::GenericArguments<#kind> {
                     #zod_core::make_args!(T1, T2)
                 }
             }
@@ -267,26 +210,26 @@ mod test {
 
     #[test]
     fn tuple_struct_ok() {
-        let role = Kind::Input;
+        let kind = Kind::Input;
         let input = StructImpl {
             ident: parse_quote!(Test),
             generics: parse_quote!(<T1, T2>),
             fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-            role,
+            kind,
             ns: parse_quote!(Ns),
             custom_suffix: Some(String::from(".is_ok()")),
         };
 
         let zod_fields = vec![
-            ZodUnnamedField {
+            ZodUnnamedFieldImpl {
                 //todo
                 optional: false,
-                role,
+                kind,
                 ty: parse_quote!(String),
             },
-            ZodUnnamedField {
+            ZodUnnamedFieldImpl {
                 optional: false,
-                role,
+                kind,
                 ty: parse_quote!(u8),
             },
         ];
@@ -296,7 +239,7 @@ mod test {
                 type Ns = Ns;
                 const NAME: &'static str = "Test";
 
-                fn value() -> #zod_core::types::ZodType<#role> {
+                fn value() -> #zod_core::types::ZodType<#kind> {
                     #zod_core::types::ZodType {
                         optional: false,
                         custom_suffix: ::std::option::Option::Some(::std::string::String::from(".is_ok()")),
@@ -306,7 +249,7 @@ mod test {
                     }
                 }
 
-                fn args() -> #zod_core::GenericArguments<#role> {
+                fn args() -> #zod_core::GenericArguments<#kind> {
                     #zod_core::make_args!(T1, T2)
                 }
             }
@@ -319,43 +262,18 @@ mod test {
     }
 
     #[test]
-    fn expand_named_field_ok() {
-        let role = Kind::Input;
-        let input = ZodNamedField {
-            name: String::from("hello"),
-            role,
-            optional: false,
-            ty: parse_quote!(String),
-        }
-        .into_token_stream();
-
-        let expected = quote! {
-            #zod_core::types::ZodNamedField {
-                name: "hello",
-                optional: false,
-                value: <String as #zod_core::Type<#role>>::get_ref().into()
-            }
-        };
-
-        assert_eq!(
-            input.to_formatted_string().unwrap(),
-            expected.to_formatted_string().unwrap()
-        );
-    }
-
-    #[test]
     fn expand_zod_object_ok() {
         let fields = ::std::vec![
-            ZodNamedField {
+            ZodNamedFieldImpl {
                 name: String::from("inner_u8"),
                 optional: true,
-                role: Kind::Input,
+                kind: Kind::Input,
                 ty: parse_quote!(u8),
             },
-            ZodNamedField {
+            ZodNamedFieldImpl {
                 name: String::from("inner_string"),
                 optional: true,
-                role: Kind::Input,
+                kind: Kind::Input,
                 ty: parse_quote!(::std::string::String),
             },
         ];
@@ -368,7 +286,7 @@ mod test {
             }
         };
 
-        let input = ZodObject {
+        let input = ZodObjectImpl {
             fields: fields.clone(),
         }
         .into_token_stream();
