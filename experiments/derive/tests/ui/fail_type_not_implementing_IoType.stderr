@@ -1,33 +1,67 @@
-error[E0277]: the trait bound `X: IoType` is not satisfied
+error[E0277]: the trait bound `X: Type<Input>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:13:20
    |
 13 |         pub tuple: X,
-   |                    ^ the trait `IoType` is not implemented for `X`
+   |                    ^ the trait `Type<Input>` is not implemented for `X`
    |
-   = help: the following other types implement trait `IoType`:
-             Struct
-             bool
-             experiments::const_str::ConstStr<C, T>
-             i16
-             i32
-             i8
-             std::string::String
-             test::Tuple
+   = help: the following other types implement trait `Type<Io>`:
+             <ConstStr<C, T> as Type<Input>>
+             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <Struct as Type<Input>>
+             <Struct as Type<experiments::Kind::Output>>
+             <bool as Type<Input>>
+             <bool as Type<experiments::Kind::Output>>
+             <i16 as Type<Input>>
+             <i16 as Type<experiments::Kind::Output>>
            and $N others
 
-error[E0277]: the trait bound `X: IoType` is not satisfied
+error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisfied
+  --> tests/ui/fail_type_not_implementing_IoType.rs:13:20
+   |
+13 |         pub tuple: X,
+   |                    ^ the trait `Type<experiments::Kind::Output>` is not implemented for `X`
+   |
+   = help: the following other types implement trait `Type<Io>`:
+             <ConstStr<C, T> as Type<Input>>
+             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <Struct as Type<Input>>
+             <Struct as Type<experiments::Kind::Output>>
+             <bool as Type<Input>>
+             <bool as Type<experiments::Kind::Output>>
+             <i16 as Type<Input>>
+             <i16 as Type<experiments::Kind::Output>>
+           and $N others
+
+error[E0277]: the trait bound `X: Type<Input>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
    |
 18 |     struct Tuple(u8, X);
-   |                      ^ the trait `IoType` is not implemented for `X`
+   |                      ^ the trait `Type<Input>` is not implemented for `X`
    |
-   = help: the following other types implement trait `IoType`:
-             Struct
-             bool
-             experiments::const_str::ConstStr<C, T>
-             i16
-             i32
-             i8
-             std::string::String
-             test::Tuple
+   = help: the following other types implement trait `Type<Io>`:
+             <ConstStr<C, T> as Type<Input>>
+             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <Struct as Type<Input>>
+             <Struct as Type<experiments::Kind::Output>>
+             <bool as Type<Input>>
+             <bool as Type<experiments::Kind::Output>>
+             <i16 as Type<Input>>
+             <i16 as Type<experiments::Kind::Output>>
+           and $N others
+
+error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisfied
+  --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
+   |
+18 |     struct Tuple(u8, X);
+   |                      ^ the trait `Type<experiments::Kind::Output>` is not implemented for `X`
+   |
+   = help: the following other types implement trait `Type<Io>`:
+             <ConstStr<C, T> as Type<Input>>
+             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <Struct as Type<Input>>
+             <Struct as Type<experiments::Kind::Output>>
+             <bool as Type<Input>>
+             <bool as Type<experiments::Kind::Output>>
+             <i16 as Type<Input>>
+             <i16 as Type<experiments::Kind::Output>>
            and $N others

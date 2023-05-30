@@ -1,10 +1,23 @@
-mod struct_impl;
-use crate::derive_internals::struct_impl::StructImpl;
+mod r#struct;
+use crate::utils::zod_core;
+use crate::Kind;
 use darling::FromDeriveInput;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{quote, quote_spanned};
-use syn::spanned::Spanned;
+use quote::{quote, ToTokens};
+use r#struct::StructImpl;
 use syn::DeriveInput;
+
+impl ToTokens for Kind::Input {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        tokens.extend(quote!(#zod_core::Kind::Input))
+    }
+}
+
+impl ToTokens for Kind::Output {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        tokens.extend(quote!(#zod_core::Kind::Output))
+    }
+}
 
 #[derive(FromDeriveInput)]
 #[darling(
@@ -18,12 +31,11 @@ struct ZodOptions {
     pub custom_suffix: Option<String>,
 }
 
-fn qualify_ty(ty: &syn::Type, trait_path: syn::Path) -> TokenStream2 {
-    let span = ty.span();
-    quote_spanned!(span => < #ty as #trait_path>)
-}
-
-pub fn impl_zod<Io>(role: Io, input: TokenStream2) -> TokenStream2 {
+/// convert input into the generated code providing a role.
+pub fn impl_zod<Io>(role: Io, input: TokenStream2) -> TokenStream2
+where
+    Io: ToTokens + Copy,
+{
     let derive_input: DeriveInput = match syn::parse2(input) {
         Ok(parsed) => parsed,
         Err(err) => {
@@ -42,18 +54,16 @@ pub fn impl_zod<Io>(role: Io, input: TokenStream2) -> TokenStream2 {
     let generics = derive_input.generics;
 
     match derive_input.data {
-        syn::Data::Struct(data) => {
-            let it = StructImpl {
-                role,
-                ident,
-                ns: attrs.namespace,
-                custom_suffix: attrs.custom_suffix,
-                generics,
-                data,
-            };
-
-            quote!(#it)
+        syn::Data::Struct(data) => StructImpl {
+            role,
+            ident,
+            ns: attrs.namespace,
+            custom_suffix: attrs.custom_suffix,
+            generics,
+            fields: data.fields,
         }
+        .into_token_stream(),
+
         syn::Data::Enum(_) => todo!(),
         syn::Data::Union(_) => todo!(),
     }
@@ -62,129 +72,85 @@ pub fn impl_zod<Io>(role: Io, input: TokenStream2) -> TokenStream2 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{test_utils::TokenStreamExt, utils::zod_core};
+    use crate::{test_utils::TokenStreamExt, Kind};
     use pretty_assertions::assert_eq;
+    use quote::quote;
+    use syn::parse_quote;
 
     #[test]
-    fn zod_named_struct_ok() {
+    fn impl_zod_for_struct_with_named_fields_ok() {
         let input = quote! {
             #[zod(namespace = "Ns")]
             struct Test {
-                inner: String,
-                inner2: usize
+                inner_string: String,
+                inner_u8: u8
             }
         };
 
-        let role = Role::InputOnly;
-
-        let expected = quote! {
-            impl #zod_core::IoType for Test {
-                type Namespace = Ns;
-                fn get_ref() -> #zod_core::types::ZodType {
-                    #zod_core::Reference {
-                        name: ::std::string::String::from("Test"),
-                        ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
-                        role: #role,
-                        args: vec![]
-                    }.into()
-                }
-
-                fn visit_exports(set: &mut ::std::collections::HashSet<#zod_core::types::ZodExport>) {
-                    let export = #zod_core::types::ZodExport {
-                        ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
-                        name: ::std::string::String::from("Test"),
-                        context: #role,
-                        args: &[],
-                        value: #zod_core::types::ZodType {
-                            optional: false,
-                            custom_suffix: None,
-                            inner: #zod_core::types::ZodObject {
-                                fields: vec![
-                                    #zod_core::types::ZodNamedField {
-                                        optional: false,
-                                        name: "inner",
-                                        value: #zod_core::types::ZodType::from(<String as #zod_core::IoType>::get_ref())
-                                    },
-                                    #zod_core::types::ZodNamedField {
-                                        optional: false,
-                                        name: "inner2",
-                                        value: #zod_core::types::ZodType::from(<usize as #zod_core::IoType>::get_ref())
-                                    }
-                                ]
-                            }.into()
-                        }
-                    };
-
-                    set.insert(export);
-                    <String as #zod_core::IoType>::visit_exports(set);
-                    <usize as #zod_core::IoType>::visit_exports(set);
-                }
-            }
-        };
+        let expected = StructImpl {
+            ident: parse_quote!(Test),
+            generics: Default::default(),
+            fields: syn::Fields::Named(parse_quote!({ inner_string: String, inner_u8: u8 })),
+            role: Kind::Input,
+            ns: parse_quote!(Ns),
+            custom_suffix: None,
+        }
+        .into_token_stream();
 
         assert_eq!(
-            impl_zod(Role::InputOnly, input).to_formatted_string(),
-            expected.to_formatted_string()
+            impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
+            expected.to_formatted_string().unwrap()
         )
     }
 
     #[test]
-    fn zod_tuple_struct_ok() {
+    fn impl_zod_for_struct_with_tuple_fields_ok() {
         let input = quote! {
             #[zod(namespace = "Ns")]
-            struct Test(String, usize);
+            struct Test(String, u8);
         };
 
-        let role = Role::InputOnly;
+        let expected = StructImpl {
+            ident: parse_quote!(Test),
+            generics: Default::default(),
+            fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
+            role: Kind::Input,
+            ns: parse_quote!(Ns),
+            custom_suffix: None,
+        }
+        .into_token_stream();
 
-        let expected = quote! {
-            impl #zod_core::IoType for Test {
-                type Namespace = Ns;
-                fn get_ref() -> #zod_core::types::ZodType {
-                    #zod_core::Reference {
-                        name: ::std::string::String::from("Test"),
-                        ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
-                        role: #role,
-                        args: vec![]
-                    }.into()
-                }
+        assert_eq!(
+            impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
+            expected.to_formatted_string().unwrap()
+        )
+    }
 
-                fn visit_exports(set: &mut ::std::collections::HashSet<#zod_core::types::ZodExport>) {
-                        let export = #zod_core::types::ZodExport {
-                            ns: ::std::string::String::from(<Ns as #zod_core::Namespace>::NAME),
-                            name: ::std::string::String::from("Test"),
-                            context: #role,
-                            args: &[],
-                            value: #zod_core::types::ZodType {
-                                optional: false,
-                                custom_suffix: None,
-                                inner: #zod_core::types::ZodTuple {
-                                    fields: vec![
-                                        #zod_core::types::ZodType {
-                                            optional: false,
-                                            // TODO: this is not correct! optional on field should
-                                            // be merged with optional type
-                                            ..<String as #zod_core::IoType>::get_ref()
-                                        },
-                                        #zod_core::types::ZodType {
-                                            optional: false,
-                                            ..<usize as #zod_core::IoType>::get_ref()
-                                        }
-                                    ]
-                                }.into()
-                            }
-                        };
-
-                    set.insert(export);
-                    <String as #zod_core::IoType>::visit_exports(set);
-                    <usize as #zod_core::IoType>::visit_exports(set);
+    #[ignore]
+    #[test]
+    fn impl_zod_for_enum() {
+        let input = quote! {
+            #[zod(namespace = "Ns")]
+            enum Test {
+                Unit,
+                Tuple1(String),
+                Tuple2(String, u8),
+                Struct0 {},
+                Struct1 {
+                    inner: String,
+                },
+                Struct2 {
+                    inner_string: String,
+                    inner_u8: u8,
                 }
             }
         };
 
+        let expected: TokenStream2 = todo!();
+
         assert_eq!(
-            impl_zod(Role::InputOnly, input).to_formatted_string(),
-            expected.to_formatted_string()
+            impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
+            expected.to_formatted_string().unwrap()
         )
     }
 }

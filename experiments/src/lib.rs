@@ -90,6 +90,8 @@ pub mod Kind {
     }
 }
 
+pub type GenericArguments<Io> = Vec<(&'static str, ZodType<Io>)>;
+
 // TODO: seal this trait
 pub trait IoKind {
     const NAME: &'static str;
@@ -122,8 +124,8 @@ impl<Io> DependencyVisitor<Io> {
 
 #[macro_export]
 macro_rules! make_args {
-    ($($ident: ident),+) => {
-        vec![$((stringify!($ident), $ident::get_ref().into()))+]
+    ($($ident: ident),*) => {
+        ::std::vec![$((stringify!($ident), $ident::get_ref().into()))*]
     }
 }
 
@@ -136,7 +138,7 @@ where
 
     fn value() -> ZodType<Io>;
 
-    fn args() -> Vec<(&'static str, ZodType<Io>)> {
+    fn args() -> GenericArguments<Io> {
         Vec::new()
     }
 

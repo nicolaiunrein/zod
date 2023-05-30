@@ -18,7 +18,7 @@ struct StructIo {
 struct StructInputOnly {
     pub _value: u8,
 }
-
+//
 #[derive(ZodOutputOnly)]
 #[zod(namespace = "Ns")]
 struct StructOutputOnly {
@@ -28,18 +28,18 @@ struct StructOutputOnly {
 mod test {
     use super::*;
     use pretty_assertions::assert_eq;
-    use zod_core::{types::Role, InputType, Reference};
+    use zod_core::Kind;
+    use zod_core::Reference;
+    use zod_core::Type;
 
     #[test]
     fn gives_correct_reference() {
         assert_eq!(
-            StructInputOnly::get_input_ref(),
-            Reference::builder()
+            StructInputOnly::get_ref(),
+            Reference::<Kind::Input>::builder()
                 .name("StructInputOnly")
                 .ns("Custom_Ns")
-                .role(Role::InputOnly)
                 .build()
-                .into()
         );
     }
 }

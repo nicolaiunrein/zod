@@ -1,0 +1,7 @@
+error: Unsupported shape `no fields`. Expected named fields or unnamed fields.
+ --> tests/ui/fail_unit_struct.rs:8:10
+  |
+8 | #[derive(Zod)]
+  |          ^^^
+  |
+  = note: this error originates in the derive macro `Zod` (in Nightly builds, run with -Z macro-backtrace for more info)

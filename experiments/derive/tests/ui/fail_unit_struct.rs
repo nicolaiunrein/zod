@@ -7,6 +7,6 @@ impl zod_core::Namespace for Ns {
 
 #[derive(Zod)]
 #[zod(namespace = "Ns")]
-enum X {
-    A,
-}
+struct X;
+
+fn main() {}
