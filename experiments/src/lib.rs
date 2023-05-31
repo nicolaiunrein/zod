@@ -75,8 +75,11 @@
 mod build_ins;
 pub mod const_str;
 pub mod derive_internals;
+mod export;
+mod formatter;
 mod utils;
 pub mod z;
+pub use export::*;
 
 #[cfg(test)]
 pub mod test_utils;
@@ -88,17 +91,20 @@ use std::{
 };
 
 use build_ins::Rs;
+use formatter::{TsFormatter, ZodFormatter};
 use typed_builder::TypedBuilder;
-use z::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
+use z::{ZodType, ZodTypeInner};
 
 pub mod prelude {
     pub use super::z;
     pub use super::DependencyVisitor;
+    pub use super::Export;
     pub use super::GenericArgument;
     pub use super::Kind;
     pub use super::Namespace;
     pub use super::Type;
     pub use super::TypeExt;
+    pub use crate::formatter::Formatter;
 }
 
 #[allow(non_snake_case)]
@@ -168,7 +174,7 @@ impl IoKind for Kind::EitherIo {
 }
 
 pub struct DependencyVisitor<Io> {
-    exports: HashSet<ZodExport<Io>>,
+    exports: HashSet<Export<Io>>,
 }
 
 impl<Io> DependencyVisitor<Io> {
@@ -229,11 +235,11 @@ where
         }
     }
 
-    fn export() -> Option<ZodExport<Io>> {
+    fn export() -> Option<Export<Io>> {
         if Self::INLINE {
             None
         } else {
-            Some(ZodExport {
+            Some(Export {
                 name: String::from(Self::NAME),
                 ns: String::from(Self::Ns::NAME),
                 args: Self::args()
@@ -318,7 +324,7 @@ pub struct Alias {
     pub(crate) ns: String,
 }
 
-impl<'a> Display for Zod<'a, Alias> {
+impl<'a> Display for ZodFormatter<'a, Alias> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "{}.{}.{}",
@@ -329,7 +335,7 @@ impl<'a> Display for Zod<'a, Alias> {
     }
 }
 
-impl<'a> Display for Ts<'a, Alias> {
+impl<'a> Display for TsFormatter<'a, Alias> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "{}.{}.{}",
@@ -340,7 +346,7 @@ impl<'a> Display for Ts<'a, Alias> {
     }
 }
 
-impl<'a, Io> Display for Ts<'a, Reference<Io>>
+impl<'a, Io> Display for TsFormatter<'a, Reference<Io>>
 where
     Io: IoKind,
 {
@@ -350,7 +356,7 @@ where
         }
         f.write_fmt(format_args!("{}.{}.{}", self.0.ns, Io::NAME, self.0.name))?;
         if !self.0.args.is_empty() {
-            let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
+            let args = self.0.args.iter().map(TsFormatter).collect::<Vec<_>>();
 
             f.write_fmt(format_args!("<{}>", utils::Separated(", ", &args)))?;
         }
@@ -358,7 +364,7 @@ where
     }
 }
 
-impl<'a, Io> Display for Zod<'a, Reference<Io>>
+impl<'a, Io> Display for ZodFormatter<'a, Reference<Io>>
 where
     Io: IoKind,
 {
@@ -369,7 +375,7 @@ where
 
         f.write_fmt(format_args!("{}.{}.{}", self.0.ns, Io::NAME, self.0.name))?;
         if !self.0.args.is_empty() {
-            let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
+            let args = self.0.args.iter().map(ZodFormatter).collect::<Vec<_>>();
             f.write_fmt(format_args!("({})", utils::Separated(", ", &args)))?;
         }
         Ok(())
@@ -439,16 +445,16 @@ macro_rules! make_eq {
 pub(crate) use make_eq;
 
 struct NsMap {
-    input: BTreeMap<String, ZodExport<Kind::Input>>,
-    output: BTreeMap<String, ZodExport<Kind::Output>>,
-    io: BTreeMap<String, ZodExport<Kind::EitherIo>>,
+    input: BTreeMap<String, Export<Kind::Input>>,
+    output: BTreeMap<String, Export<Kind::Output>>,
+    io: BTreeMap<String, Export<Kind::EitherIo>>,
 }
 
 impl NsMap {
-    fn insert_input(&mut self, name: String, mut input: ZodExport<Kind::Input>) {
+    fn insert_input(&mut self, name: String, mut input: Export<Kind::Input>) {
         if let Some(output) = self.output.get_mut(&name) {
             if &mut input == output {
-                let merged = ZodExport::<Kind::EitherIo>::from(input.clone());
+                let merged = Export::<Kind::EitherIo>::from(input.clone());
 
                 let alias = Alias {
                     name: merged.name.clone(),
@@ -463,10 +469,10 @@ impl NsMap {
         self.input.insert(name, input);
     }
 
-    fn insert_output(&mut self, name: String, mut output: ZodExport<Kind::Output>) {
+    fn insert_output(&mut self, name: String, mut output: Export<Kind::Output>) {
         if let Some(input) = self.input.get_mut(&name) {
             if &mut output == input {
-                let merged = ZodExport::<Kind::EitherIo>::from(output.clone());
+                let merged = Export::<Kind::EitherIo>::from(output.clone());
 
                 let alias = Alias {
                     name: merged.name.clone(),
@@ -486,8 +492,8 @@ pub struct ExportMap(BTreeMap<String, NsMap>);
 
 impl ExportMap {
     pub fn new(
-        input_exports: impl IntoIterator<Item = ZodExport<Kind::Input>>,
-        output_exports: impl IntoIterator<Item = ZodExport<Kind::Output>>,
+        input_exports: impl IntoIterator<Item = Export<Kind::Input>>,
+        output_exports: impl IntoIterator<Item = Export<Kind::Output>>,
     ) -> Self {
         let mut out = BTreeMap::<String, NsMap>::new();
 
@@ -528,7 +534,7 @@ impl Display for NsMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fn fmt_part<T>(
             f: &mut std::fmt::Formatter<'_>,
-            set: &BTreeMap<String, ZodExport<T>>,
+            set: &BTreeMap<String, Export<T>>,
         ) -> std::fmt::Result
         where
             T: IoKind,
@@ -540,10 +546,10 @@ impl Display for NsMap {
                 f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
                 for export in set.values() {
                     f.write_str("        ")?;
-                    Display::fmt(&Ts(export), f)?;
+                    Display::fmt(&TsFormatter(export), f)?;
                     f.write_str("\n")?;
                     f.write_str("        ")?;
-                    Display::fmt(&Zod(export), f)?;
+                    Display::fmt(&ZodFormatter(export), f)?;
                     f.write_str("\n")?;
                 }
 
@@ -738,12 +744,12 @@ mod test {
     #[test]
     fn inline_transparent_ok() {
         assert_eq!(
-            Ts(&<Alias as TypeExt<Input>>::export().unwrap()).to_string(),
+            TsFormatter(&<Alias as TypeExt<Input>>::export().unwrap()).to_string(),
             "export type Alias = Rs.input.U8;"
         );
 
         assert_eq!(
-            Ts(&<Alias as TypeExt<Output>>::export().unwrap()).to_string(),
+            TsFormatter(&<Alias as TypeExt<Output>>::export().unwrap()).to_string(),
             "export type Alias = Rs.output.String;"
         );
     }
@@ -751,11 +757,11 @@ mod test {
     #[test]
     fn ok1() {
         assert_eq!(
-            Ts(&<Generic::<Alias> as TypeExt<Kind::Output>>::inline()).to_string(),
+            TsFormatter(&<Generic::<Alias> as TypeExt<Kind::Output>>::inline()).to_string(),
             "Ns.output.Generic<Ns.output.Alias>"
         );
         assert_eq!(
-            Ts(&<Generic::<Alias> as TypeExt<Kind::Input>>::inline()).to_string(),
+            TsFormatter(&<Generic::<Alias> as TypeExt<Kind::Input>>::inline()).to_string(),
             "Ns.input.Generic<Ns.input.Alias>"
         );
     }
@@ -764,12 +770,12 @@ mod test {
     fn export_map_ok() {
         let map = ExportMap::new(
             [
-                ZodExport::builder()
+                Export::builder()
                     .name("hello")
                     .ns(Ns::NAME)
                     .value(ZodTypeInner::Generic(String::from("MyGeneric")))
                     .build(),
-                ZodExport::builder()
+                Export::builder()
                     .name("world")
                     .ns(Ns2::NAME)
                     .value(
@@ -782,7 +788,7 @@ mod test {
                     )
                     .build(),
             ],
-            [ZodExport::builder()
+            [Export::builder()
                 .name("hello")
                 .ns(Ns::NAME)
                 .value(ZodTypeInner::Generic(String::from("MyGeneric")))

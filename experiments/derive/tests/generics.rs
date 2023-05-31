@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use zod_core::{z::Zod, TypeExt};
+use zod_core::prelude::*;
 use zod_derive_experiments::ZodInputOnly;
 
 struct Ns;
@@ -27,12 +27,12 @@ fn generic_without_bounds_ok() {
     }
 
     assert_eq!(
-        Zod(&Generic::<String>::export().unwrap()).to_string(),
+        Generic::<String>::export().unwrap().as_zod().to_string(),
         "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
     );
 
     assert_eq!(
-        Zod(&Nested::<String>::export().unwrap()).to_string(),
+        Nested::<String>::export().unwrap().as_zod().to_string(),
         "export const Nested = (T: z.ZodTypeAny) => z.object({ nested: Ns.input.Generic(T) });"
     );
 }
@@ -54,7 +54,7 @@ fn generic_with_bounds_ok() {
     }
 
     assert_eq!(
-        Zod(&Generic::<String>::export().unwrap()).to_string(),
+        Generic::<String>::export().unwrap().as_zod().to_string(),
         "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
     );
 
@@ -63,7 +63,7 @@ fn generic_with_bounds_ok() {
 
     // it is not referenced but inlined as is.
     assert_eq!(
-        Zod(&Nested::<String>::inline()).to_string(),
+        Nested::<String>::inline().as_zod().to_string(),
         "z.object({ nested: Ns.input.Generic(Rs.input.String) })"
     );
 }

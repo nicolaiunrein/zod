@@ -4,7 +4,8 @@ use typed_builder::TypedBuilder;
 
 use crate::{utils::Separated, IoKind, Kind};
 
-use super::{Ts, Zod, ZodType, ZodTypeInner};
+use super::{ZodType, ZodTypeInner};
+use crate::formatter::{TsFormatter, ZodFormatter};
 
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodObject<Io> {
@@ -30,7 +31,7 @@ impl From<ZodObject<Kind::Output>> for ZodObject<Kind::EitherIo> {
 
 crate::make_eq!(ZodObject { fields });
 
-impl<Io> Display for Zod<'_, ZodObject<Io>>
+impl<Io> Display for ZodFormatter<'_, ZodObject<Io>>
 where
     Io: IoKind,
 {
@@ -38,13 +39,13 @@ where
         if self.fields.is_empty() {
             f.write_str("z.object({})")
         } else {
-            let fields = self.fields.iter().map(Zod).collect::<Vec<_>>();
+            let fields = self.fields.iter().map(ZodFormatter).collect::<Vec<_>>();
             f.write_fmt(format_args!("z.object({{ {} }})", Separated(", ", &fields)))
         }
     }
 }
 
-impl<Io> Display for Ts<'_, ZodObject<Io>>
+impl<Io> Display for TsFormatter<'_, ZodObject<Io>>
 where
     Io: IoKind,
 {
@@ -52,7 +53,7 @@ where
         if self.fields.is_empty() {
             f.write_str("{}")
         } else {
-            let fields = self.fields.iter().map(Ts).collect::<Vec<_>>();
+            let fields = self.fields.iter().map(TsFormatter).collect::<Vec<_>>();
             f.write_fmt(format_args!("{{ {} }}", Separated(", ", &fields)))
         }
     }
@@ -69,7 +70,7 @@ pub struct ZodNamedField<Io> {
     pub value: ZodType<Io>,
 }
 
-impl<Io> Display for Zod<'_, ZodNamedField<Io>>
+impl<Io> Display for ZodFormatter<'_, ZodNamedField<Io>>
 where
     Io: IoKind,
 {
@@ -78,15 +79,15 @@ where
             f.write_fmt(format_args!(
                 "{}: {}.optional()",
                 self.name,
-                Zod(&self.value)
+                ZodFormatter(&self.value)
             ))
         } else {
-            f.write_fmt(format_args!("{}: {}", self.name, Zod(&self.value)))
+            f.write_fmt(format_args!("{}: {}", self.name, ZodFormatter(&self.value)))
         }
     }
 }
 
-impl<Io> Display for Ts<'_, ZodNamedField<Io>>
+impl<Io> Display for TsFormatter<'_, ZodNamedField<Io>>
 where
     Io: IoKind,
 {
@@ -95,10 +96,10 @@ where
             f.write_fmt(format_args!(
                 "{}?: {} | undefined",
                 self.name,
-                Ts(&self.value)
+                TsFormatter(&self.value)
             ))
         } else {
-            f.write_fmt(format_args!("{}: {}", self.name, Ts(&self.value)))
+            f.write_fmt(format_args!("{}: {}", self.name, TsFormatter(&self.value)))
         }
     }
 }

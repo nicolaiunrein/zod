@@ -4,18 +4,19 @@ use quote::{quote, ToTokens};
 
 use crate::utils::zod_core;
 
-use super::{Ts, Zod, ZodTypeInner};
+use super::ZodTypeInner;
+use crate::formatter::{TsFormatter, ZodFormatter};
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ZodString;
 
-impl Display for Zod<'_, ZodString> {
+impl Display for ZodFormatter<'_, ZodString> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("z.string()")
     }
 }
 
-impl Display for Ts<'_, ZodString> {
+impl Display for TsFormatter<'_, ZodString> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("string")
     }

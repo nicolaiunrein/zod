@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub use zod_core::prelude::*;
 
 struct MyNs;

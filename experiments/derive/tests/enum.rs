@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 use pretty_assertions::assert_eq;
-use zod_core::z;
-use zod_core::Kind;
-use zod_core::TypeExt;
+use zod_core::prelude::*;
 use zod_derive_experiments::Zod;
 
 struct Ns;
@@ -60,7 +58,7 @@ enum AdjacentlyTagged {
 
 #[test]
 fn externally_tagged_ok() {
-    let export: z::ZodExport<Kind::Input> = ExternallyTagged::export().unwrap();
+    let export: Export<Kind::Input> = ExternallyTagged::export().unwrap();
     let variants = [
         "z.literal(\"Unit\")",
         "z.object({ Tuple0: z.tuple([]) })",
@@ -72,7 +70,7 @@ fn externally_tagged_ok() {
     ];
 
     assert_eq!(
-        zod_core::z::Zod(&export).to_string(),
+        export.as_zod().to_string(),
         format!(
             "export const ExternallyTagged = z.union([{}]);",
             variants.join(", ")
@@ -82,7 +80,7 @@ fn externally_tagged_ok() {
 
 #[test]
 fn untagged_tagged_ok() {
-    let export: z::ZodExport<Kind::Input> = Untagged::export().unwrap();
+    let export: Export<Kind::Input> = Untagged::export().unwrap();
     let variants = [
         "z.literal(\"Unit\")",
         "z.tuple([])",
@@ -94,7 +92,7 @@ fn untagged_tagged_ok() {
     ];
 
     assert_eq!(
-        zod_core::z::Zod(&export).to_string(),
+        export.as_zod().to_string(),
         format!(
             "export const Untagged = z.union([{}]);",
             variants.join(", ")
@@ -104,7 +102,7 @@ fn untagged_tagged_ok() {
 
 #[test]
 fn internally_tagged_ok() {
-    let export: z::ZodExport<Kind::Input> = InternallyTagged::export().unwrap();
+    let export: Export<Kind::Input> = InternallyTagged::export().unwrap();
     let variants = [
         "z.object({ my_tag: z.literal(\"Unit\") })",
         "z.object({ my_tag: z.literal(\"Struct0\") })",
@@ -113,7 +111,7 @@ fn internally_tagged_ok() {
     ];
 
     assert_eq!(
-        zod_core::z::Zod(&export).to_string(),
+        export.as_zod().to_string(),
         format!(
             "export const InternallyTagged = z.discriminatedUnion(\"my_tag\", [{}]);",
             variants.join(", ")
@@ -123,7 +121,7 @@ fn internally_tagged_ok() {
 
 #[test]
 fn adjacently_tagged_ok() {
-    let export: z::ZodExport<Kind::Input> = AdjacentlyTagged::export().unwrap();
+    let export: Export<Kind::Input> = AdjacentlyTagged::export().unwrap();
     let variants = [
         "z.object({ my_tag: z.literal(\"Unit\") })",
         "z.object({ my_tag: z.literal(\"Tuple0\"), my_content: z.tuple([]) })",
@@ -135,7 +133,7 @@ fn adjacently_tagged_ok() {
     ];
 
     assert_eq!(
-        zod_core::z::Zod(&export).to_string(),
+        export.as_zod().to_string(),
         format!(
             "export const AdjacentlyTagged = z.discriminatedUnion(\"my_tag\", [{}]);",
             variants.join(", ")

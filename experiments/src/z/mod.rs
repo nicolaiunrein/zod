@@ -1,6 +1,5 @@
 mod r#bool;
 mod discriminated_union;
-mod export;
 mod literal;
 mod number;
 mod object;
@@ -9,11 +8,11 @@ mod tuple;
 mod r#type;
 mod union;
 
+use crate::formatter::ZodFormatter;
 use crate::utils::zod_core;
 
 pub use self::r#bool::*;
 pub use discriminated_union::*;
-pub use export::*;
 pub use literal::*;
 pub use number::*;
 pub use object::*;
@@ -26,32 +25,13 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
 
-use std::{fmt::Display, ops::Deref};
+use std::fmt::Display;
 
 pub struct ZodTypeAny;
 
-impl Display for Zod<'_, ZodTypeAny> {
+impl Display for ZodFormatter<'_, ZodTypeAny> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("z.ZodTypeAny")
-    }
-}
-
-pub struct Zod<'a, T>(pub &'a T);
-pub struct Ts<'a, T>(pub &'a T);
-
-impl<T> Deref for Zod<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-
-impl<T> Deref for Ts<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.0
     }
 }
 

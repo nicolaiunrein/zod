@@ -4,7 +4,8 @@ use quote::{quote, ToTokens};
 
 use crate::utils::zod_core;
 
-use super::{Ts, Zod, ZodTypeInner};
+use super::ZodTypeInner;
+use crate::formatter::{TsFormatter, ZodFormatter};
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub enum ZodLiteral {
@@ -12,7 +13,7 @@ pub enum ZodLiteral {
     Number(isize),
     Bool(bool),
 }
-impl Display for Zod<'_, ZodLiteral> {
+impl Display for ZodFormatter<'_, ZodLiteral> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             ZodLiteral::String(inner) => f.write_fmt(format_args!("z.literal(\"{inner}\")")),
@@ -22,7 +23,7 @@ impl Display for Zod<'_, ZodLiteral> {
     }
 }
 
-impl Display for Ts<'_, ZodLiteral> {
+impl Display for TsFormatter<'_, ZodLiteral> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             ZodLiteral::String(inner) => f.write_fmt(format_args!("\"{inner}\"")),

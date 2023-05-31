@@ -4,7 +4,8 @@ use typed_builder::TypedBuilder;
 
 use crate::{utils::Separated, IoKind, Kind};
 
-use super::{Ts, Zod, ZodType, ZodTypeInner};
+use super::{ZodType, ZodTypeInner};
+use crate::formatter::{TsFormatter, ZodFormatter};
 
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodUnion<Io> {
@@ -12,22 +13,22 @@ pub struct ZodUnion<Io> {
     pub variants: Vec<ZodType<Io>>,
 }
 
-impl<Io> Display for Zod<'_, ZodUnion<Io>>
+impl<Io> Display for ZodFormatter<'_, ZodUnion<Io>>
 where
     Io: IoKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.variants.iter().map(Zod).collect::<Vec<_>>();
+        let variants = self.variants.iter().map(ZodFormatter).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.union([{}])", Separated(", ", &variants)))
     }
 }
 
-impl<Io> Display for Ts<'_, ZodUnion<Io>>
+impl<Io> Display for TsFormatter<'_, ZodUnion<Io>>
 where
     Io: IoKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.variants.iter().map(Ts).collect::<Vec<_>>();
+        let variants = self.variants.iter().map(TsFormatter).collect::<Vec<_>>();
         f.write_fmt(format_args!("{}", Separated(" | ", &variants)))
     }
 }
@@ -66,17 +67,21 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod(&ZodUnion::<Kind::Input>::builder()
-                .variants(vec![z::ZodString.into(), z::ZodNumber.into()])
-                .build())
+            ZodFormatter(
+                &ZodUnion::<Kind::Input>::builder()
+                    .variants(vec![z::ZodString.into(), z::ZodNumber.into()])
+                    .build()
+            )
             .to_string(),
             "z.union([z.string(), z.number()])"
         );
 
         assert_eq!(
-            Ts(&ZodUnion::<Kind::Input>::builder()
-                .variants(vec![z::ZodString.into(), z::ZodNumber.into()])
-                .build())
+            TsFormatter(
+                &ZodUnion::<Kind::Input>::builder()
+                    .variants(vec![z::ZodString.into(), z::ZodNumber.into()])
+                    .build()
+            )
             .to_string(),
             "string | number"
         );

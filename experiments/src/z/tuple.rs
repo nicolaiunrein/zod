@@ -4,7 +4,8 @@ use typed_builder::TypedBuilder;
 
 use crate::{utils::Separated, IoKind, Kind};
 
-use super::{Ts, Zod, ZodType, ZodTypeInner};
+use super::{ZodType, ZodTypeInner};
+use crate::formatter::{TsFormatter, ZodFormatter};
 
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodTuple<Io> {
@@ -12,22 +13,22 @@ pub struct ZodTuple<Io> {
     pub fields: Vec<ZodType<Io>>,
 }
 
-impl<Io> Display for Zod<'_, ZodTuple<Io>>
+impl<Io> Display for ZodFormatter<'_, ZodTuple<Io>>
 where
     Io: IoKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.fields.iter().map(Zod).collect::<Vec<_>>();
+        let variants = self.fields.iter().map(ZodFormatter).collect::<Vec<_>>();
         f.write_fmt(format_args!("z.tuple([{}])", Separated(", ", &variants)))
     }
 }
 
-impl<Io> Display for Ts<'_, ZodTuple<Io>>
+impl<Io> Display for TsFormatter<'_, ZodTuple<Io>>
 where
     Io: IoKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let variants = self.fields.iter().map(Ts).collect::<Vec<_>>();
+        let variants = self.fields.iter().map(TsFormatter).collect::<Vec<_>>();
         f.write_fmt(format_args!("[{}]", Separated(", ", &variants)))
     }
 }
@@ -66,17 +67,21 @@ mod test {
     #[test]
     fn fmt_ok() {
         assert_eq!(
-            Zod(&ZodTuple::<Kind::Input>::builder()
-                .fields(vec![z::ZodString.into(), z::ZodNumber.into()])
-                .build())
+            ZodFormatter(
+                &ZodTuple::<Kind::Input>::builder()
+                    .fields(vec![z::ZodString.into(), z::ZodNumber.into()])
+                    .build()
+            )
             .to_string(),
             "z.tuple([z.string(), z.number()])"
         );
 
         assert_eq!(
-            Ts(&ZodTuple::<Kind::Input>::builder()
-                .fields(vec![z::ZodString.into(), z::ZodNumber.into()])
-                .build())
+            TsFormatter(
+                &ZodTuple::<Kind::Input>::builder()
+                    .fields(vec![z::ZodString.into(), z::ZodNumber.into()])
+                    .build()
+            )
             .to_string(),
             "[string, number]"
         );
