@@ -67,9 +67,10 @@ crate::make_eq!(ZodDiscriminatedUnion { tag, variants });
 
 #[cfg(test)]
 mod test {
+    use crate::TypeExt;
     use crate::{
         types::{ZodNamedField, ZodType},
-        Kind, Type,
+        Kind,
     };
 
     use super::*;
@@ -83,7 +84,7 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(ZodType::from(<String as Type<Kind::Input>>::get_ref()))
+                        .value(ZodType::from(<String as TypeExt<Kind::Input>>::get_ref()))
                         .build()])
                     .build(),
                 ZodObject::builder().build(),

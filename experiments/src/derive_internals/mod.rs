@@ -165,7 +165,7 @@ where
 
             quote_spanned! {
                 ident.span() =>
-                (#name, <#ident as #zod_core::Type<#kind>>::get_ref().into())
+                (#name, <#ident as #zod_core::TypeExt<#kind>>::get_ref().into())
             }
         })
         .collect::<Vec<_>>();
@@ -198,20 +198,11 @@ where
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    let export_impl = if inline {
-        quote! {
-            fn export() -> ::std::option::Option<#zod_core::types::ZodExport<#kind>> {
-                ::std::option::Option::None
-            }
-        }
-    } else {
-        quote!()
-    };
-
     quote! {
         impl #impl_generics #zod_core::Type<#kind> for #ident #ty_generics #where_clause {
             type Ns = #ns;
             const NAME: &'static str = #name;
+            const INLINE: bool = #inline;
 
             fn value() -> #zod_core::types::ZodType<#kind> {
                 #zod_core::types::ZodType {
@@ -224,8 +215,6 @@ where
             fn args() -> #zod_core::GenericArguments<#kind> {
                 ::std::vec![#(#args),*]
             }
-
-            #export_impl
         }
     }
 }
@@ -260,6 +249,7 @@ mod test {
             impl #zod_core::Type<#kind> for Test {
                 type Ns = Ns;
                 const NAME: &'static str = "Test";
+                const INLINE: bool = false;
 
                 fn value() -> #zod_core::types::ZodType<#kind> {
                     #zod_core::types::ZodType {
@@ -301,6 +291,7 @@ mod test {
             impl #zod_core::Type<#kind> for Test {
                 type Ns = Ns;
                 const NAME: &'static str = "Test";
+                const INLINE: bool = false;
 
                 fn value() -> #zod_core::types::ZodType<#kind> {
                     #zod_core::types::ZodType {
@@ -365,6 +356,7 @@ mod test {
             impl #zod_core::Type<#kind> for Test {
                 type Ns = Ns;
                 const NAME: &'static str = "Test";
+                const INLINE: bool = false;
 
                 fn value() -> #zod_core::types::ZodType<#kind> {
                     #zod_core::types::ZodType {

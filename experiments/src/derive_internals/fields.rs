@@ -37,7 +37,7 @@ where
                 span,
             ),
             FieldValue::Type(ref ty) => (
-                quote_spanned!(ty.span() => <#ty as #zod_core::Type::<#kind>>::get_ref().into()),
+                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#kind>>::get_ref().into()),
                 ty.span(),
             ),
         };
@@ -68,7 +68,7 @@ where
         let optional = &self.optional;
         let ty = &self.ty;
         let kind = self.kind;
-        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::Type::<#kind>>);
+        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#kind>>);
 
         tokens.extend(quote_spanned! {
             ty.span() =>
@@ -104,7 +104,7 @@ mod test {
             #zod_core::types::ZodNamedField {
                 name: "hello",
                 optional: false,
-                value: <String as #zod_core::Type<#kind>>::get_ref().into()
+                value: <String as #zod_core::TypeExt<#kind>>::get_ref().into()
             }
         };
 

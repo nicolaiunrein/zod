@@ -30,7 +30,7 @@ mod test {
     use pretty_assertions::assert_eq;
     use zod_core::Kind;
     use zod_core::Reference;
-    use zod_core::Type;
+    use zod_core::TypeExt;
 
     #[test]
     fn gives_correct_reference() {

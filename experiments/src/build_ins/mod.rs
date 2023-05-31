@@ -17,6 +17,7 @@ macro_rules! impl_number {
         impl Type<Input> for $ident {
             type Ns = Rs;
             const NAME: &'static str = paste!(stringify!([<$ident:upper>]));
+            const INLINE: bool = false;
             fn value() -> ZodType<Input> {
                 ZodType::builder()
                     .inner(ZodNumber)
@@ -27,6 +28,7 @@ macro_rules! impl_number {
         impl Type<Output> for $ident {
             type Ns = Rs;
             const NAME: &'static str = paste!(stringify!([<$ident:upper>]));
+            const INLINE: bool = false;
             fn value() -> ZodType<Output> {
                 ZodType::builder()
                     .inner(ZodNumber)
@@ -82,6 +84,7 @@ impl_number!(
 impl Type<Input> for bool {
     type Ns = Rs;
     const NAME: &'static str = "Bool";
+    const INLINE: bool = false;
     fn value() -> ZodType<Input> {
         ZodBool.into()
     }
@@ -90,6 +93,7 @@ impl Type<Input> for bool {
 impl Type<Output> for bool {
     type Ns = Rs;
     const NAME: &'static str = "Bool";
+    const INLINE: bool = false;
     fn value() -> ZodType<Output> {
         ZodBool.into()
     }
@@ -98,6 +102,7 @@ impl Type<Output> for bool {
 impl Type<Input> for String {
     type Ns = Rs;
     const NAME: &'static str = "String";
+    const INLINE: bool = false;
     fn value() -> ZodType<Input> {
         ZodString.into()
     }
@@ -106,6 +111,7 @@ impl Type<Input> for String {
 impl Type<Output> for String {
     type Ns = Rs;
     const NAME: &'static str = "String";
+    const INLINE: bool = false;
     fn value() -> ZodType<Output> {
         ZodString.into()
     }

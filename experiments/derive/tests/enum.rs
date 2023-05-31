@@ -2,7 +2,7 @@
 use pretty_assertions::assert_eq;
 use zod_core::types::ZodExport;
 use zod_core::Kind;
-use zod_core::Type;
+use zod_core::TypeExt;
 use zod_derive_experiments::Zod;
 
 struct Ns;

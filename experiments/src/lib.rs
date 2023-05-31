@@ -158,6 +158,7 @@ where
 {
     type Ns: Namespace;
     const NAME: &'static str;
+    const INLINE: bool;
 
     fn value() -> ZodType<Io>;
 
@@ -167,21 +168,13 @@ where
 
     // TODO: make required
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>) {}
+}
 
-    fn export() -> Option<ZodExport<Io>> {
-        Some(ZodExport {
-            name: String::from(Self::NAME),
-            ns: String::from(Self::Ns::NAME),
-            args: Self::args()
-                .iter()
-                .map(|(name, _)| *name)
-                .collect::<Vec<_>>(),
-
-            value: Self::value(),
-        })
-    }
-
-    // TODO: Enforce not override. Maybe move to another trait
+/// Trait to prevent incorret implementation of the Type trait.
+pub trait TypeExt<Io>: Type<Io>
+where
+    Io: Clone,
+{
     fn get_ref() -> ZodType<Io> {
         if let Some(export) = Self::export() {
             Reference {
@@ -199,6 +192,30 @@ where
             Self::value()
         }
     }
+
+    fn export() -> Option<ZodExport<Io>> {
+        if Self::INLINE {
+            None
+        } else {
+            Some(ZodExport {
+                name: String::from(Self::NAME),
+                ns: String::from(Self::Ns::NAME),
+                args: Self::args()
+                    .iter()
+                    .map(|(name, _)| *name)
+                    .collect::<Vec<_>>(),
+
+                value: Self::value(),
+            })
+        }
+    }
+}
+
+impl<Io, T> TypeExt<Io> for T
+where
+    T: Type<Io>,
+    Io: Clone,
+{
 }
 
 pub trait Namespace {
@@ -208,38 +225,23 @@ pub trait Namespace {
 impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
+    const INLINE: bool = true;
 
-    fn get_ref() -> ZodType<Kind::Input> {
-        Reference {
-            name: String::new(),
-            ns: String::new(),
-            args: Vec::new(),
-            generic_replace: Some(Self::value().to_string()),
-            _phantom: PhantomData,
-        }
-        .into()
-    }
     fn value() -> ZodType<Kind::Input> {
-        panic!("todo... not supported")
+        ZodType::builder()
+            .inner(ZodTypeInner::Generic(Self::value().to_string()))
+            .build()
     }
 }
 
 impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::ConstStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
-
-    fn get_ref() -> ZodType<Kind::Output> {
-        Reference {
-            name: String::new(),
-            ns: String::new(),
-            args: Vec::new(),
-            generic_replace: Some(Self::value().to_string()),
-            _phantom: PhantomData,
-        }
-        .into()
-    }
+    const INLINE: bool = true;
     fn value() -> ZodType<Kind::Output> {
-        panic!("todo... not supported")
+        ZodType::builder()
+            .inner(ZodTypeInner::Generic(Self::value().to_string()))
+            .build()
     }
 }
 
@@ -552,6 +554,7 @@ mod test {
     {
         type Ns = Ns;
         const NAME: &'static str = "Generic";
+        const INLINE: bool = false;
 
         fn value() -> ZodType<Input> {
             ZodObject::builder()
@@ -574,6 +577,7 @@ mod test {
     {
         type Ns = Ns;
         const NAME: &'static str = "Generic";
+        const INLINE: bool = false;
 
         fn value() -> ZodType<Output> {
             ZodObject::builder()
@@ -595,6 +599,7 @@ mod test {
     impl Type<Kind::Input> for Alias {
         type Ns = Ns;
         const NAME: &'static str = "Alias";
+        const INLINE: bool = false;
 
         fn value() -> ZodType<Kind::Input> {
             u8::get_ref().into()
@@ -604,6 +609,7 @@ mod test {
     impl Type<Kind::Output> for Alias {
         type Ns = Ns;
         const NAME: &'static str = "Alias";
+        const INLINE: bool = false;
 
         fn value() -> ZodType<Kind::Output> {
             String::get_ref().into()
@@ -617,12 +623,13 @@ mod test {
     impl<T: Type<Input>> Type<Input> for Nested<T> {
         type Ns = Ns;
         const NAME: &'static str = "Nested";
+        const INLINE: bool = false;
 
         fn value() -> ZodType<Input> {
             ZodObject::builder()
                 .fields(vec![ZodNamedField::builder()
                     .name("inner")
-                    .value(<Generic<crate::test_utils::const_str!('T')> as Type<
+                    .value(<Generic<crate::test_utils::const_str!('T')> as TypeExt<
                         Input,
                     >>::get_ref())
                     .build()])
@@ -640,6 +647,7 @@ mod test {
     impl Type<Kind::Output> for OutputOnly {
         type Ns = Ns;
         const NAME: &'static str = "OutputOnly";
+        const INLINE: bool = false;
 
         fn value() -> ZodType<Kind::Output> {
             String::get_ref().into()
@@ -649,12 +657,12 @@ mod test {
     #[test]
     fn inline_transparent_ok() {
         assert_eq!(
-            Ts(&<Alias as Type<Input>>::export().unwrap()).to_string(),
+            Ts(&<Alias as TypeExt<Input>>::export().unwrap()).to_string(),
             "export type Alias = Rs.input.U8;"
         );
 
         assert_eq!(
-            Ts(&<Alias as Type<Output>>::export().unwrap()).to_string(),
+            Ts(&<Alias as TypeExt<Output>>::export().unwrap()).to_string(),
             "export type Alias = Rs.output.String;"
         );
     }
@@ -662,11 +670,11 @@ mod test {
     #[test]
     fn ok1() {
         assert_eq!(
-            Ts(&<Generic::<Alias> as Type<Kind::Output>>::get_ref()).to_string(),
+            Ts(&<Generic::<Alias> as TypeExt<Kind::Output>>::get_ref()).to_string(),
             "Ns.output.Generic<Ns.output.Alias>"
         );
         assert_eq!(
-            Ts(&<Generic::<Alias> as Type<Kind::Input>>::get_ref()).to_string(),
+            Ts(&<Generic::<Alias> as TypeExt<Kind::Input>>::get_ref()).to_string(),
             "Ns.input.Generic<Ns.input.Alias>"
         );
     }
