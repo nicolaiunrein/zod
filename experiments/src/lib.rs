@@ -91,6 +91,16 @@ use build_ins::Rs;
 use typed_builder::TypedBuilder;
 use types::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
 
+pub mod prelude {
+    pub use super::types;
+    pub use super::DependencyVisitor;
+    pub use super::GenericArgument;
+    pub use super::Kind;
+    pub use super::Namespace;
+    pub use super::Type;
+    pub use super::TypeExt;
+}
+
 #[allow(non_snake_case)]
 pub mod Kind {
     #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -174,6 +184,10 @@ impl<Io> DependencyVisitor<Io> {
     }
 }
 
+/// # Example of a manual impl
+/// ```
+#[doc = include_str!("../derive/tests/manual_impl.rs")]
+/// ```
 pub trait Type<Io>
 where
     Io: Clone,
@@ -186,66 +200,10 @@ where
     fn value() -> ZodType<Io>;
 
     /// Recursively collect the exports of nested types
-    /// # Example
-    /// ```
-    /// # use experiments::{Type, types::ZodType, Kind, DependencyVisitor, Namespace};
-    /// # struct SomeOtherStruct<T1, T2>(T1, T2);
-    /// #
-    /// # impl<T1, T2> Type<Kind::Input> for SomeOtherStruct<T1, T2>
-    /// # where
-    /// #     T1: Type<Kind::Input>,
-    /// #     T2: Type<Kind::Input>,
-    /// # {
-    /// #     type Ns = MyNs;
-    /// #
-    /// #     const NAME: &'static str = "SomeOtherStruct";
-    /// #
-    /// #     const INLINE: bool = false;
-    /// #
-    /// #     fn value() -> ZodType<Kind::Input> {
-    /// #         todo!()
-    /// #     }
-    /// #
-    /// #     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {
-    /// #         todo!()
-    /// #     }
-    /// # }
-    /// # struct MyNs;
-    /// #
-    /// # impl Namespace for MyNs {
-    /// #     const NAME: &'static str = "MyNs";
-    /// # }
-    /// struct MyStruct<T1, T2> {
-    ///     t1: T1,
-    ///     t2: SomeOtherStruct<T2, String>,
-    ///     value: u8,
-    /// }
-    ///
-    /// impl<T1, T2> Type<Kind::Input> for MyStruct<T1, T2>
-    /// where
-    ///     T1: Type<Kind::Input>,
-    ///     T2: Type<Kind::Input>,
-    /// {
-    ///     type Ns = MyNs;
-    ///     const NAME: &'static str = "MyStruct";
-    ///     const INLINE: bool = false;
-    ///
-    ///     fn value() -> ZodType<Kind::Input> {
-    ///         todo!()
-    ///     }
-    ///
-    ///     fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Input>) {
-    ///         T1::visit_dependencies(visitor);
-    ///         SomeOtherStruct::<T2, String>::visit_dependencies(visitor);
-    ///         u8::visit_dependencies(visitor);
-    ///     }
-    /// }
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>);
 
-    /// Implement this method on generic types.
-    fn args() -> Vec<GenericArgument<Io>> {
-        Vec::new()
-    }
+    /// Return generics of the implementing type
+    fn args() -> Vec<GenericArgument<Io>>;
 }
 
 /// Trait to prevent incorret implementation of the Type trait.
@@ -312,6 +270,9 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstS
     }
 
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
+    fn args() -> Vec<GenericArgument<Kind::Input>> {
+        Vec::new()
+    }
 }
 
 impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::ConstStr<C, T> {
@@ -326,6 +287,9 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
     }
 
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
+    fn args() -> Vec<GenericArgument<Kind::Output>> {
+        Vec::new()
+    }
 }
 
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
@@ -701,6 +665,9 @@ mod test {
         fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Input>) {
             u8::visit_dependencies(visitor)
         }
+        fn args() -> Vec<GenericArgument<Kind::Input>> {
+            Vec::new()
+        }
     }
 
     impl Type<Kind::Output> for Alias {
@@ -713,6 +680,9 @@ mod test {
         }
         fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Output>) {
             String::visit_dependencies(visitor)
+        }
+        fn args() -> Vec<GenericArgument<Kind::Output>> {
+            Vec::new()
         }
     }
 
@@ -759,6 +729,9 @@ mod test {
 
         fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Output>) {
             String::visit_dependencies(visitor)
+        }
+        fn args() -> Vec<GenericArgument<Kind::Output>> {
+            Vec::new()
         }
     }
 

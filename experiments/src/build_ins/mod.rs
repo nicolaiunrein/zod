@@ -1,6 +1,6 @@
 use crate::{
     types::{ZodBool, ZodNumber, ZodString, ZodType},
-    DependencyVisitor, Kind, Namespace, Type,
+    DependencyVisitor, GenericArgument, Kind, Namespace, Type,
 };
 use paste::paste;
 
@@ -23,6 +23,9 @@ macro_rules! impl_number {
                     .build()
             }
             fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
+            fn args() -> Vec<GenericArgument<Kind::Input>> {
+                Vec::new()
+            }
         }
         impl Type<Kind::Output> for $ident {
             type Ns = Rs;
@@ -35,6 +38,9 @@ macro_rules! impl_number {
                     .build()
             }
             fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
+            fn args() -> Vec<GenericArgument<Kind::Output>> {
+                Vec::new()
+            }
         }
     };
 }
@@ -89,6 +95,10 @@ impl Type<Kind::Input> for bool {
         ZodBool.into()
     }
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
+
+    fn args() -> Vec<GenericArgument<Kind::Input>> {
+        Vec::new()
+    }
 }
 
 impl Type<Kind::Output> for bool {
@@ -99,6 +109,9 @@ impl Type<Kind::Output> for bool {
         ZodBool.into()
     }
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
+    fn args() -> Vec<GenericArgument<Kind::Output>> {
+        Vec::new()
+    }
 }
 
 impl Type<Kind::Input> for String {
@@ -109,6 +122,9 @@ impl Type<Kind::Input> for String {
         ZodString.into()
     }
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
+    fn args() -> Vec<GenericArgument<Kind::Input>> {
+        Vec::new()
+    }
 }
 
 impl Type<Kind::Output> for String {
@@ -119,6 +135,9 @@ impl Type<Kind::Output> for String {
         ZodString.into()
     }
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
+    fn args() -> Vec<GenericArgument<Kind::Output>> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]
