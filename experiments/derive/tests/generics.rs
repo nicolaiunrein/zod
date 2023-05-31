@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use zod_core::{types::Zod, TypeExt};
+use zod_core::{z::Zod, TypeExt};
 use zod_derive_experiments::ZodInputOnly;
 
 struct Ns;

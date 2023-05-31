@@ -204,8 +204,8 @@ where
             const NAME: &'static str = #name;
             const INLINE: bool = #inline;
 
-            fn value() -> #zod_core::types::ZodType<#kind> {
-                #zod_core::types::ZodType {
+            fn value() -> #zod_core::z::ZodType<#kind> {
+                #zod_core::z::ZodType {
                     optional: false,
                     custom_suffix: #custom_suffix,
                     inner: #inner.into()
@@ -257,8 +257,8 @@ mod test {
                 const NAME: &'static str = "Test";
                 const INLINE: bool = false;
 
-                fn value() -> #zod_core::types::ZodType<#kind> {
-                    #zod_core::types::ZodType {
+                fn value() -> #zod_core::z::ZodType<#kind> {
+                    #zod_core::z::ZodType {
                         optional: false,
                         custom_suffix: #custom_suffix,
                         inner: #inner.into()
@@ -302,8 +302,8 @@ mod test {
                 const NAME: &'static str = "Test";
                 const INLINE: bool = false;
 
-                fn value() -> #zod_core::types::ZodType<#kind> {
-                    #zod_core::types::ZodType {
+                fn value() -> #zod_core::z::ZodType<#kind> {
+                    #zod_core::z::ZodType {
                         optional: false,
                         custom_suffix: #custom_suffix,
                         inner: #inner.into()
@@ -370,8 +370,8 @@ mod test {
                 const NAME: &'static str = "Test";
                 const INLINE: bool = false;
 
-                fn value() -> #zod_core::types::ZodType<#kind> {
-                    #zod_core::types::ZodType {
+                fn value() -> #zod_core::z::ZodType<#kind> {
+                    #zod_core::z::ZodType {
                         optional: false,
                         custom_suffix: #custom_suffix,
                         inner: #inner.into()

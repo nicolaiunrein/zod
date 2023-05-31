@@ -48,7 +48,7 @@ where
                 match &self.tag {
                     TagType::Externally => match orig.fields {
                         syn::Fields::Unit => {
-                            quote!(#zod_core::types::ZodLiteral::String(#name).into())
+                            quote!(#zod_core::z::ZodLiteral::String(#name).into())
                         }
                         _ => {
                             let value = StructImpl {
@@ -56,9 +56,9 @@ where
                                 kind,
                             };
                             quote! {
-                                #zod_core::types::ZodObject {
+                                #zod_core::z::ZodObject {
                                     fields: ::std::vec![
-                                        #zod_core::types::ZodNamedField {
+                                        #zod_core::z::ZodNamedField {
                                             name: #name,
                                             optional: false,
                                             value: #value.into()
@@ -73,12 +73,12 @@ where
                             syn::Fields::Unit => {
                                 // same as Adjacently
                                 quote! {
-                                    #zod_core::types::ZodObject {
+                                    #zod_core::z::ZodObject {
                                         fields: ::std::vec![
-                                            #zod_core::types::ZodNamedField {
+                                            #zod_core::z::ZodNamedField {
                                                 name: #tag,
                                                 optional: false,
-                                                value: #zod_core::types::ZodLiteral::String(#name).into()
+                                                value: #zod_core::z::ZodLiteral::String(#name).into()
                                             },
                                         ],
                                     }.into()
@@ -115,12 +115,12 @@ where
                         syn::Fields::Unit => {
                             // same as Externally
                             quote! {
-                                #zod_core::types::ZodObject {
+                                #zod_core::z::ZodObject {
                                     fields: ::std::vec![
-                                        #zod_core::types::ZodNamedField {
+                                        #zod_core::z::ZodNamedField {
                                             name: #tag,
                                             optional: false,
-                                            value: #zod_core::types::ZodLiteral::String(#name).into()
+                                            value: #zod_core::z::ZodLiteral::String(#name).into()
                                         },
                                     ],
                                 }.into()
@@ -132,14 +132,14 @@ where
                                 kind,
                             };
                             quote! {
-                                #zod_core::types::ZodObject {
+                                #zod_core::z::ZodObject {
                                     fields: ::std::vec![
-                                        #zod_core::types::ZodNamedField {
+                                        #zod_core::z::ZodNamedField {
                                             name: #tag,
                                             optional: false,
-                                            value: #zod_core::types::ZodLiteral::String(#name).into()
+                                            value: #zod_core::z::ZodLiteral::String(#name).into()
                                         },
-                                        #zod_core::types::ZodNamedField {
+                                        #zod_core::z::ZodNamedField {
                                             name: #content,
                                             optional: false,
                                             value: #value.into()
@@ -152,7 +152,7 @@ where
                     TagType::Untagged => {
                         match orig.fields {
                             syn::Fields::Unit => {
-                                quote!(#zod_core::types::ZodLiteral::String(#name).into())
+                                quote!(#zod_core::z::ZodLiteral::String(#name).into())
                             }
                             _ => {
                                 let value = StructImpl {
@@ -178,14 +178,14 @@ where
         let out = match &self.tag {
             TagType::Externally | TagType::Untagged => {
                 quote! {
-                    #zod_core::types::ZodUnion {
+                    #zod_core::z::ZodUnion {
                         variants: ::std::vec![#(#variants),*]
                     }
                 }
             }
             TagType::Internally { tag } | TagType::Adjacently { tag, .. } => {
                 quote! {
-                    #zod_core::types::ZodDiscriminatedUnion {
+                    #zod_core::z::ZodDiscriminatedUnion {
                         tag: #tag,
                         variants: ::std::vec![#(#variants),*]
                     }
@@ -210,8 +210,8 @@ mod test {
 
         let tagged = |name: &'static str, inner: StructImpl<Kind::Input>| {
             quote! {
-                #zod_core::types::ZodObject {
-                    fields: ::std::vec![#zod_core::types::ZodNamedField {
+                #zod_core::z::ZodObject {
+                    fields: ::std::vec![#zod_core::z::ZodNamedField {
                         name: #name,
                         optional: false,
                         value: #inner.into()
@@ -221,7 +221,7 @@ mod test {
         };
 
         let variants = vec![
-            quote!(#zod_core::types::ZodLiteral::String("Unit").into()),
+            quote!(#zod_core::z::ZodLiteral::String("Unit").into()),
             tagged(
                 "Tuple1",
                 StructImpl {
@@ -270,7 +270,7 @@ mod test {
         };
 
         let expected = quote! {
-            #zod_core::types::ZodUnion {
+            #zod_core::z::ZodUnion {
                 variants: ::std::vec![#(#variants),*]
             }
         };
@@ -295,13 +295,13 @@ mod test {
 
         let tagged = |name: &'static str, inner: StructImpl<Kind::Input>| {
             quote! {
-                #zod_core::types::ZodObject {
-                    fields: ::std::vec![#zod_core::types::ZodNamedField {
+                #zod_core::z::ZodObject {
+                    fields: ::std::vec![#zod_core::z::ZodNamedField {
                         name: #tag_label,
                         optional: false,
-                        value: #zod_core::types::ZodLiteral::String(#name).into()
+                        value: #zod_core::z::ZodLiteral::String(#name).into()
                     },
-                    #zod_core::types::ZodNamedField {
+                    #zod_core::z::ZodNamedField {
                         name: #content_label,
                         optional: false,
                         value: #inner.into()
@@ -313,11 +313,11 @@ mod test {
 
         let variants = vec![
             quote! {
-                #zod_core::types::ZodObject {
-                    fields: ::std::vec![#zod_core::types::ZodNamedField {
+                #zod_core::z::ZodObject {
+                    fields: ::std::vec![#zod_core::z::ZodNamedField {
                         name: #tag_label,
                         optional: false,
-                        value: #zod_core::types::ZodLiteral::String("Unit").into()
+                        value: #zod_core::z::ZodLiteral::String("Unit").into()
                     },],
                 }.into()
             },
@@ -369,7 +369,7 @@ mod test {
         };
 
         let expected = quote! {
-            #zod_core::types::ZodDiscriminatedUnion {
+            #zod_core::z::ZodDiscriminatedUnion {
                 tag: "my_tag",
                 variants: ::std::vec![#(#variants),*]
             }
@@ -403,12 +403,12 @@ mod test {
                 }
             });
             quote! {
-                #zod_core::types::ZodObject {
+                #zod_core::z::ZodObject {
                     fields: ::std::vec![
-                        #zod_core::types::ZodNamedField {
+                        #zod_core::z::ZodNamedField {
                             name: #tag_label,
                             optional: false,
-                            value: #zod_core::types::ZodLiteral::String(#name).into(),
+                            value: #zod_core::z::ZodLiteral::String(#name).into(),
                         },
                         #(#fields),*
                     ]
@@ -418,11 +418,11 @@ mod test {
 
         let variants = vec![
             quote! {
-                #zod_core::types::ZodObject {
-                    fields: ::std::vec![#zod_core::types::ZodNamedField {
+                #zod_core::z::ZodObject {
+                    fields: ::std::vec![#zod_core::z::ZodNamedField {
                         name: #tag_label,
                         optional: false,
-                        value: #zod_core::types::ZodLiteral::String("Unit").into()
+                        value: #zod_core::z::ZodLiteral::String("Unit").into()
                     },],
                 }.into()
             },
@@ -448,7 +448,7 @@ mod test {
         };
 
         let expected = quote! {
-            #zod_core::types::ZodDiscriminatedUnion {
+            #zod_core::z::ZodDiscriminatedUnion {
                 tag: "my_tag",
                 variants: ::std::vec![#(#variants),*],
             }

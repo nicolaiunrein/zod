@@ -63,7 +63,7 @@ where
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let fields = &self.fields;
         tokens.extend(quote! {
-            #zod_core::types::ZodObject {
+            #zod_core::z::ZodObject {
                 fields: ::std::vec![#(#fields),*]
             }
         })
@@ -81,7 +81,7 @@ where
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let fields = &self.fields;
         tokens.extend(quote! {
-            #zod_core::types::ZodTuple {
+            #zod_core::z::ZodTuple {
                 fields: ::std::vec![#(#fields),*]
             }
         });
@@ -123,7 +123,7 @@ mod test {
         ];
 
         let expected = quote! {
-            #zod_core::types::ZodObject {
+            #zod_core::z::ZodObject {
               fields: ::std::vec![ #(#zod_fields),*],
             }
         };
@@ -156,7 +156,7 @@ mod test {
         ];
 
         let expected = quote! {
-            #zod_core::types::ZodTuple {
+            #zod_core::z::ZodTuple {
               fields: ::std::vec![ #(#zod_fields),*],
             }
         };
@@ -185,7 +185,7 @@ mod test {
         ];
 
         let expected = quote! {
-            #zod_core::types::ZodObject {
+            #zod_core::z::ZodObject {
                 fields: ::std::vec![
                     #(#fields),*
                 ]

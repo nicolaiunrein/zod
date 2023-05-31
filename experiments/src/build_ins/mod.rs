@@ -1,5 +1,5 @@
 use crate::{
-    types::{ZodBool, ZodNumber, ZodString, ZodType},
+    z::{ZodBool, ZodNumber, ZodString, ZodType},
     DependencyVisitor, GenericArgument, Kind, Namespace, Type,
 };
 use paste::paste;

@@ -33,7 +33,7 @@ where
         let kind = self.kind;
         let (qualified_value, span) = match self.value {
             FieldValue::Literal(ref value, span) => (
-                quote_spanned!(span => #zod_core::types::ZodLiteral::String(#value).into()),
+                quote_spanned!(span => #zod_core::z::ZodLiteral::String(#value).into()),
                 span,
             ),
             FieldValue::Type(ref ty) => (
@@ -44,7 +44,7 @@ where
 
         tokens.extend(quote_spanned! {
             span =>
-            #zod_core::types::ZodNamedField {
+            #zod_core::z::ZodNamedField {
                 name: #name,
                 optional: #optional,
                 value: #qualified_value,
@@ -72,7 +72,7 @@ where
 
         tokens.extend(quote_spanned! {
             ty.span() =>
-            #zod_core::types::ZodType {
+            #zod_core::z::ZodType {
                 optional: #optional,
                 ..#qualified_ty::inline().into()
             }
@@ -101,7 +101,7 @@ mod test {
         .into_token_stream();
 
         let expected = quote! {
-            #zod_core::types::ZodNamedField {
+            #zod_core::z::ZodNamedField {
                 name: "hello",
                 optional: false,
                 value: <String as #zod_core::TypeExt<#kind>>::inline().into()

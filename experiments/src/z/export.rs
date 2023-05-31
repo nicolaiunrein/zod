@@ -194,7 +194,7 @@ crate::make_eq!(ZodExport {
 #[cfg(test)]
 mod test {
     use crate::{
-        types::{ZodNamedField, ZodObject, ZodString},
+        z::{ZodNamedField, ZodObject, ZodString},
         TypeExt,
     };
     use pretty_assertions::assert_eq;

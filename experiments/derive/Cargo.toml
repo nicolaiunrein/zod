@@ -20,7 +20,7 @@ proc-macro2 = "1.0.51"
 quote = "1.0.27"
 syn = "2.0.16"
 thiserror = "1.0.40"
-zod_core = { path = "../", package = "experiments" }
+zod_core = { path = "../" }
 
 [features]
 default = ["rpc"]

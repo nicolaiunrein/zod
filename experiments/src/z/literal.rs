@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use quote::{quote, ToTokens};
 
-use crate::types::zod_core;
+use crate::utils::zod_core;
 
 use super::{Ts, Zod, ZodTypeInner};
 

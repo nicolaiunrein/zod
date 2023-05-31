@@ -58,10 +58,7 @@ crate::make_eq!(ZodUnion { variants });
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        types::{ZodNumber, ZodString},
-        Kind,
-    };
+    use crate::{z, Kind};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -70,7 +67,7 @@ mod test {
     fn fmt_ok() {
         assert_eq!(
             Zod(&ZodUnion::<Kind::Input>::builder()
-                .variants(vec![ZodString.into(), ZodNumber.into()])
+                .variants(vec![z::ZodString.into(), z::ZodNumber.into()])
                 .build())
             .to_string(),
             "z.union([z.string(), z.number()])"
@@ -78,7 +75,7 @@ mod test {
 
         assert_eq!(
             Ts(&ZodUnion::<Kind::Input>::builder()
-                .variants(vec![ZodString.into(), ZodNumber.into()])
+                .variants(vec![z::ZodString.into(), z::ZodNumber.into()])
                 .build())
             .to_string(),
             "string | number"

@@ -69,7 +69,7 @@ crate::make_eq!(ZodDiscriminatedUnion { tag, variants });
 mod test {
     use crate::TypeExt;
     use crate::{
-        types::{ZodNamedField, ZodType},
+        z::{ZodNamedField, ZodType},
         Kind,
     };
 

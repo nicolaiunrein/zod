@@ -22,8 +22,8 @@ where
 
     const INLINE: bool = false;
 
-    fn value() -> types::ZodType<Kind::Input> {
-        types::ZodUnion::builder()
+    fn value() -> z::ZodType<Kind::Input> {
+        z::ZodUnion::builder()
             .variants(vec![T1::inline(), T2::inline()])
             .build()
             .into()
@@ -56,18 +56,18 @@ where
     const NAME: &'static str = "MyStruct";
     const INLINE: bool = false;
 
-    fn value() -> types::ZodType<Kind::Input> {
-        types::ZodObject::builder()
+    fn value() -> z::ZodType<Kind::Input> {
+        z::ZodObject::builder()
             .fields(vec![
-                types::ZodNamedField::builder()
+                z::ZodNamedField::builder()
                     .name("t1")
                     .value(T1::inline())
                     .build(),
-                types::ZodNamedField::builder()
+                z::ZodNamedField::builder()
                     .name("t2")
                     .value(SomeEnum::<T1, T2>::inline())
                     .build(),
-                types::ZodNamedField::builder()
+                z::ZodNamedField::builder()
                     .name("value")
                     .value(u8::inline())
                     .build(),

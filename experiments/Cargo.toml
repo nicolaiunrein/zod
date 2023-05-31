@@ -1,5 +1,5 @@
 [package]
-name = "experiments"
+name = "zod_core"
 version = "0.1.0"
 edition = "2021"
 publish = false

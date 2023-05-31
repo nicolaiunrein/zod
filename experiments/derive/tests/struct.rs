@@ -28,15 +28,13 @@ struct StructOutputOnly {
 mod test {
     use super::*;
     use pretty_assertions::assert_eq;
-    use zod_core::Kind;
-    use zod_core::Reference;
-    use zod_core::TypeExt;
+    use zod_core::prelude::*;
 
     #[test]
     fn gives_correct_reference() {
         assert_eq!(
             StructInputOnly::inline(),
-            Reference::<Kind::Input>::builder()
+            zod_core::Reference::<Kind::Input>::builder()
                 .name("StructInputOnly")
                 .ns("Custom_Ns")
                 .build()

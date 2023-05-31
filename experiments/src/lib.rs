@@ -75,8 +75,8 @@
 mod build_ins;
 pub mod const_str;
 pub mod derive_internals;
-pub mod types;
 mod utils;
+pub mod z;
 
 #[cfg(test)]
 pub mod test_utils;
@@ -89,10 +89,10 @@ use std::{
 
 use build_ins::Rs;
 use typed_builder::TypedBuilder;
-use types::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
+use z::{Ts, Zod, ZodExport, ZodType, ZodTypeInner};
 
 pub mod prelude {
-    pub use super::types;
+    pub use super::z;
     pub use super::DependencyVisitor;
     pub use super::GenericArgument;
     pub use super::Kind;
@@ -581,7 +581,7 @@ mod test {
 
     use pretty_assertions::assert_eq;
 
-    use types::*;
+    use z::*;
 
     struct Generic<T> {
         inner: T,

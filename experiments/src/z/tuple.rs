@@ -58,10 +58,7 @@ crate::make_eq!(ZodTuple { fields });
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        types::{ZodNumber, ZodString},
-        Kind,
-    };
+    use crate::{z, Kind};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -70,7 +67,7 @@ mod test {
     fn fmt_ok() {
         assert_eq!(
             Zod(&ZodTuple::<Kind::Input>::builder()
-                .fields(vec![ZodString.into(), ZodNumber.into()])
+                .fields(vec![z::ZodString.into(), z::ZodNumber.into()])
                 .build())
             .to_string(),
             "z.tuple([z.string(), z.number()])"
@@ -78,7 +75,7 @@ mod test {
 
         assert_eq!(
             Ts(&ZodTuple::<Kind::Input>::builder()
-                .fields(vec![ZodString.into(), ZodNumber.into()])
+                .fields(vec![z::ZodString.into(), z::ZodNumber.into()])
                 .build())
             .to_string(),
             "[string, number]"

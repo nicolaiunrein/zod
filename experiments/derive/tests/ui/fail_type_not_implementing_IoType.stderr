@@ -6,13 +6,13 @@ error[E0277]: the trait bound `X: Type<Input>` is not satisfied
    |
    = help: the following other types implement trait `Type<Io>`:
              <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
-             <Struct as Type<experiments::Kind::Output>>
+             <Struct as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
-             <bool as Type<experiments::Kind::Output>>
+             <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
-             <i16 as Type<experiments::Kind::Output>>
+             <i16 as Type<zod_core::Kind::Output>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
@@ -23,21 +23,21 @@ note: required by a bound in `inline`
    |     fn inline() -> ZodType<Io> {
    |        ------ required by a bound in this associated function
 
-error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisfied
+error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:13:20
    |
 13 |         pub tuple: X,
-   |                    ^ the trait `Type<experiments::Kind::Output>` is not implemented for `X`
+   |                    ^ the trait `Type<zod_core::Kind::Output>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
              <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
-             <Struct as Type<experiments::Kind::Output>>
+             <Struct as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
-             <bool as Type<experiments::Kind::Output>>
+             <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
-             <i16 as Type<experiments::Kind::Output>>
+             <i16 as Type<zod_core::Kind::Output>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
@@ -56,13 +56,13 @@ error[E0277]: the trait bound `X: Type<Input>` is not satisfied
    |
    = help: the following other types implement trait `Type<Io>`:
              <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
-             <Struct as Type<experiments::Kind::Output>>
+             <Struct as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
-             <bool as Type<experiments::Kind::Output>>
+             <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
-             <i16 as Type<experiments::Kind::Output>>
+             <i16 as Type<zod_core::Kind::Output>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
@@ -73,21 +73,21 @@ note: required by a bound in `inline`
    |     fn inline() -> ZodType<Io> {
    |        ------ required by a bound in this associated function
 
-error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisfied
+error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
    |
 18 |     struct Tuple(u8, X);
-   |                      ^ the trait `Type<experiments::Kind::Output>` is not implemented for `X`
+   |                      ^ the trait `Type<zod_core::Kind::Output>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
              <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<experiments::Kind::Output>>
+             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
-             <Struct as Type<experiments::Kind::Output>>
+             <Struct as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
-             <bool as Type<experiments::Kind::Output>>
+             <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
-             <i16 as Type<experiments::Kind::Output>>
+             <i16 as Type<zod_core::Kind::Output>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
