@@ -150,12 +150,14 @@ impl<Io> DependencyVisitor<Io> {
     }
 }
 
-#[macro_export]
+// #[macro_export]
 macro_rules! make_args {
     ($($ident: ident),*) => {
         ::std::vec![$((stringify!($ident), $ident::get_ref().into()))*]
     }
 }
+
+pub(crate) use make_args;
 
 pub trait Type<Io>
 where
@@ -195,6 +197,7 @@ where
                 .iter()
                 .map(|(_, ty)| ZodType::clone(ty))
                 .collect(),
+            generic_replace: None,
             _phantom: Default::default(),
         }
     }
@@ -209,7 +212,13 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstS
     const NAME: &'static str = "";
 
     fn get_ref() -> Reference<Kind::Input> {
-        todo!()
+        Reference {
+            name: String::new(),
+            ns: String::new(),
+            args: Vec::new(),
+            generic_replace: Some(Self::value().to_string()),
+            _phantom: PhantomData,
+        }
     }
     fn value() -> ZodType<Kind::Input> {
         panic!("todo... not supported")
@@ -221,7 +230,13 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
     const NAME: &'static str = "";
 
     fn get_ref() -> Reference<Kind::Output> {
-        todo!()
+        Reference {
+            name: String::new(),
+            ns: String::new(),
+            args: Vec::new(),
+            generic_replace: Some(Self::value().to_string()),
+            _phantom: PhantomData,
+        }
     }
     fn value() -> ZodType<Kind::Output> {
         panic!("todo... not supported")
@@ -238,6 +253,9 @@ pub struct Reference<Io> {
 
     #[builder(default)]
     pub args: Vec<ZodType<Io>>,
+
+    #[builder(default, setter(skip))]
+    generic_replace: Option<String>,
 
     #[builder(default, setter(skip))]
     _phantom: PhantomData<Io>,
@@ -278,6 +296,9 @@ where
     Io: IoKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(ref generic) = self.generic_replace {
+            return f.write_str(generic);
+        }
         f.write_fmt(format_args!("{}.{}.{}", self.0.ns, Io::NAME, self.0.name))?;
         if !self.0.args.is_empty() {
             let args = self.0.args.iter().map(Ts).collect::<Vec<_>>();
@@ -293,6 +314,10 @@ where
     Io: IoKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(ref generic) = self.generic_replace {
+            return f.write_str(generic);
+        }
+
         f.write_fmt(format_args!("{}.{}.{}", self.0.ns, Io::NAME, self.0.name))?;
         if !self.0.args.is_empty() {
             let args = self.0.args.iter().map(Zod).collect::<Vec<_>>();
@@ -314,6 +339,7 @@ impl From<Reference<Kind::Input>> for Reference<Kind::EitherIo> {
             name: other.name,
             ns: other.ns,
             args: other.args.into_iter().map(|arg| arg.into()).collect(),
+            generic_replace: other.generic_replace,
             _phantom: PhantomData,
         }
     }
@@ -325,6 +351,7 @@ impl From<Reference<Kind::Output>> for Reference<Kind::EitherIo> {
             name: other.name,
             ns: other.ns,
             args: other.args.into_iter().map(|arg| arg.into()).collect(),
+            generic_replace: other.generic_replace,
             _phantom: PhantomData,
         }
     }
@@ -336,10 +363,14 @@ impl<A, B> PartialEq<Reference<A>> for Reference<B> {
             name,
             ns,
             args,
+            generic_replace,
             _phantom,
         } = self;
 
-        name == &other.name && ns == &other.ns && args == &other.args
+        name == &other.name
+            && ns == &other.ns
+            && args == &other.args
+            && generic_replace == &other.generic_replace
     }
 }
 

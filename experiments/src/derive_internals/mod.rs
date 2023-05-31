@@ -1,16 +1,17 @@
 mod r#enum;
 mod fields;
+mod generics;
 mod r#struct;
 
-use crate::utils::zod_core;
 use crate::Kind;
+use crate::{derive_internals::generics::replace_generics, utils::zod_core};
 use darling::FromDeriveInput;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{quote, ToTokens};
+use quote::{quote, quote_spanned, ToTokens};
 use r#enum::EnumImpl;
 use r#struct::StructImpl;
 use serde_derive_internals::attr::TagType as SerdeTagType;
-use syn::DeriveInput;
+use syn::{parse_quote, DeriveInput};
 
 use self::r#enum::TagType;
 
@@ -78,21 +79,38 @@ where
     };
 
     let ident = derive_input.ident;
-    let generics = derive_input.generics;
+    let mut generics = derive_input.generics;
 
     let inner = match derive_input.data {
-        syn::Data::Struct(data) => StructImpl {
-            kind,
-            fields: data.fields,
+        syn::Data::Struct(mut data) => {
+            for f in data.fields.iter_mut() {
+                replace_generics(&mut f.ty, &generics);
+            }
+            StructImpl {
+                kind,
+                fields: data.fields,
+            }
+            .into_token_stream()
         }
-        .into_token_stream(),
 
-        syn::Data::Enum(data) => EnumImpl {
-            tag: serde_attrs.tag().into(),
-            kind,
-            variants: data.variants.into_iter().collect(),
+        syn::Data::Enum(data) => {
+            let variants = data
+                .variants
+                .into_iter()
+                .map(|mut v| {
+                    for f in v.fields.iter_mut() {
+                        replace_generics(&mut f.ty, &generics);
+                    }
+                    v
+                })
+                .collect();
+            EnumImpl {
+                tag: serde_attrs.tag().into(),
+                kind,
+                variants,
+            }
+            .into_token_stream()
         }
-        .into_token_stream(),
 
         syn::Data::Union(_) => todo!("todo... not supported"),
     };
@@ -110,12 +128,43 @@ where
         })
         .collect::<Vec<_>>();
 
+    let args = arg_idents
+        .iter()
+        .map(|ident| {
+            let name = ident.to_string();
+
+            quote_spanned! {
+                ident.span() =>
+                (#name, <#ident as #zod_core::Type<#kind>>::get_ref().into())
+            }
+        })
+        .collect::<Vec<_>>();
+
     let custom_suffix = match attrs.custom_suffix {
         Some(suffix) => quote!(::std::option::Option::Some(::std::string::String::from(
             #suffix
         ))),
         None => quote!(None),
     };
+
+    if let Some(ref mut w) = generics.where_clause {
+        for p in w.predicates.iter_mut() {
+            match p {
+                syn::WherePredicate::Type(t) => {
+                    t.bounds.push(syn::TypeParamBound::Trait(
+                        parse_quote!(#zod_core::Type<#kind>),
+                    ));
+                }
+                _ => {}
+            }
+        }
+    } else {
+        let predicates = arg_idents
+            .iter()
+            .map(|ident| quote!(#ident: #zod_core::Type<#kind>));
+
+        generics.where_clause = Some(parse_quote!(where #(#predicates),*))
+    }
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
@@ -133,7 +182,7 @@ where
             }
 
             fn args() -> #zod_core::GenericArguments<#kind> {
-                #zod_core::make_args!(#(#arg_idents),*)
+                ::std::vec![#(#args),*]
             }
         }
     }
