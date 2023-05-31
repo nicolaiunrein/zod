@@ -1,7 +1,7 @@
 //! ## Problem :
 //! The impl is split between Argument types and Response types.
 //! The Traits are the same. Find a way to uniform them.
-//! Check the `crate::Type` documentation to see what is beeing generated.
+//! Check the [`crate::Type`] documentation to see what is beeing generated.
 //!
 //!
 //! ## Solution:
@@ -196,7 +196,7 @@ impl<Io> DependencyVisitor<Io> {
     }
 }
 
-/// # Example of a manual impl
+/// # Example of a manual implementation. The derive macros produce roughly the same code.
 /// ```
 #[doc = include_str!("../derive/tests/manual_impl.rs")]
 /// ```
