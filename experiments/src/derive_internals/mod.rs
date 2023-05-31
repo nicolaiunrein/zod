@@ -3,6 +3,7 @@ mod fields;
 mod generics;
 mod r#struct;
 
+use crate::derive_internals::generics::needs_inline;
 use crate::Kind;
 use crate::{derive_internals::generics::replace_generics, utils::zod_core};
 use darling::FromDeriveInput;
@@ -81,35 +82,64 @@ where
     let ident = derive_input.ident;
     let mut generics = derive_input.generics;
 
-    let inner = match derive_input.data {
+    let (inline, inner) = match derive_input.data {
         syn::Data::Struct(mut data) => {
-            for f in data.fields.iter_mut() {
-                replace_generics(&mut f.ty, &generics);
+            let inline = data.fields.iter().any(|f| needs_inline(&f.ty, &generics));
+
+            if !inline {
+                for f in data.fields.iter_mut() {
+                    replace_generics(&mut f.ty, &generics);
+                }
             }
-            StructImpl {
-                kind,
-                fields: data.fields,
-            }
-            .into_token_stream()
+
+            (
+                inline,
+                StructImpl {
+                    kind,
+                    fields: data.fields,
+                }
+                .into_token_stream(),
+            )
         }
 
         syn::Data::Enum(data) => {
-            let variants = data
+            let inline = data
                 .variants
-                .into_iter()
-                .map(|mut v| {
-                    for f in v.fields.iter_mut() {
-                        replace_generics(&mut f.ty, &generics);
+                .iter()
+                .any(|v| v.fields.iter().any(|f| needs_inline(&f.ty, &generics)));
+
+            if inline {
+                let variants = data
+                    .variants
+                    .into_iter()
+                    .map(|mut v| {
+                        for f in v.fields.iter_mut() {
+                            replace_generics(&mut f.ty, &generics);
+                        }
+                        v
+                    })
+                    .collect::<Vec<_>>();
+                (
+                    inline,
+                    EnumImpl {
+                        tag: serde_attrs.tag().into(),
+                        kind,
+                        variants,
                     }
-                    v
-                })
-                .collect();
-            EnumImpl {
-                tag: serde_attrs.tag().into(),
-                kind,
-                variants,
+                    .into_token_stream(),
+                )
+            } else {
+                let variants = data.variants.into_iter().collect::<Vec<_>>();
+                (
+                    inline,
+                    EnumImpl {
+                        tag: serde_attrs.tag().into(),
+                        kind,
+                        variants,
+                    }
+                    .into_token_stream(),
+                )
             }
-            .into_token_stream()
         }
 
         syn::Data::Union(_) => todo!("todo... not supported"),
@@ -168,6 +198,16 @@ where
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
+    let export_impl = if inline {
+        quote! {
+            fn export() -> ::std::option::Option<#zod_core::types::ZodExport<#kind>> {
+                ::std::option::Option::None
+            }
+        }
+    } else {
+        quote!()
+    };
+
     quote! {
         impl #impl_generics #zod_core::Type<#kind> for #ident #ty_generics #where_clause {
             type Ns = #ns;
@@ -184,6 +224,8 @@ where
             fn args() -> #zod_core::GenericArguments<#kind> {
                 ::std::vec![#(#args),*]
             }
+
+            #export_impl
         }
     }
 }

@@ -67,25 +67,29 @@ crate::make_eq!(ZodDiscriminatedUnion { tag, variants });
 
 #[cfg(test)]
 mod test {
-    use crate::{types::ZodNamedField, Kind, Type};
+    use crate::{
+        types::{ZodNamedField, ZodType},
+        Kind, Type,
+    };
 
     use super::*;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn fmt_ok() {
-        let input = ZodDiscriminatedUnion::builder()
+        let input = ZodDiscriminatedUnion::<Kind::Input>::builder()
             .tag("abc")
             .variants(vec![
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(<String as Type<Kind::Input>>::get_ref())
+                        .value(ZodType::from(<String as Type<Kind::Input>>::get_ref()))
                         .build()])
                     .build(),
                 ZodObject::builder().build(),
             ])
             .build();
+
         assert_eq!(
             Zod(&input).to_string(),
             "z.discriminatedUnion(\"abc\", [z.object({ abc: Rs.input.String }), z.object({})])"

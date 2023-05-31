@@ -1,37 +1,69 @@
-#![allow(dead_code)]
 use pretty_assertions::assert_eq;
-use zod_core::{types::ZodExport, Kind, Type};
-use zod_derive_experiments::Zod;
+use zod_core::{types::Zod, Type};
 use zod_derive_experiments::ZodInputOnly;
 
 struct Ns;
 impl zod_core::Namespace for Ns {
-    const NAME: &'static str = "Custom_Ns";
+    const NAME: &'static str = "Ns";
 }
 
-#[derive(Zod)]
-#[zod(namespace = "Ns")]
-struct X<Long> {
-    inner: Long,
-}
-
-#[derive(Zod)]
-#[zod(namespace = "Ns")]
-enum Enum<T> {
-    A(String),
-    B(T),
-    // C(X<Other>),
-}
-
-#[derive(ZodInputOnly)]
-#[zod(namespace = "Ns")]
-struct Other {}
+trait SomeTrait {}
+impl SomeTrait for String {}
 
 #[test]
-fn generic_ok() {
-    let input: ZodExport<Kind::Input> = <X<Other> as Type<Kind::Input>>::export();
+fn generic_without_bounds_ok() {
+    #![allow(dead_code)]
+
+    #[derive(ZodInputOnly)]
+    #[zod(namespace = "Ns")]
+    struct Generic<T> {
+        inner: T,
+    }
+
+    #[derive(ZodInputOnly)]
+    #[zod(namespace = "Ns")]
+    struct Nested<T> {
+        nested: Generic<T>,
+    }
+
     assert_eq!(
-        zod_core::types::Zod(&input).to_string(),
-        "export const X = (Long: z.ZodTypeAny) => z.object({ inner: Long });"
-    )
+        Zod(&Generic::<String>::export().unwrap()).to_string(),
+        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
+    );
+
+    assert_eq!(
+        Zod(&Nested::<String>::export().unwrap()).to_string(),
+        "export const Nested = (T: z.ZodTypeAny) => z.object({ nested: Ns.input.Generic(T) });"
+    );
+}
+
+#[test]
+fn generic_with_bounds_ok() {
+    #![allow(dead_code)]
+
+    #[derive(ZodInputOnly)]
+    #[zod(namespace = "Ns")]
+    struct Generic<T: SomeTrait> {
+        inner: T,
+    }
+
+    #[derive(ZodInputOnly)]
+    #[zod(namespace = "Ns")]
+    struct Nested<T: SomeTrait> {
+        nested: Generic<T>,
+    }
+
+    assert_eq!(
+        Zod(&Generic::<String>::export().unwrap()).to_string(),
+        "export const Generic = (T: z.ZodTypeAny) => z.object({ inner: T });"
+    );
+
+    // Nested has bounds and cannot be filled in by generics hence it does not get exported.
+    assert_eq!(Nested::<String>::export(), None);
+
+    // it is not referenced but inlined as is.
+    assert_eq!(
+        Zod(&Nested::<String>::get_ref()).to_string(),
+        "z.object({ nested: Ns.input.Generic(Rs.input.String) })"
+    );
 }

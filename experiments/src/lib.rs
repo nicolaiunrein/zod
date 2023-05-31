@@ -146,7 +146,9 @@ impl<Io> DependencyVisitor<Io> {
         Io: std::hash::Hash + Eq,
         Io: Clone,
     {
-        self.exports.insert(T::export());
+        if let Some(export) = T::export() {
+            self.exports.insert(export);
+        }
     }
 }
 
@@ -166,8 +168,8 @@ where
     // TODO: make required
     fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>) {}
 
-    fn export() -> ZodExport<Io> {
-        ZodExport {
+    fn export() -> Option<ZodExport<Io>> {
+        Some(ZodExport {
             name: String::from(Self::NAME),
             ns: String::from(Self::Ns::NAME),
             args: Self::args()
@@ -176,20 +178,25 @@ where
                 .collect::<Vec<_>>(),
 
             value: Self::value(),
-        }
+        })
     }
 
-    fn get_ref() -> Reference<Io> {
-        let export = Self::export();
-        Reference {
-            name: export.name,
-            ns: export.ns,
-            args: Self::args()
-                .iter()
-                .map(|(_, ty)| ZodType::clone(ty))
-                .collect(),
-            generic_replace: None,
-            _phantom: Default::default(),
+    // TODO: Enforce not override. Maybe move to another trait
+    fn get_ref() -> ZodType<Io> {
+        if let Some(export) = Self::export() {
+            Reference {
+                name: export.name,
+                ns: export.ns,
+                args: Self::args()
+                    .iter()
+                    .map(|(_, ty)| ZodType::clone(ty))
+                    .collect(),
+                generic_replace: None,
+                _phantom: Default::default(),
+            }
+            .into()
+        } else {
+            Self::value()
         }
     }
 }
@@ -202,7 +209,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstS
     type Ns = Rs;
     const NAME: &'static str = "";
 
-    fn get_ref() -> Reference<Kind::Input> {
+    fn get_ref() -> ZodType<Kind::Input> {
         Reference {
             name: String::new(),
             ns: String::new(),
@@ -210,6 +217,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstS
             generic_replace: Some(Self::value().to_string()),
             _phantom: PhantomData,
         }
+        .into()
     }
     fn value() -> ZodType<Kind::Input> {
         panic!("todo... not supported")
@@ -220,7 +228,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
     type Ns = Rs;
     const NAME: &'static str = "";
 
-    fn get_ref() -> Reference<Kind::Output> {
+    fn get_ref() -> ZodType<Kind::Output> {
         Reference {
             name: String::new(),
             ns: String::new(),
@@ -228,6 +236,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
             generic_replace: Some(Self::value().to_string()),
             _phantom: PhantomData,
         }
+        .into()
     }
     fn value() -> ZodType<Kind::Output> {
         panic!("todo... not supported")
@@ -640,12 +649,12 @@ mod test {
     #[test]
     fn inline_transparent_ok() {
         assert_eq!(
-            Ts(&<Alias as Type<Input>>::export()).to_string(),
+            Ts(&<Alias as Type<Input>>::export().unwrap()).to_string(),
             "export type Alias = Rs.input.U8;"
         );
 
         assert_eq!(
-            Ts(&<Alias as Type<Output>>::export()).to_string(),
+            Ts(&<Alias as Type<Output>>::export().unwrap()).to_string(),
             "export type Alias = Rs.output.String;"
         );
     }

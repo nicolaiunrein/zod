@@ -40,6 +40,7 @@ mod test {
                 .name("StructInputOnly")
                 .ns("Custom_Ns")
                 .build()
+                .into()
         );
     }
 }
