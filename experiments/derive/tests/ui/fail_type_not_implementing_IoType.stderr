@@ -5,10 +5,10 @@ error[E0277]: the trait bound `X: Type<Input>` is not satisfied
    |                    ^ the trait `Type<Input>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
-             <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
              <Struct as Type<zod_core::Kind::Output>>
+             <TypedStr<C, T> as Type<Input>>
+             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
@@ -30,10 +30,10 @@ error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
    |                    ^ the trait `Type<zod_core::Kind::Output>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
-             <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
              <Struct as Type<zod_core::Kind::Output>>
+             <TypedStr<C, T> as Type<Input>>
+             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
@@ -55,10 +55,10 @@ error[E0277]: the trait bound `X: Type<Input>` is not satisfied
    |                      ^ the trait `Type<Input>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
-             <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
              <Struct as Type<zod_core::Kind::Output>>
+             <TypedStr<C, T> as Type<Input>>
+             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>
@@ -80,10 +80,10 @@ error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
    |                      ^ the trait `Type<zod_core::Kind::Output>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
-             <ConstStr<C, T> as Type<Input>>
-             <ConstStr<C, T> as Type<zod_core::Kind::Output>>
              <Struct as Type<Input>>
              <Struct as Type<zod_core::Kind::Output>>
+             <TypedStr<C, T> as Type<Input>>
+             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<Input>>

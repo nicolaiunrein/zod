@@ -14,6 +14,11 @@ impl SomeTrait for String {}
 fn generic_without_bounds_ok() {
     #![allow(dead_code)]
 
+    struct Ns;
+    impl zod_core::Namespace for Ns {
+        const NAME: &'static str = "Ns";
+    }
+
     #[derive(ZodInputOnly)]
     #[zod(namespace = "Ns")]
     struct Generic<T> {
@@ -40,6 +45,11 @@ fn generic_without_bounds_ok() {
 #[test]
 fn generic_with_bounds_ok() {
     #![allow(dead_code)]
+
+    struct Ns;
+    impl zod_core::Namespace for Ns {
+        const NAME: &'static str = "Ns";
+    }
 
     #[derive(ZodInputOnly)]
     #[zod(namespace = "Ns")]

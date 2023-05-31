@@ -1,6 +1,3 @@
-mod const_str;
-pub use const_str::*;
-
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::fmt;
@@ -54,4 +51,11 @@ fn get_crate_name(name: &'static str) -> Option<String> {
             proc_macro_crate::FoundCrate::Name(name) => name,
         })
         .ok()
+}
+
+pub fn make_unique_name<Io>(ident: &syn::Ident) -> syn::Ident
+where
+    Io: crate::IoKind,
+{
+    quote::format_ident!("__ZOD_PRIVATE_{}___{ident}", Io::NAME.to_uppercase())
 }

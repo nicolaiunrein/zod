@@ -50,30 +50,30 @@ note: required by a bound in `zod::zod_core::ast::Ref::new_stream_res`
   = note: this error originates in the attribute macro `rpc` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `impl Iterator<Item = u8>: futures_core::stream::Stream` is not satisfied
-   --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:8
-    |
-6   | #[rpc]
-    | ------ required by a bound introduced by this call
-7   | impl A {
-8   |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
-    |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
-    |
-    = help: the following other types implement trait `futures_core::stream::Stream`:
-              &mut S
-              Abortable<St>
-              AssertUnwindSafe<S>
-              Box<S>
-              Buffer<S, Item>
-              BufferUnordered<St>
-              Buffered<St>
-              Either<A, B>
-            and $N others
-    = note: required for `Pin<&mut impl Iterator<Item = u8>>` to implement `futures_core::stream::Stream`
+ --> tests/ui/rpc/fail/function_returning_impl_iterator.rs:8:8
+  |
+6 | #[rpc]
+  | ------ required by a bound introduced by this call
+7 | impl A {
+8 |     fn test(&mut self) -> impl std::iter::Iterator<Item = u8> {
+  |        ^^^^ the trait `futures_core::stream::Stream` is not implemented for `impl Iterator<Item = u8>`
+  |
+  = help: the following other types implement trait `futures_core::stream::Stream`:
+            &mut S
+            Abortable<St>
+            AssertUnwindSafe<S>
+            Box<S>
+            Buffer<S, Item>
+            BufferUnordered<St>
+            Buffered<St>
+            Either<A, B>
+          and $N others
+  = note: required for `Pin<&mut impl Iterator<Item = u8>>` to implement `futures_core::stream::Stream`
 note: required by a bound in `StreamExt::next`
-   --> /home/nicolai/.cargo/registry/src/index.crates.io-6f17d22bba15001f/futures-util-0.3.28/src/stream/stream/mod.rs:249:22
-    |
-249 | pub trait StreamExt: Stream {
-    |                      ^^^^^^ required by this bound in `StreamExt::next`
+ --> $CARGO/futures-util-0.3.28/src/stream/stream/mod.rs
+  |
+  | pub trait StreamExt: Stream {
+  |                      ^^^^^^ required by this bound in `StreamExt::next`
 ...
-273 |     fn next(&mut self) -> Next<'_, Self>
-    |        ---- required by a bound in this associated function
+  |     fn next(&mut self) -> Next<'_, Self>
+  |        ---- required by a bound in this associated function

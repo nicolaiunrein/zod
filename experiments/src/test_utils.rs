@@ -60,20 +60,6 @@ pub(crate) fn formatted(input: impl ToTokens) -> Result<String, syn::Error> {
 }
 
 #[cfg(test)]
-macro_rules! const_str {
-    ($first: tt, $($rest: tt),*) => {
-        $crate::utils::ConstStr::<$first, crate::test_utils::const_str!($($rest),*)>
-    };
-
-    ($first: tt) => {
-        $crate::utils::ConstStr::<$first, $crate::utils::End>
-    };
-}
-
-#[cfg(test)]
-pub(crate) use const_str;
-
-#[cfg(test)]
 macro_rules! make_args {
     ($($ident: ident),*) => {
         ::std::vec![$($crate::GenericArgument::new::<$ident>(stringify!($ident))),*]

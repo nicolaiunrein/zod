@@ -19,7 +19,7 @@ where
 {
     type Ns = MyNs;
 
-    const NAME: &'static str = "SomeOtherStruct";
+    const NAME: &'static str = "SomeStruct";
 
     const INLINE: bool = false;
 
@@ -42,13 +42,18 @@ where
     }
 }
 
-struct SomeOtherStruct<T1, T2> {
+impl MyNs {
+    #[allow(non_upper_case_globals)]
+    const __ZOD_PRIVATE_INPUT___SomeEnum: () = {};
+}
+
+struct SomeStruct<T1, T2> {
     t1: T1,
     t2: SomeEnum<T2, String>,
     value: u8,
 }
 
-impl<T1, T2> Type<Kind::Input> for SomeOtherStruct<T1, T2>
+impl<T1, T2> Type<Kind::Input> for SomeStruct<T1, T2>
 where
     T1: Type<Kind::Input>,
     T2: Type<Kind::Input>,
@@ -89,4 +94,8 @@ where
             GenericArgument::new::<T2>("T2"),
         ]
     }
+}
+impl MyNs {
+    #[allow(non_upper_case_globals)]
+    const __ZOD_PRIVATE_INPUT___SomeStruct: () = {};
 }

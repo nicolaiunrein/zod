@@ -59,7 +59,7 @@ impl From<&SerdeTagType> for TagType {
 /// convert input into the generated code providing a kind.
 pub fn impl_zod<Io>(kind: Io, input: TokenStream2) -> TokenStream2
 where
-    Io: ToTokens + Copy,
+    Io: ToTokens + crate::IoKind + Copy,
 {
     let derive_input: DeriveInput = match syn::parse2(input) {
         Ok(parsed) => parsed,
@@ -198,6 +198,8 @@ where
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
+    let unique_ident = crate::utils::make_unique_name::<Io>(&ident);
+
     quote! {
         impl #impl_generics #zod_core::Type<#kind> for #ident #ty_generics #where_clause {
             type Ns = #ns;
@@ -219,8 +221,12 @@ where
             }
 
             fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#kind>) {
-                // Todo
+                // TODO
             }
+        }
+
+        impl #ns {
+            const #unique_ident: () = {};
         }
     }
 }
@@ -273,6 +279,10 @@ mod test {
                 fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
             }
 
+            impl Ns {
+                const __ZOD_PRIVATE_INPUT___Test: () = {};
+            }
+
         };
 
         assert_eq!(
@@ -316,6 +326,10 @@ mod test {
                 }
 
                 fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
+            }
+
+            impl Ns {
+                const __ZOD_PRIVATE_INPUT___Test: () = {};
             }
 
         };
@@ -384,6 +398,10 @@ mod test {
                 }
 
                 fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
+            }
+
+            impl Ns {
+                const __ZOD_PRIVATE_INPUT___Test: () = {};
             }
 
         };

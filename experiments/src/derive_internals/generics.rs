@@ -57,9 +57,9 @@ fn make_generic(mut chars: impl Iterator<Item = char>) -> syn::Type {
     match chars.next() {
         Some(c) => {
             let inner = make_generic(chars);
-            parse_quote!(#zod_core::const_str::ConstStr<#c, #inner>)
+            parse_quote!(#zod_core::typed_str::TypedStr<#c, #inner>)
         }
-        None => parse_quote!(#zod_core::const_str::End),
+        None => parse_quote!(#zod_core::typed_str::End),
     }
 }
 

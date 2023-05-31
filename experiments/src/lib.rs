@@ -1,6 +1,7 @@
 //! ## Problem :
 //! The impl is split between Argument types and Response types.
 //! The Traits are the same. Find a way to uniform them.
+//! Check the `crate::Type` documentation to see what is beeing generated.
 //!
 //!
 //! ## Solution:
@@ -45,7 +46,8 @@
 //! ```
 //! ## TODO
 //! - [x] Implement basic codegen with generics
-//! - [ ] Disallow trait bounds on structs and enums
+//! - [x] ~~Disallow trait bounds on structs and enums~~ __Support__ trait bounds on structs and
+//! enums
 //! - [ ] support tuple style enums with inner objects
 //! - [ ] Implement RPC part
 //! - [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
@@ -75,7 +77,7 @@
 mod build_ins;
 mod export;
 mod formatter;
-mod utils;
+pub mod utils;
 pub mod z;
 pub use export::*;
 
@@ -104,6 +106,8 @@ pub mod prelude {
     pub use super::TypeExt;
     pub use crate::formatter::Formatter;
 }
+
+pub use typed_str;
 
 /// Enum like module of marker types. Think of the module in terms of an enum where the variants
 /// are different types.
@@ -267,14 +271,14 @@ pub trait Namespace {
     const NAME: &'static str;
 }
 
-impl<const C: char, T: utils::Chain> Type<Kind::Input> for utils::ConstStr<C, T> {
+impl<const C: char, T: typed_str::LinkedChars> Type<Kind::Input> for typed_str::TypedStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
     const INLINE: bool = true;
 
     fn value() -> ZodType<Kind::Input> {
         ZodType::builder()
-            .inner(ZodTypeInner::Generic(Self::value().to_string()))
+            .inner(ZodTypeInner::Generic(Self::new().to_string()))
             .build()
     }
 
@@ -284,14 +288,14 @@ impl<const C: char, T: utils::Chain> Type<Kind::Input> for utils::ConstStr<C, T>
     }
 }
 
-impl<const C: char, T: utils::Chain> Type<Kind::Output> for utils::ConstStr<C, T> {
+impl<const C: char, T: typed_str::LinkedChars> Type<Kind::Output> for typed_str::TypedStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
     const INLINE: bool = true;
 
     fn value() -> ZodType<Kind::Output> {
         ZodType::builder()
-            .inner(ZodTypeInner::Generic(Self::value().to_string()))
+            .inner(ZodTypeInner::Generic(Self::new().to_string()))
             .build()
     }
 
@@ -579,9 +583,7 @@ mod test {
             ZodObject::builder()
                 .fields(vec![ZodNamedField::builder()
                     .name("inner")
-                    .value(<Generic<crate::test_utils::const_str!('T')> as TypeExt<
-                        Input,
-                    >>::inline())
+                    .value(<Generic<typed_str::typed_str!("T")> as TypeExt<Input>>::inline())
                     .build()])
                 .build()
                 .into()
