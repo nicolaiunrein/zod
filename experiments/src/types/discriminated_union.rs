@@ -84,7 +84,7 @@ mod test {
                 ZodObject::builder()
                     .fields(vec![ZodNamedField::builder()
                         .name("abc")
-                        .value(ZodType::from(<String as TypeExt<Kind::Input>>::get_ref()))
+                        .value(ZodType::from(<String as TypeExt<Kind::Input>>::inline()))
                         .build()])
                     .build(),
                 ZodObject::builder().build(),

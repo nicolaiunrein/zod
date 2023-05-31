@@ -37,7 +37,7 @@ where
                 span,
             ),
             FieldValue::Type(ref ty) => (
-                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#kind>>::get_ref().into()),
+                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#kind>>::inline().into()),
                 ty.span(),
             ),
         };
@@ -74,7 +74,7 @@ where
             ty.span() =>
             #zod_core::types::ZodType {
                 optional: #optional,
-                ..#qualified_ty::get_ref().into()
+                ..#qualified_ty::inline().into()
             }
         })
     }
@@ -104,7 +104,7 @@ mod test {
             #zod_core::types::ZodNamedField {
                 name: "hello",
                 optional: false,
-                value: <String as #zod_core::TypeExt<#kind>>::get_ref().into()
+                value: <String as #zod_core::TypeExt<#kind>>::inline().into()
             }
         };
 

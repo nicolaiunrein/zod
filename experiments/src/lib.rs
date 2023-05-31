@@ -175,7 +175,7 @@ pub trait TypeExt<Io>: Type<Io>
 where
     Io: Clone,
 {
-    fn get_ref() -> ZodType<Io> {
+    fn inline() -> ZodType<Io> {
         if let Some(export) = Self::export() {
             Reference {
                 name: export.name,
@@ -238,6 +238,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
     type Ns = Rs;
     const NAME: &'static str = "";
     const INLINE: bool = true;
+
     fn value() -> ZodType<Kind::Output> {
         ZodType::builder()
             .inner(ZodTypeInner::Generic(Self::value().to_string()))
@@ -567,7 +568,7 @@ mod test {
         }
 
         fn args() -> Vec<(&'static str, ZodType<Input>)> {
-            vec![("T", T::get_ref().into())] //todo
+            vec![("T", T::inline().into())] //todo
         }
     }
 
@@ -590,7 +591,7 @@ mod test {
         }
 
         fn args() -> Vec<(&'static str, ZodType<Output>)> {
-            vec![("T", T::get_ref().into())]
+            vec![("T", T::inline().into())]
         }
     }
 
@@ -602,7 +603,7 @@ mod test {
         const INLINE: bool = false;
 
         fn value() -> ZodType<Kind::Input> {
-            u8::get_ref().into()
+            u8::inline().into()
         }
     }
 
@@ -612,7 +613,7 @@ mod test {
         const INLINE: bool = false;
 
         fn value() -> ZodType<Kind::Output> {
-            String::get_ref().into()
+            String::inline().into()
         }
     }
 
@@ -631,7 +632,7 @@ mod test {
                     .name("inner")
                     .value(<Generic<crate::test_utils::const_str!('T')> as TypeExt<
                         Input,
-                    >>::get_ref())
+                    >>::inline())
                     .build()])
                 .build()
                 .into()
@@ -650,7 +651,7 @@ mod test {
         const INLINE: bool = false;
 
         fn value() -> ZodType<Kind::Output> {
-            String::get_ref().into()
+            String::inline().into()
         }
     }
 
@@ -670,11 +671,11 @@ mod test {
     #[test]
     fn ok1() {
         assert_eq!(
-            Ts(&<Generic::<Alias> as TypeExt<Kind::Output>>::get_ref()).to_string(),
+            Ts(&<Generic::<Alias> as TypeExt<Kind::Output>>::inline()).to_string(),
             "Ns.output.Generic<Ns.output.Alias>"
         );
         assert_eq!(
-            Ts(&<Generic::<Alias> as TypeExt<Kind::Input>>::get_ref()).to_string(),
+            Ts(&<Generic::<Alias> as TypeExt<Kind::Input>>::inline()).to_string(),
             "Ns.input.Generic<Ns.input.Alias>"
         );
     }

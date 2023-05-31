@@ -165,7 +165,7 @@ where
 
             quote_spanned! {
                 ident.span() =>
-                (#name, <#ident as #zod_core::TypeExt<#kind>>::get_ref().into())
+                (#name, <#ident as #zod_core::TypeExt<#kind>>::inline().into())
             }
         })
         .collect::<Vec<_>>();

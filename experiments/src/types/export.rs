@@ -213,11 +213,11 @@ mod test {
                         ZodNamedField::builder()
                             .name("my_string")
                             .optional()
-                            .value(String::get_ref())
+                            .value(String::inline())
                             .build(),
                         ZodNamedField::builder()
                             .name("my_number")
-                            .value(u8::get_ref())
+                            .value(u8::inline())
                             .build(),
                     ])
                     .build(),

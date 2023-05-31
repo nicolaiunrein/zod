@@ -14,14 +14,14 @@ error[E0277]: the trait bound `X: Type<Input>` is not satisfied
              <i16 as Type<Input>>
              <i16 as Type<experiments::Kind::Output>>
            and $N others
-note: required by a bound in `get_ref`
+note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::get_ref`
+   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
 ...
-   |     fn get_ref() -> ZodType<Io> {
-   |        ------- required by a bound in this associated function
+   |     fn inline() -> ZodType<Io> {
+   |        ------ required by a bound in this associated function
 
 error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:13:20
@@ -39,14 +39,14 @@ error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisf
              <i16 as Type<Input>>
              <i16 as Type<experiments::Kind::Output>>
            and $N others
-note: required by a bound in `get_ref`
+note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::get_ref`
+   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
 ...
-   |     fn get_ref() -> ZodType<Io> {
-   |        ------- required by a bound in this associated function
+   |     fn inline() -> ZodType<Io> {
+   |        ------ required by a bound in this associated function
 
 error[E0277]: the trait bound `X: Type<Input>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
@@ -64,14 +64,14 @@ error[E0277]: the trait bound `X: Type<Input>` is not satisfied
              <i16 as Type<Input>>
              <i16 as Type<experiments::Kind::Output>>
            and $N others
-note: required by a bound in `get_ref`
+note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::get_ref`
+   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
 ...
-   |     fn get_ref() -> ZodType<Io> {
-   |        ------- required by a bound in this associated function
+   |     fn inline() -> ZodType<Io> {
+   |        ------ required by a bound in this associated function
 
 error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
@@ -89,11 +89,11 @@ error[E0277]: the trait bound `X: Type<experiments::Kind::Output>` is not satisf
              <i16 as Type<Input>>
              <i16 as Type<experiments::Kind::Output>>
            and $N others
-note: required by a bound in `get_ref`
+note: required by a bound in `inline`
   --> $WORKSPACE/experiments/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::get_ref`
+   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
 ...
-   |     fn get_ref() -> ZodType<Io> {
-   |        ------- required by a bound in this associated function
+   |     fn inline() -> ZodType<Io> {
+   |        ------ required by a bound in this associated function

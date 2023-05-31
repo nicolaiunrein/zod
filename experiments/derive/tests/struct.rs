@@ -35,7 +35,7 @@ mod test {
     #[test]
     fn gives_correct_reference() {
         assert_eq!(
-            StructInputOnly::get_ref(),
+            StructInputOnly::inline(),
             Reference::<Kind::Input>::builder()
                 .name("StructInputOnly")
                 .ns("Custom_Ns")

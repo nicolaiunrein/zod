@@ -63,7 +63,7 @@ fn generic_with_bounds_ok() {
 
     // it is not referenced but inlined as is.
     assert_eq!(
-        Zod(&Nested::<String>::get_ref()).to_string(),
+        Zod(&Nested::<String>::inline()).to_string(),
         "z.object({ nested: Ns.input.Generic(Rs.input.String) })"
     );
 }
