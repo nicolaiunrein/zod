@@ -1,3 +1,4 @@
+//! Zod building blocks as defined by the zod ts library
 mod r#bool;
 mod discriminated_union;
 mod literal;

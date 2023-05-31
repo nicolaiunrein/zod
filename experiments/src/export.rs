@@ -1,10 +1,11 @@
-use std::fmt::Display;
+use std::{collections::BTreeMap, fmt::Display};
 
-use crate::{utils::Separated, IoKind, Kind};
+use crate::{utils::Separated, Alias, IoKind, Kind};
 
 use super::{z, TsFormatter, ZodFormatter, ZodType, ZodTypeInner};
 use typed_builder::TypedBuilder;
 
+/// The representation of a type definition in the generated code.
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct Export<Io> {
     #[builder(setter(into))]
@@ -190,6 +191,129 @@ crate::make_eq!(Export {
     args,
     value
 });
+
+/// Representation of all generated code
+pub struct ExportMap(BTreeMap<String, NsMap>);
+
+impl ExportMap {
+    pub fn new(
+        input_exports: impl IntoIterator<Item = Export<Kind::Input>>,
+        output_exports: impl IntoIterator<Item = Export<Kind::Output>>,
+    ) -> Self {
+        let mut out = BTreeMap::<String, NsMap>::new();
+
+        for export in input_exports.into_iter() {
+            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
+                input: Default::default(),
+                output: Default::default(),
+                io: Default::default(),
+            });
+
+            ns_map.insert_input(export.name.clone(), export);
+        }
+
+        for export in output_exports.into_iter() {
+            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
+                input: Default::default(),
+                output: Default::default(),
+                io: Default::default(),
+            });
+
+            ns_map.insert_output(export.name.clone(), export);
+        }
+
+        Self(out)
+    }
+}
+
+impl Display for ExportMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (ns, inner) in self.0.iter() {
+            f.write_fmt(format_args!("export namespace {ns} {{\n{}}}\n", inner))?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for NsMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt_part<T>(
+            f: &mut std::fmt::Formatter<'_>,
+            set: &BTreeMap<String, Export<T>>,
+        ) -> std::fmt::Result
+        where
+            T: IoKind,
+        {
+            let name = T::NAME;
+            if set.is_empty() {
+                f.write_fmt(format_args!("    export namespace {name} {{}}\n"))?;
+            } else {
+                f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
+                for export in set.values() {
+                    f.write_str("        ")?;
+                    Display::fmt(&TsFormatter(export), f)?;
+                    f.write_str("\n")?;
+                    f.write_str("        ")?;
+                    Display::fmt(&ZodFormatter(export), f)?;
+                    f.write_str("\n")?;
+                }
+
+                f.write_str("    }\n")?;
+            }
+            std::fmt::Result::Ok(())
+        }
+
+        fmt_part(f, &self.input)?;
+        fmt_part(f, &self.output)?;
+        fmt_part(f, &self.io)?;
+
+        Ok(())
+    }
+}
+
+struct NsMap {
+    input: BTreeMap<String, Export<Kind::Input>>,
+    output: BTreeMap<String, Export<Kind::Output>>,
+    io: BTreeMap<String, Export<Kind::EitherIo>>,
+}
+
+impl NsMap {
+    fn insert_input(&mut self, name: String, mut input: Export<Kind::Input>) {
+        if let Some(output) = self.output.get_mut(&name) {
+            if &mut input == output {
+                let merged = Export::<Kind::EitherIo>::from(input.clone());
+
+                let alias = Alias {
+                    name: merged.name.clone(),
+                    ns: merged.ns.clone(),
+                };
+
+                input.value = ZodTypeInner::Alias(alias.clone()).into();
+                output.value = ZodTypeInner::Alias(alias).into();
+                self.io.insert(name.clone(), merged);
+            }
+        }
+        self.input.insert(name, input);
+    }
+
+    fn insert_output(&mut self, name: String, mut output: Export<Kind::Output>) {
+        if let Some(input) = self.input.get_mut(&name) {
+            if &mut output == input {
+                let merged = Export::<Kind::EitherIo>::from(output.clone());
+
+                let alias = Alias {
+                    name: merged.name.clone(),
+                    ns: merged.ns.clone(),
+                };
+
+                output.value = ZodTypeInner::Alias(alias.clone()).into();
+                input.value = ZodTypeInner::Alias(alias).into();
+                self.io.insert(name.clone(), merged);
+            }
+        }
+        self.output.insert(name, output);
+    }
+}
 
 #[cfg(test)]
 mod test {

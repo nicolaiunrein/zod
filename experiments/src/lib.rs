@@ -45,56 +45,54 @@
 //! ```
 //! ## TODO
 //! - [x] Implement basic codegen with generics
-//! - [] Disallow trait bounds on structs and enums
-//! - [] support tuple style enums with inner objects
-//! - [] Implement RPC part
-//! - [] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
+//! - [ ] Disallow trait bounds on structs and enums
+//! - [ ] support tuple style enums with inner objects
+//! - [ ] Implement RPC part
+//! - [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
 //!
-//!    - [] rename
-//!    - [] rename-all
+//!    - [ ] rename
+//!    - [ ] rename-all
 //!    - [x] tag
 //!         - [x] internally
 //!         - [x] externally
 //!         - [x] adjacently
 //!         - [x] untagged
-//!    - [] skip
-//!    - [] skip_deserializing
-//!    - [] default
-//!    - [] transparent structs
-//!    - [] flatten
+//!    - [ ] skip
+//!    - [ ] skip_deserializing
+//!    - [ ] default
+//!    - [ ] transparent structs
+//!    - [ ] flatten
 //!
-//! - [] Restrict non-default fields in tuple structs to only come before the first default field
-//! - [] create namespace macro
-//! - [] codegen options (eg. schema prefix/suffix, type prefix/suffix)
-//! - [] write detailed intro
-//! - [] write rust-docs
+//! - [ ] Restrict non-default fields in tuple structs to only come before the first default field
+//! - [ ] create namespace macro
+//! - [ ] codegen options (eg. schema prefix/suffix, type prefix/suffix)
+//! - [ ] write detailed intro
+//! - [ ] write rust-docs
 //! - [ ] add integration tests with jest
 //! - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
 //! - [ ] add camelCasing for method names
 //!
 mod build_ins;
-pub mod const_str;
-pub mod derive_internals;
 mod export;
 mod formatter;
 mod utils;
 pub mod z;
 pub use export::*;
 
+#[doc(hidden)]
+pub mod derive_internals;
+
 #[cfg(test)]
 pub mod test_utils;
 
-use std::{
-    collections::{BTreeMap, HashSet},
-    fmt::Display,
-    marker::PhantomData,
-};
+use std::{collections::HashSet, fmt::Display, marker::PhantomData};
 
 use build_ins::Rs;
 use formatter::{TsFormatter, ZodFormatter};
 use typed_builder::TypedBuilder;
 use z::{ZodType, ZodTypeInner};
 
+/// Re-exports of mos commonly used types and traits
 pub mod prelude {
     pub use super::z;
     pub use super::DependencyVisitor;
@@ -107,6 +105,8 @@ pub mod prelude {
     pub use crate::formatter::Formatter;
 }
 
+/// Enum like module of marker types. Think of the module in terms of an enum where the variants
+/// are different types.
 #[allow(non_snake_case)]
 pub mod Kind {
     #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -134,6 +134,7 @@ pub mod Kind {
     }
 }
 
+/// A pair of the generic and inlined representation of a generic type argument
 pub struct GenericArgument<Io> {
     name: &'static str,
     inlined: ZodType<Io>,
@@ -173,6 +174,7 @@ impl IoKind for Kind::EitherIo {
     const NAME: &'static str = "io";
 }
 
+/// Visitor for dependencies of types implementing `crate::Type`
 pub struct DependencyVisitor<Io> {
     exports: HashSet<Export<Io>>,
 }
@@ -260,11 +262,12 @@ where
 {
 }
 
+/// A namespace to group generates types
 pub trait Namespace {
     const NAME: &'static str;
 }
 
-impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstStr<C, T> {
+impl<const C: char, T: utils::Chain> Type<Kind::Input> for utils::ConstStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
     const INLINE: bool = true;
@@ -281,7 +284,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstS
     }
 }
 
-impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::ConstStr<C, T> {
+impl<const C: char, T: utils::Chain> Type<Kind::Output> for utils::ConstStr<C, T> {
     type Ns = Rs;
     const NAME: &'static str = "";
     const INLINE: bool = true;
@@ -298,6 +301,7 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
     }
 }
 
+/// A reference to another type within the generated code.
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct Reference<Io> {
     #[builder(setter(into))]
@@ -443,136 +447,6 @@ macro_rules! make_eq {
     }
 }
 pub(crate) use make_eq;
-
-struct NsMap {
-    input: BTreeMap<String, Export<Kind::Input>>,
-    output: BTreeMap<String, Export<Kind::Output>>,
-    io: BTreeMap<String, Export<Kind::EitherIo>>,
-}
-
-impl NsMap {
-    fn insert_input(&mut self, name: String, mut input: Export<Kind::Input>) {
-        if let Some(output) = self.output.get_mut(&name) {
-            if &mut input == output {
-                let merged = Export::<Kind::EitherIo>::from(input.clone());
-
-                let alias = Alias {
-                    name: merged.name.clone(),
-                    ns: merged.ns.clone(),
-                };
-
-                input.value = ZodTypeInner::Alias(alias.clone()).into();
-                output.value = ZodTypeInner::Alias(alias).into();
-                self.io.insert(name.clone(), merged);
-            }
-        }
-        self.input.insert(name, input);
-    }
-
-    fn insert_output(&mut self, name: String, mut output: Export<Kind::Output>) {
-        if let Some(input) = self.input.get_mut(&name) {
-            if &mut output == input {
-                let merged = Export::<Kind::EitherIo>::from(output.clone());
-
-                let alias = Alias {
-                    name: merged.name.clone(),
-                    ns: merged.ns.clone(),
-                };
-
-                output.value = ZodTypeInner::Alias(alias.clone()).into();
-                input.value = ZodTypeInner::Alias(alias).into();
-                self.io.insert(name.clone(), merged);
-            }
-        }
-        self.output.insert(name, output);
-    }
-}
-
-pub struct ExportMap(BTreeMap<String, NsMap>);
-
-impl ExportMap {
-    pub fn new(
-        input_exports: impl IntoIterator<Item = Export<Kind::Input>>,
-        output_exports: impl IntoIterator<Item = Export<Kind::Output>>,
-    ) -> Self {
-        let mut out = BTreeMap::<String, NsMap>::new();
-
-        for export in input_exports.into_iter() {
-            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
-                input: Default::default(),
-                output: Default::default(),
-                io: Default::default(),
-            });
-
-            ns_map.insert_input(export.name.clone(), export);
-        }
-
-        for export in output_exports.into_iter() {
-            let ns_map = out.entry(export.ns.clone()).or_insert_with(|| NsMap {
-                input: Default::default(),
-                output: Default::default(),
-                io: Default::default(),
-            });
-
-            ns_map.insert_output(export.name.clone(), export);
-        }
-
-        Self(out)
-    }
-}
-
-impl Display for ExportMap {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (ns, inner) in self.0.iter() {
-            f.write_fmt(format_args!("export namespace {ns} {{\n{}}}\n", inner))?;
-        }
-        Ok(())
-    }
-}
-
-impl Display for NsMap {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fn fmt_part<T>(
-            f: &mut std::fmt::Formatter<'_>,
-            set: &BTreeMap<String, Export<T>>,
-        ) -> std::fmt::Result
-        where
-            T: IoKind,
-        {
-            let name = T::NAME;
-            if set.is_empty() {
-                f.write_fmt(format_args!("    export namespace {name} {{}}\n"))?;
-            } else {
-                f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
-                for export in set.values() {
-                    f.write_str("        ")?;
-                    Display::fmt(&TsFormatter(export), f)?;
-                    f.write_str("\n")?;
-                    f.write_str("        ")?;
-                    Display::fmt(&ZodFormatter(export), f)?;
-                    f.write_str("\n")?;
-                }
-
-                f.write_str("    }\n")?;
-            }
-            std::fmt::Result::Ok(())
-        }
-
-        fmt_part(f, &self.input)?;
-        fmt_part(f, &self.output)?;
-        fmt_part(f, &self.io)?;
-
-        Ok(())
-    }
-}
-
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-//
-//
 
 #[cfg(test)]
 mod test {

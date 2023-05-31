@@ -62,11 +62,11 @@ pub(crate) fn formatted(input: impl ToTokens) -> Result<String, syn::Error> {
 #[cfg(test)]
 macro_rules! const_str {
     ($first: tt, $($rest: tt),*) => {
-        $crate::const_str::ConstStr::<$first, crate::test_utils::const_str!($($rest),*)>
+        $crate::utils::ConstStr::<$first, crate::test_utils::const_str!($($rest),*)>
     };
 
     ($first: tt) => {
-        $crate::const_str::ConstStr::<$first, $crate::const_str::End>
+        $crate::utils::ConstStr::<$first, $crate::utils::End>
     };
 }
 

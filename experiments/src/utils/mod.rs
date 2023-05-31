@@ -1,3 +1,6 @@
+mod const_str;
+pub use const_str::*;
+
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::fmt;
