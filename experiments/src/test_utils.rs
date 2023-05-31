@@ -58,3 +58,27 @@ pub(crate) fn formatted(input: impl ToTokens) -> Result<String, syn::Error> {
         }
     }
 }
+
+#[cfg(test)]
+macro_rules! const_str {
+    ($first: tt, $($rest: tt),*) => {
+        $crate::const_str::ConstStr::<$first, crate::test_utils::const_str!($($rest),*)>
+    };
+
+    ($first: tt) => {
+        $crate::const_str::ConstStr::<$first, $crate::const_str::End>
+    };
+}
+
+#[cfg(test)]
+pub(crate) use const_str;
+
+#[cfg(test)]
+macro_rules! make_args {
+    ($($ident: ident),*) => {
+        ::std::vec![$((stringify!($ident), $ident::get_ref().into()))*]
+    }
+}
+
+#[cfg(test)]
+pub(crate) use make_args;

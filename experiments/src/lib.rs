@@ -150,15 +150,6 @@ impl<Io> DependencyVisitor<Io> {
     }
 }
 
-// #[macro_export]
-macro_rules! make_args {
-    ($($ident: ident),*) => {
-        ::std::vec![$((stringify!($ident), $ident::get_ref().into()))*]
-    }
-}
-
-pub(crate) use make_args;
-
 pub trait Type<Io>
 where
     Io: Clone,
@@ -622,14 +613,16 @@ mod test {
             ZodObject::builder()
                 .fields(vec![ZodNamedField::builder()
                     .name("inner")
-                    .value(<Generic<crate::const_str!('T')> as Type<Input>>::get_ref())
+                    .value(<Generic<crate::test_utils::const_str!('T')> as Type<
+                        Input,
+                    >>::get_ref())
                     .build()])
                 .build()
                 .into()
         }
 
         fn args() -> Vec<(&'static str, ZodType<Input>)> {
-            make_args!(T)
+            crate::test_utils::make_args!(T)
         }
     }
 

@@ -17,13 +17,22 @@ impl VisitMut for GenercicsReplace {
                     if self.generics.get(orig).is_some() {
                         let name = orig.to_string();
                         let chars = name.chars();
-                        *node = syn::Type::Macro(parse_quote!(#zod_core::const_str!(#(#chars),*)));
+                        *node = make_generic(chars);
                     }
                 }
             }
             _ => {}
         }
         visit_mut::visit_type_mut(self, node)
+    }
+}
+fn make_generic(mut chars: impl Iterator<Item = char>) -> syn::Type {
+    match chars.next() {
+        Some(c) => {
+            let inner = make_generic(chars);
+            parse_quote!(#zod_core::const_str::ConstStr<#c, #inner>)
+        }
+        None => parse_quote!(#zod_core::const_str::End),
     }
 }
 
@@ -53,7 +62,11 @@ mod test {
     #[test]
     fn ok() {
         let mut input: syn::Type = parse_quote!(Test<A, LONG, C<D, NotUsed>>);
-        let expected: syn::Type = parse_quote!(Test<#zod_core::const_str!('A'), #zod_core::const_str!('L', 'O', 'N', 'G'), C<#zod_core::const_str!('D'), NotUsed>>);
+        let a = make_generic("A".chars());
+        let long = make_generic("LONG".chars());
+        let d = make_generic("D".chars());
+
+        let expected: syn::Type = parse_quote!(Test<#a, #long, C<#d, NotUsed>>);
         let generics = parse_quote!(<A, LONG, D>);
         replace_generics(&mut input, &generics);
 

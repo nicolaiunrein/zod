@@ -11,8 +11,8 @@ impl zod_core::Namespace for Ns {
 
 #[derive(Zod)]
 #[zod(namespace = "Ns")]
-struct X<T> {
-    inner: T,
+struct X<Long> {
+    inner: Long,
 }
 
 #[derive(Zod)]
@@ -32,6 +32,6 @@ fn generic_ok() {
     let input: ZodExport<Kind::Input> = <X<Other> as Type<Kind::Input>>::export();
     assert_eq!(
         zod_core::types::Zod(&input).to_string(),
-        "export const X = (T: z.ZodTypeAny) => z.object({ inner: T });"
+        "export const X = (Long: z.ZodTypeAny) => z.object({ inner: Long });"
     )
 }

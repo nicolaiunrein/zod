@@ -57,17 +57,6 @@ where
     }
 }
 
-#[macro_export]
-macro_rules! const_str {
-    ($first: tt, $($rest: tt),*) => {
-        $crate::const_str::ConstStr::<$first, const_str!($($rest),*)>
-    };
-
-    ($first: tt) => {
-        $crate::const_str::ConstStr::<$first, $crate::const_str::End>
-    };
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -80,7 +69,7 @@ mod test {
         assert_eq!(format!("{}", Abc::value()), "abc");
         assert_eq!(format!("{}", Xyz::value()), "xyz");
 
-        type X = const_str!('a', 'b', 'c');
+        type X = crate::test_utils::const_str!('a', 'b', 'c');
 
         assert_eq!(format!("{}", X::value()), "abc");
     }

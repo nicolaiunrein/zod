@@ -228,7 +228,7 @@ mod test {
                 }
 
                 fn args() -> #zod_core::GenericArguments<#kind> {
-                    #zod_core::make_args!()
+                    ::std::vec![]
                 }
             }
 
@@ -269,7 +269,7 @@ mod test {
                 }
 
                 fn args() -> #zod_core::GenericArguments<#kind> {
-                    #zod_core::make_args!()
+                    ::std::vec![]
                 }
             }
 
@@ -333,7 +333,7 @@ mod test {
                 }
 
                 fn args() -> #zod_core::GenericArguments<#kind> {
-                    #zod_core::make_args!()
+                    ::std::vec![]
                 }
             }
 
