@@ -118,7 +118,29 @@ pub mod Kind {
     }
 }
 
-pub type GenericArguments<Io> = Vec<(&'static str, ZodType<Io>)>;
+pub struct GenericArgument<Io> {
+    name: &'static str,
+    inlined: ZodType<Io>,
+}
+
+impl<Io> GenericArgument<Io>
+where
+    Io: Clone,
+{
+    pub fn new<T: Type<Io>>(name: &'static str) -> Self {
+        Self {
+            name,
+            inlined: T::inline(),
+        }
+    }
+
+    pub fn inlined(&self) -> &ZodType<Io> {
+        &self.inlined
+    }
+    pub fn name(&self) -> &'static str {
+        &self.name
+    }
+}
 
 // TODO: seal this trait
 pub trait IoKind {
@@ -160,14 +182,70 @@ where
     const NAME: &'static str;
     const INLINE: bool;
 
+    /// Generate the representation of this type in the context of typescript/zod.
     fn value() -> ZodType<Io>;
 
-    fn args() -> GenericArguments<Io> {
+    /// Recursively collect the exports of nested types
+    /// # Example
+    /// ```
+    /// # use experiments::{Type, types::ZodType, Kind, DependencyVisitor, Namespace};
+    /// # struct SomeOtherStruct<T1, T2>(T1, T2);
+    /// #
+    /// # impl<T1, T2> Type<Kind::Input> for SomeOtherStruct<T1, T2>
+    /// # where
+    /// #     T1: Type<Kind::Input>,
+    /// #     T2: Type<Kind::Input>,
+    /// # {
+    /// #     type Ns = MyNs;
+    /// #
+    /// #     const NAME: &'static str = "SomeOtherStruct";
+    /// #
+    /// #     const INLINE: bool = false;
+    /// #
+    /// #     fn value() -> ZodType<Kind::Input> {
+    /// #         todo!()
+    /// #     }
+    /// #
+    /// #     fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {
+    /// #         todo!()
+    /// #     }
+    /// # }
+    /// # struct MyNs;
+    /// #
+    /// # impl Namespace for MyNs {
+    /// #     const NAME: &'static str = "MyNs";
+    /// # }
+    /// struct MyStruct<T1, T2> {
+    ///     t1: T1,
+    ///     t2: SomeOtherStruct<T2, String>,
+    ///     value: u8,
+    /// }
+    ///
+    /// impl<T1, T2> Type<Kind::Input> for MyStruct<T1, T2>
+    /// where
+    ///     T1: Type<Kind::Input>,
+    ///     T2: Type<Kind::Input>,
+    /// {
+    ///     type Ns = MyNs;
+    ///     const NAME: &'static str = "MyStruct";
+    ///     const INLINE: bool = false;
+    ///
+    ///     fn value() -> ZodType<Kind::Input> {
+    ///         todo!()
+    ///     }
+    ///
+    ///     fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Input>) {
+    ///         T1::visit_dependencies(visitor);
+    ///         SomeOtherStruct::<T2, String>::visit_dependencies(visitor);
+    ///         u8::visit_dependencies(visitor);
+    ///     }
+    /// }
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>);
+
+    /// Implement this method on generic types.
+    fn args() -> Vec<GenericArgument<Io>> {
         Vec::new()
     }
-
-    // TODO: make required
-    fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>) {}
 }
 
 /// Trait to prevent incorret implementation of the Type trait.
@@ -182,7 +260,7 @@ where
                 ns: export.ns,
                 args: Self::args()
                     .iter()
-                    .map(|(_, ty)| ZodType::clone(ty))
+                    .map(|arg| arg.inlined().clone())
                     .collect(),
                 generic_replace: None,
                 _phantom: Default::default(),
@@ -202,7 +280,7 @@ where
                 ns: String::from(Self::Ns::NAME),
                 args: Self::args()
                     .iter()
-                    .map(|(name, _)| *name)
+                    .map(|arg| arg.name())
                     .collect::<Vec<_>>(),
 
                 value: Self::value(),
@@ -232,6 +310,8 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Input> for const_str::ConstS
             .inner(ZodTypeInner::Generic(Self::value().to_string()))
             .build()
     }
+
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
 }
 
 impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::ConstStr<C, T> {
@@ -244,6 +324,8 @@ impl<const C: char, T: const_str::Chain> Type<Kind::Output> for const_str::Const
             .inner(ZodTypeInner::Generic(Self::value().to_string()))
             .build()
     }
+
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
 }
 
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
@@ -526,7 +608,10 @@ impl Display for NsMap {
 mod test {
 
     #![allow(dead_code)]
-    use crate::Kind::{Input, Output};
+    use crate::{
+        test_utils::make_args,
+        Kind::{Input, Output},
+    };
 
     use super::*;
 
@@ -567,8 +652,12 @@ mod test {
                 .into()
         }
 
-        fn args() -> Vec<(&'static str, ZodType<Input>)> {
-            vec![("T", T::inline().into())] //todo
+        fn args() -> Vec<GenericArgument<Kind::Input>> {
+            make_args!(T)
+        }
+
+        fn visit_dependencies(visitor: &mut DependencyVisitor<Input>) {
+            T::visit_dependencies(visitor)
         }
     }
 
@@ -590,8 +679,12 @@ mod test {
                 .into()
         }
 
-        fn args() -> Vec<(&'static str, ZodType<Output>)> {
-            vec![("T", T::inline().into())]
+        fn args() -> Vec<GenericArgument<Kind::Output>> {
+            make_args!(T)
+        }
+
+        fn visit_dependencies(visitor: &mut DependencyVisitor<Output>) {
+            T::visit_dependencies(visitor)
         }
     }
 
@@ -605,6 +698,9 @@ mod test {
         fn value() -> ZodType<Kind::Input> {
             u8::inline().into()
         }
+        fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Input>) {
+            u8::visit_dependencies(visitor)
+        }
     }
 
     impl Type<Kind::Output> for Alias {
@@ -614,6 +710,9 @@ mod test {
 
         fn value() -> ZodType<Kind::Output> {
             String::inline().into()
+        }
+        fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Output>) {
+            String::visit_dependencies(visitor)
         }
     }
 
@@ -638,8 +737,12 @@ mod test {
                 .into()
         }
 
-        fn args() -> Vec<(&'static str, ZodType<Input>)> {
-            crate::test_utils::make_args!(T)
+        fn args() -> Vec<GenericArgument<Kind::Input>> {
+            make_args!(T)
+        }
+
+        fn visit_dependencies(visitor: &mut DependencyVisitor<Input>) {
+            T::visit_dependencies(visitor)
         }
     }
 
@@ -652,6 +755,10 @@ mod test {
 
         fn value() -> ZodType<Kind::Output> {
             String::inline().into()
+        }
+
+        fn visit_dependencies(visitor: &mut DependencyVisitor<Kind::Output>) {
+            String::visit_dependencies(visitor)
         }
     }
 

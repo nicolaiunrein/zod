@@ -165,7 +165,7 @@ where
 
             quote_spanned! {
                 ident.span() =>
-                (#name, <#ident as #zod_core::TypeExt<#kind>>::inline().into())
+                #zod_core::GenericArgument::new::<#ident>(#name)
             }
         })
         .collect::<Vec<_>>();
@@ -212,8 +212,14 @@ where
                 }
             }
 
-            fn args() -> #zod_core::GenericArguments<#kind> {
-                ::std::vec![#(#args),*]
+            fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#kind>> {
+                let mut v = ::std::vec::Vec::new();
+                #(v.push(#args);)*
+                v
+            }
+
+            fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#kind>) {
+                // Todo
             }
         }
     }
@@ -259,9 +265,12 @@ mod test {
                     }
                 }
 
-                fn args() -> #zod_core::GenericArguments<#kind> {
-                    ::std::vec![]
+                fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#kind>> {
+                    let mut v = ::std::vec::Vec::new();
+                    v
                 }
+
+                fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
             }
 
         };
@@ -301,9 +310,12 @@ mod test {
                     }
                 }
 
-                fn args() -> #zod_core::GenericArguments<#kind> {
-                    ::std::vec![]
+                fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#kind>> {
+                    let mut v = ::std::vec::Vec::new();
+                    v
                 }
+
+                fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
             }
 
         };
@@ -366,9 +378,12 @@ mod test {
                     }
                 }
 
-                fn args() -> #zod_core::GenericArguments<#kind> {
-                    ::std::vec![]
+                fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#kind>> {
+                    let mut v = ::std::vec::Vec::new();
+                    v
                 }
+
+                fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
             }
 
         };
@@ -376,6 +391,6 @@ mod test {
         assert_eq!(
             impl_zod(Kind::Input, input).to_formatted_string().unwrap(),
             expected.to_formatted_string().unwrap()
-        )
+        );
     }
 }

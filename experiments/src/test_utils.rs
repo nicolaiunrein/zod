@@ -76,7 +76,7 @@ pub(crate) use const_str;
 #[cfg(test)]
 macro_rules! make_args {
     ($($ident: ident),*) => {
-        ::std::vec![$((stringify!($ident), $ident::inline().into()))*]
+        ::std::vec![$($crate::GenericArgument::new::<$ident>(stringify!($ident))),*]
     }
 }
 

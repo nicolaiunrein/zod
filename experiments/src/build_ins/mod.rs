@@ -1,8 +1,6 @@
 use crate::{
     types::{ZodBool, ZodNumber, ZodString, ZodType},
-    Kind::Input,
-    Kind::Output,
-    Namespace, Type,
+    DependencyVisitor, Kind, Namespace, Type,
 };
 use paste::paste;
 
@@ -14,27 +12,29 @@ impl Namespace for Rs {
 
 macro_rules! impl_number {
     ($ident: ident, $suffix: expr) => {
-        impl Type<Input> for $ident {
+        impl Type<Kind::Input> for $ident {
             type Ns = Rs;
             const NAME: &'static str = paste!(stringify!([<$ident:upper>]));
             const INLINE: bool = false;
-            fn value() -> ZodType<Input> {
+            fn value() -> ZodType<Kind::Input> {
                 ZodType::builder()
                     .inner(ZodNumber)
                     .custom_suffix($suffix)
                     .build()
             }
+            fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
         }
-        impl Type<Output> for $ident {
+        impl Type<Kind::Output> for $ident {
             type Ns = Rs;
             const NAME: &'static str = paste!(stringify!([<$ident:upper>]));
             const INLINE: bool = false;
-            fn value() -> ZodType<Output> {
+            fn value() -> ZodType<Kind::Output> {
                 ZodType::builder()
                     .inner(ZodNumber)
                     .custom_suffix($suffix)
                     .build()
             }
+            fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
         }
     };
 }
@@ -81,40 +81,44 @@ impl_number!(
     )
 );
 
-impl Type<Input> for bool {
+impl Type<Kind::Input> for bool {
     type Ns = Rs;
     const NAME: &'static str = "Bool";
     const INLINE: bool = false;
-    fn value() -> ZodType<Input> {
+    fn value() -> ZodType<Kind::Input> {
         ZodBool.into()
     }
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
 }
 
-impl Type<Output> for bool {
+impl Type<Kind::Output> for bool {
     type Ns = Rs;
     const NAME: &'static str = "Bool";
     const INLINE: bool = false;
-    fn value() -> ZodType<Output> {
+    fn value() -> ZodType<Kind::Output> {
         ZodBool.into()
     }
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
 }
 
-impl Type<Input> for String {
+impl Type<Kind::Input> for String {
     type Ns = Rs;
     const NAME: &'static str = "String";
     const INLINE: bool = false;
-    fn value() -> ZodType<Input> {
+    fn value() -> ZodType<Kind::Input> {
         ZodString.into()
     }
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
 }
 
-impl Type<Output> for String {
+impl Type<Kind::Output> for String {
     type Ns = Rs;
     const NAME: &'static str = "String";
     const INLINE: bool = false;
-    fn value() -> ZodType<Output> {
+    fn value() -> ZodType<Kind::Output> {
         ZodString.into()
     }
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
 }
 
 #[cfg(test)]
@@ -123,6 +127,6 @@ mod test {
 
     #[test]
     fn names_ok() {
-        assert_eq!(<u8 as Type<Input>>::NAME, "U8");
+        assert_eq!(<u8 as Type<Kind::Input>>::NAME, "U8");
     }
 }
