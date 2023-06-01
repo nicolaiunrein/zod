@@ -1,0 +1,30 @@
+## Progress 
+- [x] Implement basic codegen with generics
+- [x] ~~Disallow trait bounds on structs and enums~~ __Support__ trait bounds on structs and enums
+- [ ] create namespace macro
+- [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
+  - [x] tag
+    - [x] internally
+    - [x] externally
+    - [x] adjacently
+    - [x] untagged
+  - [ ] rename
+  - [ ] rename-all
+  - [ ] skip
+  - [ ] skip_deserializing
+  - [ ] default
+    - [ ] Restrict non-default fields in tuple structs to only come before the first default field
+  - [ ] transparent structs
+  - [ ] flatten
+- [ ] support tuple style enums with inner objects
+  - [ ] add a associated type `type Value: Into<ZodType>;` on [`Type`]
+  - [ ] make value return `String`
+- [ ] Implement RPC part
+- [ ] codegen options (eg. type prefix/suffix)
+- [ ] write detailed intro
+- [ ] write rust-docs
+- [ ] add integration tests frontend test framework
+- [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
+- [ ] consider camelCasing method names
+- [ ] Restructure workspace. Remove old code etc.
+- [ ] Fix `typed_str` dependency resolution.

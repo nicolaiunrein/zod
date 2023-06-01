@@ -44,36 +44,9 @@
 //!     }
 //! }
 //! ```
-//! ## TODO
-//! - [x] Implement basic codegen with generics
-//! - [x] ~~Disallow trait bounds on structs and enums~~ __Support__ trait bounds on structs and
-//! enums
-//! - [ ] support tuple style enums with inner objects
-//! - [ ] Implement RPC part
-//! - [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
 //!
-//!    - [ ] rename
-//!    - [ ] rename-all
-//!    - [x] tag
-//!         - [x] internally
-//!         - [x] externally
-//!         - [x] adjacently
-//!         - [x] untagged
-//!    - [ ] skip
-//!    - [ ] skip_deserializing
-//!    - [ ] default
-//!    - [ ] transparent structs
-//!    - [ ] flatten
-//!
-//! - [ ] Restrict non-default fields in tuple structs to only come before the first default field
-//! - [ ] create namespace macro
-//! - [ ] codegen options (eg. schema prefix/suffix, type prefix/suffix)
-//! - [ ] write detailed intro
-//! - [ ] write rust-docs
-//! - [ ] add integration tests with jest
-//! - [ ] consider making Result/Option "smart" classes with methods like `unwrap`, `map`, `is_ok`, `is_none` etc.
-//! - [ ] add camelCasing for method names
-//!
+#![doc = include_str!("../../progress.md")]
+
 mod build_ins;
 mod export;
 mod formatter;
@@ -108,6 +81,76 @@ pub mod prelude {
 }
 
 pub use typed_str;
+
+/// # Example of a manual implementation. The derive macros produce roughly the same code.
+/// ```
+#[doc = include_str!("../derive/tests/manual_impl.rs")]
+/// ```
+pub trait Type<Io>
+where
+    Io: Clone,
+{
+    type Ns: Namespace;
+    const NAME: &'static str;
+    const INLINE: bool;
+
+    /// Generate the representation of this type in the context of typescript/zod.
+    fn value() -> ZodType<Io>;
+
+    /// Recursively collect the exports of nested types
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>);
+
+    /// Return generics of the implementing type
+    fn args() -> Vec<GenericArgument<Io>>;
+}
+
+/// Trait to prevent incorret implementation of the Type trait.
+pub trait TypeExt<Io>: Type<Io>
+where
+    Io: Clone,
+{
+    fn inline() -> ZodType<Io> {
+        if let Some(export) = Self::export() {
+            Reference {
+                name: export.name,
+                ns: export.ns,
+                args: Self::args()
+                    .iter()
+                    .map(|arg| arg.inlined().clone())
+                    .collect(),
+                generic_replace: None,
+                _phantom: Default::default(),
+            }
+            .into()
+        } else {
+            Self::value()
+        }
+    }
+
+    fn export() -> Option<Export<Io>> {
+        if Self::INLINE {
+            None
+        } else {
+            Some(Export {
+                name: String::from(Self::NAME),
+                ns: String::from(Self::Ns::NAME),
+                args: Self::args()
+                    .iter()
+                    .map(|arg| arg.name())
+                    .collect::<Vec<_>>(),
+
+                value: Self::value(),
+            })
+        }
+    }
+}
+
+impl<Io, T> TypeExt<Io> for T
+where
+    T: Type<Io>,
+    Io: Clone,
+{
+}
 
 /// Enum like module of marker types. Think of the module in terms of an enum where the variants
 /// are different types.
@@ -194,76 +237,6 @@ impl<Io> DependencyVisitor<Io> {
             self.exports.insert(export);
         }
     }
-}
-
-/// # Example of a manual implementation. The derive macros produce roughly the same code.
-/// ```
-#[doc = include_str!("../derive/tests/manual_impl.rs")]
-/// ```
-pub trait Type<Io>
-where
-    Io: Clone,
-{
-    type Ns: Namespace;
-    const NAME: &'static str;
-    const INLINE: bool;
-
-    /// Generate the representation of this type in the context of typescript/zod.
-    fn value() -> ZodType<Io>;
-
-    /// Recursively collect the exports of nested types
-    fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>);
-
-    /// Return generics of the implementing type
-    fn args() -> Vec<GenericArgument<Io>>;
-}
-
-/// Trait to prevent incorret implementation of the Type trait.
-pub trait TypeExt<Io>: Type<Io>
-where
-    Io: Clone,
-{
-    fn inline() -> ZodType<Io> {
-        if let Some(export) = Self::export() {
-            Reference {
-                name: export.name,
-                ns: export.ns,
-                args: Self::args()
-                    .iter()
-                    .map(|arg| arg.inlined().clone())
-                    .collect(),
-                generic_replace: None,
-                _phantom: Default::default(),
-            }
-            .into()
-        } else {
-            Self::value()
-        }
-    }
-
-    fn export() -> Option<Export<Io>> {
-        if Self::INLINE {
-            None
-        } else {
-            Some(Export {
-                name: String::from(Self::NAME),
-                ns: String::from(Self::Ns::NAME),
-                args: Self::args()
-                    .iter()
-                    .map(|arg| arg.name())
-                    .collect::<Vec<_>>(),
-
-                value: Self::value(),
-            })
-        }
-    }
-}
-
-impl<Io, T> TypeExt<Io> for T
-where
-    T: Type<Io>,
-    Io: Clone,
-{
 }
 
 /// A namespace to group generates types
