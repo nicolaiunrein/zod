@@ -1,13 +1,31 @@
-use super::fields::*;
+use super::generics::needs_inline;
 use super::Derive;
+use super::{fields::*, generics::replace_generics};
 use crate::utils::zod_core;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
 use syn::Fields;
 
 pub(super) struct StructImpl {
-    pub(crate) fields: Fields,
-    pub(crate) derive: Derive,
+    pub inline: bool,
+    fields: Fields,
+    derive: Derive,
+}
+
+impl StructImpl {
+    pub fn new(derive: Derive, mut fields: syn::Fields, generics: &syn::Generics) -> Self {
+        let inline = fields.iter().any(|f| needs_inline(&f.ty, &generics));
+
+        for f in fields.iter_mut() {
+            replace_generics(&mut f.ty, &generics);
+        }
+
+        Self {
+            derive,
+            fields,
+            inline,
+        }
+    }
 }
 
 impl ToTokens for StructImpl {

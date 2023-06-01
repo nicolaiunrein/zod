@@ -12,67 +12,6 @@ use super::{
     ZodUnion,
 };
 
-#[derive(Eq, Debug, Clone, Hash)]
-pub enum ZodTypeInner<Io> {
-    String(ZodString),
-    Number(ZodNumber),
-    Object(ZodObject<Io>),
-    Reference(Reference<Io>),
-    Alias(Alias),
-    Generic(String),
-    Literal(ZodLiteral),
-    Union(ZodUnion<Io>),
-    DiscriminatedUnion(ZodDiscriminatedUnion<Io>),
-    Tuple(ZodTuple<Io>),
-    Bool(ZodBool),
-}
-
-impl<Io> Display for ZodFormatter<'_, ZodTypeInner<Io>>
-where
-    Io: IoKind,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Alias(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::DiscriminatedUnion(inner) => {
-                std::fmt::Display::fmt(&ZodFormatter(inner), f)
-            }
-            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
-            ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
-        }
-    }
-}
-
-impl<Io> Display for TsFormatter<'_, ZodTypeInner<Io>>
-where
-    Io: IoKind,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Alias(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::DiscriminatedUnion(inner) => {
-                std::fmt::Display::fmt(&TsFormatter(inner), f)
-            }
-            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
-            ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
-        }
-    }
-}
-
 #[derive(TypedBuilder, Eq, Debug, Clone, Hash)]
 pub struct ZodType<Io> {
     #[builder(setter(strip_bool))]
@@ -155,6 +94,67 @@ crate::make_eq!(ZodType {
     custom_suffix,
     inner
 });
+
+#[derive(Eq, Debug, Clone, Hash)]
+pub enum ZodTypeInner<Io> {
+    String(ZodString),
+    Number(ZodNumber),
+    Object(ZodObject<Io>),
+    Reference(Reference<Io>),
+    Alias(Alias),
+    Generic(String),
+    Literal(ZodLiteral),
+    Union(ZodUnion<Io>),
+    DiscriminatedUnion(ZodDiscriminatedUnion<Io>),
+    Tuple(ZodTuple<Io>),
+    Bool(ZodBool),
+}
+
+impl<Io> Display for ZodFormatter<'_, ZodTypeInner<Io>>
+where
+    Io: IoKind,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Alias(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::DiscriminatedUnion(inner) => {
+                std::fmt::Display::fmt(&ZodFormatter(inner), f)
+            }
+            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&ZodFormatter(inner), f),
+            ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
+        }
+    }
+}
+
+impl<Io> Display for TsFormatter<'_, ZodTypeInner<Io>>
+where
+    Io: IoKind,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            ZodTypeInner::String(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Number(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Object(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Reference(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Alias(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Literal(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Union(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::DiscriminatedUnion(inner) => {
+                std::fmt::Display::fmt(&TsFormatter(inner), f)
+            }
+            ZodTypeInner::Tuple(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Bool(inner) => std::fmt::Display::fmt(&TsFormatter(inner), f),
+            ZodTypeInner::Generic(inner) => std::fmt::Display::fmt(inner, f),
+        }
+    }
+}
 
 impl From<ZodTypeInner<Kind::Input>> for ZodTypeInner<Kind::EitherIo> {
     fn from(other: ZodTypeInner<Kind::Input>) -> Self {

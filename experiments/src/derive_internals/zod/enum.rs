@@ -1,9 +1,12 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
+use syn::punctuated::Punctuated;
 
 use super::fields::FieldValue;
 use super::fields::ZodNamedFieldImpl;
+use super::generics::needs_inline;
+use super::generics::replace_generics;
 use super::r#struct::StructImpl;
 use super::r#struct::ZodObjectImpl;
 use super::Derive;
@@ -24,12 +27,54 @@ pub enum TagType {
 }
 
 pub(crate) struct EnumImpl {
-    pub(crate) tag: TagType,
-    pub(crate) variants: Vec<syn::Variant>,
-    pub(crate) derive: Derive,
+    pub inline: bool,
+    generics: syn::Generics,
+    tag: TagType,
+    variants: Vec<syn::Variant>,
+    derive: Derive,
 }
 
 impl EnumImpl {
+    pub fn new(
+        derive: Derive,
+        variants: Punctuated<syn::Variant, syn::Token![,]>,
+        generics: &syn::Generics,
+        tag: TagType,
+    ) -> Self {
+        let inline = variants
+            .iter()
+            .any(|v| v.fields.iter().any(|f| needs_inline(&f.ty, &generics)));
+
+        if inline {
+            let variants = variants
+                .into_iter()
+                .map(|mut v| {
+                    for f in v.fields.iter_mut() {
+                        replace_generics(&mut f.ty, &generics);
+                    }
+                    v
+                })
+                .collect::<Vec<_>>();
+
+            EnumImpl {
+                generics: generics.clone(),
+                tag,
+                derive,
+                variants,
+                inline,
+            }
+        } else {
+            let variants = variants.into_iter().collect::<Vec<_>>();
+            EnumImpl {
+                generics: generics.clone(),
+                inline,
+                tag,
+                derive,
+                variants,
+            }
+        }
+    }
+    
     fn variants(&self) -> Vec<TokenStream> {
         let derive = self.derive;
         self.variants
@@ -49,10 +94,7 @@ impl EnumImpl {
                             quote!(#zod_core::z::ZodLiteral::String(#name).into())
                         }
                         _ => {
-                            let value = StructImpl {
-                                fields: orig.fields.clone(),
-                                derive,
-                            };
+                            let value = StructImpl::new(derive, orig.fields.clone(), &self.generics);
                             quote! {
                                 #zod_core::z::ZodObject {
                                     fields: ::std::vec![
@@ -125,10 +167,7 @@ impl EnumImpl {
                             }
                         }
                         _ => {
-                            let value = StructImpl {
-                                fields: orig.fields.clone(),
-                                derive,
-                            };
+                            let value = StructImpl::new(derive, orig.fields.clone(), &self.generics);
                             quote! {
                                 #zod_core::z::ZodObject {
                                     fields: ::std::vec![
@@ -153,10 +192,7 @@ impl EnumImpl {
                                 quote!(#zod_core::z::ZodLiteral::String(#name).into())
                             }
                             _ => {
-                                let value = StructImpl {
-                                    fields: orig.fields.clone(),
-                                    derive
-                                };
+                                let value = StructImpl::new(derive, orig.fields.clone(), &self.generics); 
                                 quote!(#value.into())
                             }
                         }
