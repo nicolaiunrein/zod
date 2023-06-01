@@ -59,7 +59,10 @@ impl Attrs {
         Self {
             namespace: zod.namespace,
             custom_suffix: zod.custom_suffix,
-            name: serde.name().serialize_name(),
+            name: match derive {
+                Derive::Input => serde.name().deserialize_name(),
+                Derive::Output => serde.name().serialize_name(),
+            },
         }
     }
 }
@@ -169,7 +172,7 @@ pub fn expand(derive: Derive, input: TokenStream2) -> TokenStream2 {
     };
 
     let ns = attrs.namespace;
-    let name = ident.to_string();
+    let name = attrs.name;
 
     let arg_idents = generics
         .params
@@ -252,6 +255,8 @@ pub fn expand(derive: Derive, input: TokenStream2) -> TokenStream2 {
         }
 
         impl #ns {
+            #[allow(dead_code)]
+            #[allow(non_upper_case_globals)]
             const #unique_ident: () = {};
         }
     }
