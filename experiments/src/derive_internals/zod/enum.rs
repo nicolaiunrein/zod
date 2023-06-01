@@ -2,10 +2,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
 
-use crate::derive_internals::fields::FieldValue;
-use crate::derive_internals::fields::ZodNamedFieldImpl;
-use crate::derive_internals::r#struct::StructImpl;
-use crate::derive_internals::r#struct::ZodObjectImpl;
+use super::fields::FieldValue;
+use super::fields::ZodNamedFieldImpl;
+use super::r#struct::StructImpl;
+use super::r#struct::ZodObjectImpl;
+use super::Derive;
 use crate::utils::zod_core;
 
 #[derive(Default, Clone)]
@@ -22,18 +23,15 @@ pub enum TagType {
     Untagged,
 }
 
-pub(crate) struct EnumImpl<Io> {
+pub(crate) struct EnumImpl {
     pub(crate) tag: TagType,
     pub(crate) variants: Vec<syn::Variant>,
-    pub(crate) kind: Io,
+    pub(crate) derive: Derive,
 }
 
-impl<Io> EnumImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl EnumImpl {
     fn variants(&self) -> Vec<TokenStream> {
-        let kind = self.kind;
+        let derive = self.derive;
         self.variants
             .iter()
             .map(|orig| {
@@ -53,7 +51,7 @@ where
                         _ => {
                             let value = StructImpl {
                                 fields: orig.fields.clone(),
-                                kind,
+                                derive,
                             };
                             quote! {
                                 #zod_core::z::ZodObject {
@@ -88,13 +86,13 @@ where
                                 let first = ZodNamedFieldImpl {
                                     name: tag.clone(),
                                     optional: false,
-                                    kind,
+                                    derive,
                                     value: FieldValue::Literal(name, ident.span())
                                 };
                                 let fields = fields.named.iter().map(|f| ZodNamedFieldImpl {
                                         name: f.ident.as_ref().expect("Named field").to_string(),
                                         optional: false,
-                                        kind,
+                                        derive,
                                         value: f.ty.clone().into()
                                     });
                                 let obj = ZodObjectImpl {
@@ -129,7 +127,7 @@ where
                         _ => {
                             let value = StructImpl {
                                 fields: orig.fields.clone(),
-                                kind,
+                                derive,
                             };
                             quote! {
                                 #zod_core::z::ZodObject {
@@ -157,7 +155,7 @@ where
                             _ => {
                                 let value = StructImpl {
                                     fields: orig.fields.clone(),
-                                    kind,
+                                    derive
                                 };
                                 quote!(#value.into())
                             }
@@ -169,10 +167,7 @@ where
     }
 }
 
-impl<Io> ToTokens for EnumImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl ToTokens for EnumImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variants = self.variants();
         let out = match &self.tag {
@@ -198,7 +193,7 @@ where
 }
 #[cfg(test)]
 mod test {
-    use crate::{test_utils::TokenStreamExt, Kind};
+    use crate::test_utils::TokenStreamExt;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -206,9 +201,9 @@ mod test {
 
     #[test]
     fn externally_tagged_ok() {
-        let kind = Kind::Input;
+        let derive = Derive::Input;
 
-        let tagged = |name: &'static str, inner: StructImpl<Kind::Input>| {
+        let tagged = |name: &'static str, inner: StructImpl| {
             quote! {
                 #zod_core::z::ZodObject {
                     fields: ::std::vec![#zod_core::z::ZodNamedField {
@@ -226,21 +221,21 @@ mod test {
                 "Tuple1",
                 StructImpl {
                     fields: syn::Fields::Unnamed(parse_quote!((String))),
-                    kind,
+                    derive,
                 },
             ),
             tagged(
                 "Tuple2",
                 StructImpl {
                     fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-                    kind,
+                    derive,
                 },
             ),
             tagged(
                 "Struct1",
                 StructImpl {
                     fields: syn::Fields::Named(parse_quote!({ inner: String })),
-                    kind,
+                    derive,
                 },
             ),
             tagged(
@@ -249,7 +244,7 @@ mod test {
                     fields: syn::Fields::Named(
                         parse_quote!({ inner_string: String, inner_u8: u8 }),
                     ),
-                    kind,
+                    derive,
                 },
             ),
         ];
@@ -266,7 +261,7 @@ mod test {
                     inner_u8: u8
                 }),
             ],
-            kind,
+            derive,
         };
 
         let expected = quote! {
@@ -283,7 +278,7 @@ mod test {
 
     #[test]
     fn adjacently_tagged_ok() {
-        let kind = Kind::Input;
+        let derive = Derive::Input;
 
         let tag_label = "my_tag";
         let content_label = "my_content";
@@ -293,7 +288,7 @@ mod test {
             content: String::from(content_label),
         };
 
-        let tagged = |name: &'static str, inner: StructImpl<Kind::Input>| {
+        let tagged = |name: &'static str, inner: StructImpl| {
             quote! {
                 #zod_core::z::ZodObject {
                     fields: ::std::vec![#zod_core::z::ZodNamedField {
@@ -325,21 +320,21 @@ mod test {
                 "Tuple1",
                 StructImpl {
                     fields: syn::Fields::Unnamed(parse_quote!((String))),
-                    kind,
+                    derive,
                 },
             ),
             tagged(
                 "Tuple2",
                 StructImpl {
                     fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-                    kind,
+                    derive,
                 },
             ),
             tagged(
                 "Struct1",
                 StructImpl {
                     fields: syn::Fields::Named(parse_quote!({ inner: String })),
-                    kind,
+                    derive,
                 },
             ),
             tagged(
@@ -348,7 +343,7 @@ mod test {
                     fields: syn::Fields::Named(
                         parse_quote!({ inner_string: String, inner_u8: u8 }),
                     ),
-                    kind,
+                    derive,
                 },
             ),
         ];
@@ -365,7 +360,7 @@ mod test {
                     inner_u8: u8
                 }),
             ],
-            kind,
+            derive,
         };
 
         let expected = quote! {
@@ -383,7 +378,7 @@ mod test {
 
     #[test]
     fn internally_tagged_ok() {
-        let kind = Kind::Input;
+        let derive = Derive::Input;
 
         let tag_label = "my_tag";
 
@@ -397,7 +392,7 @@ mod test {
                 let value = FieldValue::from(f.ty.clone());
                 ZodNamedFieldImpl {
                     name,
-                    kind,
+                    derive,
                     optional: false,
                     value,
                 }
@@ -444,7 +439,7 @@ mod test {
                     inner_u8: u8
                 }),
             ],
-            kind,
+            derive,
         };
 
         let expected = quote! {

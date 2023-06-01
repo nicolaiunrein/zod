@@ -1,7 +1,7 @@
 ## Progress 
 - [x] Implement basic codegen with generics
 - [x] ~~Disallow trait bounds on structs and enums~~ __Support__ trait bounds on structs and enums
-- [ ] create namespace macro
+- [x] create namespace macro
 - [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
   - [x] tag
     - [x] internally
@@ -16,6 +16,7 @@
     - [ ] Restrict non-default fields in tuple structs to only come before the first default field
   - [ ] transparent structs
   - [ ] flatten
+- [ ] add support for docs
 - [ ] support tuple style enums with inner objects
   - [ ] add a associated type `type Value: Into<ZodType>;` on [`Type`]
   - [ ] make value return `String`

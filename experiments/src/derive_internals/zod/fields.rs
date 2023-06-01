@@ -1,3 +1,4 @@
+use super::Derive;
 use crate::utils::zod_core;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote_spanned, ToTokens};
@@ -16,28 +17,25 @@ impl From<syn::Type> for FieldValue {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct ZodNamedFieldImpl<Io> {
+pub(crate) struct ZodNamedFieldImpl {
     pub name: String,
     pub optional: bool,
-    pub kind: Io,
+    pub derive: Derive,
     pub value: FieldValue,
 }
 
-impl<Io> ToTokens for ZodNamedFieldImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl ToTokens for ZodNamedFieldImpl {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let name = &self.name;
         let optional = &self.optional;
-        let kind = self.kind;
+        let derive = self.derive;
         let (qualified_value, span) = match self.value {
             FieldValue::Literal(ref value, span) => (
                 quote_spanned!(span => #zod_core::z::ZodLiteral::String(#value).into()),
                 span,
             ),
             FieldValue::Type(ref ty) => (
-                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#kind>>::inline().into()),
+                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#derive>>::inline().into()),
                 ty.span(),
             ),
         };
@@ -54,21 +52,18 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct ZodUnnamedFieldImpl<Io> {
-    pub kind: Io,
+pub(super) struct ZodUnnamedFieldImpl {
+    pub derive: Derive,
     pub optional: bool,
     pub ty: syn::Type,
 }
 
-impl<Io> ToTokens for ZodUnnamedFieldImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl ToTokens for ZodUnnamedFieldImpl {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let optional = &self.optional;
         let ty = &self.ty;
-        let kind = self.kind;
-        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#kind>>);
+        let derive = self.derive;
+        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#derive>>);
 
         tokens.extend(quote_spanned! {
             ty.span() =>
@@ -82,7 +77,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{test_utils::TokenStreamExt, Kind};
+    use crate::test_utils::TokenStreamExt;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -91,10 +86,10 @@ mod test {
 
     #[test]
     fn expand_named_field_ok() {
-        let kind = Kind::Input;
+        let derive = Derive::Input;
         let input = ZodNamedFieldImpl {
             name: String::from("hello"),
-            kind,
+            derive,
             optional: false,
             value: FieldValue::Type(parse_quote!(String)),
         }
@@ -104,7 +99,7 @@ mod test {
             #zod_core::z::ZodNamedField {
                 name: "hello",
                 optional: false,
-                value: <String as #zod_core::TypeExt<#kind>>::inline().into()
+                value: <String as #zod_core::TypeExt<#derive>>::inline().into()
             }
         };
 

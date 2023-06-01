@@ -1,11 +1,13 @@
+use zod_derive_experiments::Namespace;
 use zod_derive_experiments::Zod;
 use zod_derive_experiments::ZodInputOnly;
 use zod_derive_experiments::ZodOutputOnly;
 
+#[derive(Namespace)]
 struct Ns;
-impl zod_core::Namespace for Ns {
-    const NAME: &'static str = "Custom_Ns";
-}
+// impl zod_core::Namespace for Ns {
+//     const NAME: &'static str = "Custom_Ns";
+// }
 
 #[derive(Zod)]
 #[zod(namespace = "Ns")]

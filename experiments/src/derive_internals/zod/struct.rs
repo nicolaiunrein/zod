@@ -1,20 +1,18 @@
 use super::fields::*;
+use super::Derive;
 use crate::utils::zod_core;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
 use syn::Fields;
 
-pub(super) struct StructImpl<Io> {
+pub(super) struct StructImpl {
     pub(crate) fields: Fields,
-    pub(crate) kind: Io,
+    pub(crate) derive: Derive,
 }
 
-impl<Io> ToTokens for StructImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl ToTokens for StructImpl {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let kind = self.kind;
+        let derive = self.derive;
         let inner = match &self.fields {
             syn::Fields::Named(fields) => ZodObjectImpl {
                 fields: fields
@@ -26,7 +24,7 @@ where
                         ZodNamedFieldImpl {
                             name,
                             optional: false, // TODO
-                            kind,
+                            derive,
                             value: ty.into(),
                         }
                     })
@@ -39,7 +37,7 @@ where
                     .iter()
                     .map(|f| ZodUnnamedFieldImpl {
                         optional: false, // TODO
-                        kind,
+                        derive,
                         ty: f.ty.clone(),
                     })
                     .collect(),
@@ -52,14 +50,11 @@ where
     }
 }
 
-pub(crate) struct ZodObjectImpl<Io> {
-    pub(crate) fields: Vec<ZodNamedFieldImpl<Io>>,
+pub(crate) struct ZodObjectImpl {
+    pub(crate) fields: Vec<ZodNamedFieldImpl>,
 }
 
-impl<Io> ToTokens for ZodObjectImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl ToTokens for ZodObjectImpl {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let fields = &self.fields;
         tokens.extend(quote! {
@@ -70,14 +65,11 @@ where
     }
 }
 
-struct ZodTupleImpl<Io> {
-    fields: Vec<ZodUnnamedFieldImpl<Io>>,
+struct ZodTupleImpl {
+    fields: Vec<ZodUnnamedFieldImpl>,
 }
 
-impl<Io> ToTokens for ZodTupleImpl<Io>
-where
-    Io: ToTokens + Copy,
-{
+impl ToTokens for ZodTupleImpl {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let fields = &self.fields;
         tokens.extend(quote! {
@@ -90,34 +82,34 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{test_utils::TokenStreamExt, Kind};
-
     use super::*;
+
+    use crate::test_utils::TokenStreamExt;
     use pretty_assertions::assert_eq;
     use syn::parse_quote;
 
     #[test]
     fn named_struct_ok() {
-        let kind = Kind::Input;
+        let derive = Derive::Input;
         let input = StructImpl {
             fields: syn::Fields::Named(parse_quote!({
                 inner_string: String,
                 inner_u8: u8,
             })),
-            kind,
+            derive,
         };
 
         let zod_fields = vec![
             ZodNamedFieldImpl {
                 name: String::from("inner_string"),
                 optional: false,
-                kind,
+                derive,
                 value: FieldValue::Type(parse_quote!(String)),
             },
             ZodNamedFieldImpl {
                 name: String::from("inner_u8"),
                 optional: false,
-                kind,
+                derive,
                 value: FieldValue::Type(parse_quote!(u8)),
             },
         ];
@@ -135,22 +127,22 @@ mod test {
     }
     #[test]
     fn tuple_struct_ok() {
-        let kind = Kind::Input;
+        let derive = Derive::Input;
         let input = StructImpl {
             fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-            kind,
+            derive,
         };
 
         let zod_fields = vec![
             ZodUnnamedFieldImpl {
                 //todo
                 optional: false,
-                kind,
+                derive,
                 ty: parse_quote!(String),
             },
             ZodUnnamedFieldImpl {
                 optional: false,
-                kind,
+                derive,
                 ty: parse_quote!(u8),
             },
         ];
@@ -173,13 +165,13 @@ mod test {
             ZodNamedFieldImpl {
                 name: String::from("inner_u8"),
                 optional: true,
-                kind: Kind::Input,
+                derive: Derive::Input,
                 value: FieldValue::Type(parse_quote!(u8)),
             },
             ZodNamedFieldImpl {
                 name: String::from("inner_string"),
                 optional: true,
-                kind: Kind::Input,
+                derive: Derive::Input,
                 value: FieldValue::Type(parse_quote!(String)),
             },
         ];
