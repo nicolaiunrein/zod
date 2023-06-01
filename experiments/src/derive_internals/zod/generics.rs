@@ -1,4 +1,5 @@
 use crate::utils::zod_core;
+use quote::quote;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -7,6 +8,48 @@ use syn::parse_quote;
 use syn::visit;
 use syn::visit::Visit;
 use syn::visit_mut::{self, VisitMut};
+
+use super::Derive;
+
+pub(super) trait GenericsExt {
+    fn idents(&self) -> Vec<&syn::Ident>;
+    fn update_where_clause(&mut self, derive: Derive);
+}
+
+impl GenericsExt for syn::Generics {
+    fn idents(&self) -> Vec<&syn::Ident> {
+        self.params
+            .iter()
+            .map(|p| match p {
+                syn::GenericParam::Lifetime(_) => todo!(),
+                syn::GenericParam::Type(param) => &param.ident,
+                syn::GenericParam::Const(_) => todo!(),
+            })
+            .collect()
+    }
+
+    fn update_where_clause(&mut self, derive: Derive) {
+        if let Some(ref mut clause) = self.where_clause {
+            for p in clause.predicates.iter_mut() {
+                match p {
+                    syn::WherePredicate::Type(t) => {
+                        t.bounds.push(syn::TypeParamBound::Trait(
+                            parse_quote!(#zod_core::Type<#derive>),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        } else {
+            let idents = self.idents();
+            let predicates = idents
+                .iter()
+                .map(|ident| quote!(#ident: #zod_core::Type<#derive>));
+
+            self.where_clause = Some(parse_quote!(where #(#predicates),*))
+        };
+    }
+}
 
 struct GenercicsReplace {
     generics: HashSet<syn::Ident>,

@@ -1,18 +1,16 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
-use syn::punctuated::Punctuated;
+use serde_derive_internals::attr::TagType as SerdeTagType;
 
 use super::fields::FieldValue;
 use super::fields::ZodNamedFieldImpl;
-use super::generics::needs_inline;
-use super::generics::replace_generics;
 use super::r#struct::StructImpl;
 use super::r#struct::ZodObjectImpl;
 use super::Derive;
 use crate::utils::zod_core;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub enum TagType {
     #[default]
     Externally,
@@ -26,9 +24,24 @@ pub enum TagType {
     Untagged,
 }
 
+impl From<&SerdeTagType> for TagType {
+    fn from(value: &SerdeTagType) -> Self {
+        match value {
+            SerdeTagType::External => TagType::Externally,
+            SerdeTagType::Internal { tag } => TagType::Internally {
+                tag: tag.to_owned(),
+            },
+            SerdeTagType::Adjacent { tag, content } => TagType::Adjacently {
+                tag: tag.to_owned(),
+                content: content.to_owned(),
+            },
+            SerdeTagType::None => TagType::Untagged,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub(crate) struct EnumImpl {
-    pub inline: bool,
-    generics: syn::Generics,
     tag: TagType,
     variants: Vec<syn::Variant>,
     derive: Derive,
@@ -37,41 +50,11 @@ pub(crate) struct EnumImpl {
 impl EnumImpl {
     pub fn new(
         derive: Derive,
-        variants: Punctuated<syn::Variant, syn::Token![,]>,
-        generics: &syn::Generics,
         tag: TagType,
+        variants: Vec<syn::Variant>,
     ) -> Self {
-        let inline = variants
-            .iter()
-            .any(|v| v.fields.iter().any(|f| needs_inline(&f.ty, &generics)));
-
-        if inline {
-            let variants = variants
-                .into_iter()
-                .map(|mut v| {
-                    for f in v.fields.iter_mut() {
-                        replace_generics(&mut f.ty, &generics);
-                    }
-                    v
-                })
-                .collect::<Vec<_>>();
-
-            EnumImpl {
-                generics: generics.clone(),
-                tag,
-                derive,
-                variants,
-                inline,
-            }
-        } else {
-            let variants = variants.into_iter().collect::<Vec<_>>();
-            EnumImpl {
-                generics: generics.clone(),
-                inline,
-                tag,
-                derive,
-                variants,
-            }
+        Self {
+            derive,variants, tag
         }
     }
     
@@ -94,7 +77,7 @@ impl EnumImpl {
                             quote!(#zod_core::z::ZodLiteral::String(#name).into())
                         }
                         _ => {
-                            let value = StructImpl::new(derive, orig.fields.clone(), &self.generics);
+                            let value = StructImpl::new(derive, orig.fields.clone());
                             quote! {
                                 #zod_core::z::ZodObject {
                                     fields: ::std::vec![
@@ -167,7 +150,7 @@ impl EnumImpl {
                             }
                         }
                         _ => {
-                            let value = StructImpl::new(derive, orig.fields.clone(), &self.generics);
+                            let value = StructImpl::new(derive, orig.fields.clone());
                             quote! {
                                 #zod_core::z::ZodObject {
                                     fields: ::std::vec![
@@ -192,7 +175,7 @@ impl EnumImpl {
                                 quote!(#zod_core::z::ZodLiteral::String(#name).into())
                             }
                             _ => {
-                                let value = StructImpl::new(derive, orig.fields.clone(), &self.generics); 
+                                let value = StructImpl::new(derive, orig.fields.clone()); 
                                 quote!(#value.into())
                             }
                         }

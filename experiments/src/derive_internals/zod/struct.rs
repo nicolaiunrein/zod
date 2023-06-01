@@ -1,35 +1,24 @@
-use super::generics::needs_inline;
+use super::fields::*;
 use super::Derive;
-use super::{fields::*, generics::replace_generics};
 use crate::utils::zod_core;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::Fields;
 
+#[derive(Debug, PartialEq)]
 pub(super) struct StructImpl {
-    pub inline: bool,
-    fields: Fields,
-    derive: Derive,
+    pub fields: Fields,
+    pub derive: Derive,
 }
 
 impl StructImpl {
-    pub fn new(derive: Derive, mut fields: syn::Fields, generics: &syn::Generics) -> Self {
-        let inline = fields.iter().any(|f| needs_inline(&f.ty, &generics));
-
-        for f in fields.iter_mut() {
-            replace_generics(&mut f.ty, &generics);
-        }
-
-        Self {
-            derive,
-            fields,
-            inline,
-        }
+    pub fn new(derive: Derive, fields: syn::Fields) -> Self {
+        Self { derive, fields }
     }
 }
 
 impl ToTokens for StructImpl {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let derive = self.derive;
         let inner = match &self.fields {
             syn::Fields::Named(fields) => ZodObjectImpl {
@@ -73,7 +62,7 @@ pub(crate) struct ZodObjectImpl {
 }
 
 impl ToTokens for ZodObjectImpl {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let fields = &self.fields;
         tokens.extend(quote! {
             #zod_core::z::ZodObject {
@@ -88,7 +77,7 @@ struct ZodTupleImpl {
 }
 
 impl ToTokens for ZodTupleImpl {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let fields = &self.fields;
         tokens.extend(quote! {
             #zod_core::z::ZodTuple {
