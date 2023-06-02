@@ -1,64 +1,82 @@
-use super::fields::*;
-use super::Derive;
+use super::{fields::*, Derive};
+// use super::Derive;
 use crate::utils::zod_core;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::Fields;
+// use syn::Fields;
 
-#[derive(Debug, PartialEq)]
-pub(super) struct StructImpl {
-    pub fields: Fields,
-    pub derive: Derive,
-}
+// #[derive(Debug, PartialEq)]
+// pub(super) struct StructImpl {
+//     pub fields: Fields,
+//     pub derive: Derive,
+// }
+//
+// impl StructImpl {
+//     pub fn new(derive: Derive, fields: syn::Fields) -> Self {
+//         Self { derive, fields }
+//     }
+// }
+//
+// impl ToTokens for StructImpl {
+//     fn to_tokens(&self, tokens: &mut TokenStream) {
+//         let derive = self.derive;
+//         let inner = match &self.fields {
+//             syn::Fields::Named(fields) => ZodObjectImpl {
+//                 fields: fields
+//                     .named
+//                     .iter()
+//                     .map(|f| {
+//                         let name = f.ident.as_ref().expect("named field").to_string();
+//                         let ty = f.ty.clone();
+//                         ZodNamedFieldImpl {
+//                             name,
+//                             optional: false, // TODO
+//                             derive,
+//                             value: ty.into(),
+//                         }
+//                     })
+//                     .collect(),
+//             }
+//             .to_token_stream(),
+//             syn::Fields::Unnamed(fields) => ZodTupleImpl {
+//                 fields: fields
+//                     .unnamed
+//                     .iter()
+//                     .map(|f| ZodUnnamedFieldImpl {
+//                         optional: false, // TODO
+//                         derive,
+//                         ty: f.ty.clone(),
+//                     })
+//                     .collect(),
+//             }
+//             .to_token_stream(),
+//             syn::Fields::Unit => todo!(),
+//         };
+//
+//         tokens.extend(inner)
+//     }
+// }
 
-impl StructImpl {
-    pub fn new(derive: Derive, fields: syn::Fields) -> Self {
-        Self { derive, fields }
-    }
-}
-
-impl ToTokens for StructImpl {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let derive = self.derive;
-        let inner = match &self.fields {
-            syn::Fields::Named(fields) => ZodObjectImpl {
-                fields: fields
-                    .named
-                    .iter()
-                    .map(|f| {
-                        let name = f.ident.as_ref().expect("named field").to_string();
-                        let ty = f.ty.clone();
-                        ZodNamedFieldImpl {
-                            name,
-                            optional: false, // TODO
-                            derive,
-                            value: ty.into(),
-                        }
-                    })
-                    .collect(),
-            }
-            .to_token_stream(),
-            syn::Fields::Unnamed(fields) => ZodTupleImpl {
-                fields: fields
-                    .unnamed
-                    .iter()
-                    .map(|f| ZodUnnamedFieldImpl {
-                        optional: false, // TODO
-                        derive,
-                        ty: f.ty.clone(),
-                    })
-                    .collect(),
-            }
-            .to_token_stream(),
-            syn::Fields::Unit => todo!(),
-        };
-
-        tokens.extend(inner)
-    }
-}
-
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ZodObjectImpl {
     pub(crate) fields: Vec<ZodNamedFieldImpl>,
+}
+
+impl ZodObjectImpl {
+    pub fn new(derive: Derive, fields: &syn::FieldsNamed) -> Self {
+        Self {
+            fields: fields
+                .named
+                .iter()
+                .map(|f| ZodNamedFieldImpl {
+                    name: f.ident.as_ref().expect("a name").to_string(), // TODO
+                    optional: false,                                     // TODO
+                    derive,
+                    value: FieldValue::Type(f.ty.clone()),
+                })
+                .collect(),
+        }
+    }
 }
 
 impl ToTokens for ZodObjectImpl {
@@ -72,8 +90,25 @@ impl ToTokens for ZodObjectImpl {
     }
 }
 
-struct ZodTupleImpl {
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct ZodTupleImpl {
     fields: Vec<ZodUnnamedFieldImpl>,
+}
+
+impl ZodTupleImpl {
+    pub fn new(derive: Derive, fields: &syn::FieldsUnnamed) -> Self {
+        Self {
+            fields: fields
+                .unnamed
+                .iter()
+                .map(|f| ZodUnnamedFieldImpl {
+                    optional: false, // TODO
+                    derive,
+                    ty: f.ty.clone(),
+                })
+                .collect(),
+        }
+    }
 }
 
 impl ToTokens for ZodTupleImpl {
@@ -98,13 +133,13 @@ mod test {
     #[test]
     fn named_struct_ok() {
         let derive = Derive::Input;
-        let input = StructImpl {
-            fields: syn::Fields::Named(parse_quote!({
+        let input = ZodObjectImpl::new(
+            derive,
+            &parse_quote!({
                 inner_string: String,
                 inner_u8: u8,
-            })),
-            derive,
-        };
+            }),
+        );
 
         let zod_fields = vec![
             ZodNamedFieldImpl {
@@ -135,10 +170,7 @@ mod test {
     #[test]
     fn tuple_struct_ok() {
         let derive = Derive::Input;
-        let input = StructImpl {
-            fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-            derive,
-        };
+        let input = ZodTupleImpl::new(derive, &parse_quote!((String, u8)));
 
         let zod_fields = vec![
             ZodUnnamedFieldImpl {

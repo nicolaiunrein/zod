@@ -49,7 +49,9 @@ mod test {
     use super::*;
     use crate::{
         derive_internals::zod::{
-            custom_suffix::CustomSuffix, r#enum::EnumImpl, r#struct::StructImpl,
+            custom_suffix::CustomSuffix,
+            r#enum::EnumImpl,
+            r#struct::{ZodObjectImpl, ZodTupleImpl},
         },
         test_utils::TokenStreamExt,
     };
@@ -68,9 +70,9 @@ mod test {
             }
         };
 
-        let inner = StructImpl::new(
+        let inner = ZodObjectImpl::new(
             derive,
-            syn::Fields::Named(parse_quote!({ inner_string: String, inner_u8: u8 })),
+            &parse_quote!({ inner_string: String, inner_u8: u8 }),
         );
 
         let custom_suffix = CustomSuffix { inner: None };
@@ -121,10 +123,7 @@ mod test {
 
         let custom_suffix = CustomSuffix { inner: None };
 
-        let inner = StructImpl {
-            fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
-            derive,
-        };
+        let inner = ZodTupleImpl::new(derive, &parse_quote!((String, u8)));
 
         let expected = quote! {
             impl #zod_core::Type<#derive> for Test {

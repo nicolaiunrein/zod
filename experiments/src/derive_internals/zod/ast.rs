@@ -1,7 +1,7 @@
 use super::custom_suffix::CustomSuffix;
 use super::generics::{needs_inline, replace_generics, GenericsExt};
 use super::r#enum::{EnumImpl, TagType};
-use super::r#struct::StructImpl;
+use super::r#struct::{ZodObjectImpl, ZodTupleImpl};
 use super::Derive;
 use super::{attrs::ZodAttrs, custom_suffix};
 use crate::utils::zod_core;
@@ -131,9 +131,10 @@ impl ToTokens for Ast {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(super) enum Data {
-    Struct(bool, StructImpl),
+    Struct(bool, ZodObjectImpl),
+    Tuple(bool, ZodTupleImpl),
     Enum(bool, EnumImpl),
 }
 
@@ -141,6 +142,7 @@ impl ToTokens for Data {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         match self {
             Data::Struct(_, inner) => inner.to_tokens(tokens),
+            Data::Tuple(_, inner) => inner.to_tokens(tokens),
             Data::Enum(_, inner) => inner.to_tokens(tokens),
         }
     }
@@ -161,13 +163,16 @@ impl Data {
                     }
                 }
 
-                Self::Struct(
-                    inline,
-                    StructImpl {
-                        derive,
-                        fields: data.fields,
-                    },
-                )
+                match data.fields {
+                    syn::Fields::Named(fields) => {
+                        Self::Struct(inline, ZodObjectImpl::new(derive, &fields))
+                    }
+                    syn::Fields::Unnamed(fields) => {
+                        Self::Tuple(inline, ZodTupleImpl::new(derive, &fields))
+                    }
+
+                    syn::Fields::Unit => todo!(),
+                }
             }
 
             syn::Data::Enum(data) => {
@@ -201,6 +206,7 @@ impl Data {
     fn inline(&self) -> bool {
         match self {
             Data::Struct(inline, _) => *inline,
+            Data::Tuple(inline, _) => *inline,
             Data::Enum(inline, _) => *inline,
         }
     }
@@ -208,6 +214,8 @@ impl Data {
 
 #[cfg(test)]
 mod test {
+    use crate::derive_internals::zod::fields::{FieldValue, ZodNamedFieldImpl};
+
     use super::*;
     use pretty_assertions::assert_eq;
     use syn::parse_quote;
@@ -226,12 +234,16 @@ mod test {
             data,
             Data::Struct(
                 false,
-                StructImpl::new(
-                    Derive::Input,
-                    syn::Fields::Named(
-                        parse_quote!({inner: Other<#zod_core::typed_str::TypedStr<'T', #zod_core::typed_str::End>>})
-                    )
-                )
+                ZodObjectImpl {
+                    fields: vec![ZodNamedFieldImpl {
+                        name: String::from("inner"),
+                        optional: false,
+                        derive: Derive::Input,
+                        value: FieldValue::Type(
+                            parse_quote!(Other<#zod_core::typed_str::TypedStr<'T', #zod_core::typed_str::End>>),
+                        )
+                    }]
+                }
             )
         )
     }
@@ -250,10 +262,14 @@ mod test {
             data,
             Data::Struct(
                 true,
-                StructImpl::new(
-                    Derive::Input,
-                    syn::Fields::Named(parse_quote!({inner: Other<T>}))
-                )
+                ZodObjectImpl {
+                    fields: vec![ZodNamedFieldImpl {
+                        name: String::from("inner"),
+                        optional: false,
+                        derive: Derive::Input,
+                        value: FieldValue::Type(parse_quote!(Other<T>))
+                    }]
+                }
             )
         )
     }

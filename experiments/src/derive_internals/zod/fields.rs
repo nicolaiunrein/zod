@@ -10,13 +10,27 @@ pub(crate) enum FieldValue {
     Type(syn::Type),
 }
 
+impl PartialEq for FieldValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (FieldValue::Literal(a_value, a_span), FieldValue::Literal(b_value, b_span)) => {
+                a_value == b_value
+                    && a_span.start() == b_span.start()
+                    && a_span.end() == b_span.end()
+            }
+            (FieldValue::Type(a), FieldValue::Type(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
 impl From<syn::Type> for FieldValue {
     fn from(value: syn::Type) -> Self {
         Self::Type(value)
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ZodNamedFieldImpl {
     pub name: String,
     pub optional: bool,

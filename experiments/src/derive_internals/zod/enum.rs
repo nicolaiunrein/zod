@@ -5,9 +5,9 @@ use serde_derive_internals::attr::TagType as SerdeTagType;
 
 use super::fields::FieldValue;
 use super::fields::ZodNamedFieldImpl;
-use super::r#struct::StructImpl;
 use super::r#struct::ZodObjectImpl;
 use super::Derive;
+use crate::derive_internals::zod::r#struct::ZodTupleImpl;
 use crate::utils::zod_core;
 
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -40,7 +40,7 @@ impl From<&SerdeTagType> for TagType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct EnumImpl {
     tag: TagType,
     variants: Vec<syn::Variant>,
@@ -77,7 +77,12 @@ impl EnumImpl {
                             quote!(#zod_core::z::ZodLiteral::String(#name).into())
                         }
                         _ => {
-                            let value = StructImpl::new(derive, orig.fields.clone());
+                            let value = match orig.fields {
+                                syn::Fields::Named(ref named) => ZodObjectImpl::new(derive, named).into_token_stream(),
+                                syn::Fields::Unnamed(ref unnamed) => ZodTupleImpl::new(derive, unnamed).into_token_stream(),
+                                syn::Fields::Unit => todo!(),
+                            };
+                                
                             quote! {
                                 #zod_core::z::ZodObject {
                                     fields: ::std::vec![
@@ -150,7 +155,11 @@ impl EnumImpl {
                             }
                         }
                         _ => {
-                            let value = StructImpl::new(derive, orig.fields.clone());
+                            let value = match orig.fields {
+                                syn::Fields::Named(ref named) => ZodObjectImpl::new(derive, named).into_token_stream(),
+                                syn::Fields::Unnamed(ref unnamed) => ZodTupleImpl::new(derive, unnamed).into_token_stream(),
+                                syn::Fields::Unit => todo!(),
+                            };
                             quote! {
                                 #zod_core::z::ZodObject {
                                     fields: ::std::vec![
@@ -175,7 +184,12 @@ impl EnumImpl {
                                 quote!(#zod_core::z::ZodLiteral::String(#name).into())
                             }
                             _ => {
-                                let value = StructImpl::new(derive, orig.fields.clone()); 
+                                let value = match orig.fields {
+                                    syn::Fields::Named(ref named) => ZodObjectImpl::new(derive, named).into_token_stream(),
+                                    syn::Fields::Unnamed(ref unnamed) => ZodTupleImpl::new(derive, unnamed).into_token_stream(),
+                                    syn::Fields::Unit => todo!(),
+                                };
+
                                 quote!(#value.into())
                             }
                         }
@@ -222,7 +236,7 @@ mod test {
     fn externally_tagged_ok() {
         let derive = Derive::Input;
 
-        let tagged = |name: &'static str, inner: StructImpl| {
+        let tagged = |name: &'static str, inner: TokenStream| {
             quote! {
                 #zod_core::z::ZodObject {
                     fields: ::std::vec![#zod_core::z::ZodNamedField {
@@ -238,33 +252,31 @@ mod test {
             quote!(#zod_core::z::ZodLiteral::String("Unit").into()),
             tagged(
                 "Tuple1",
-                StructImpl {
-                    fields: syn::Fields::Unnamed(parse_quote!((String))),
+                ZodTupleImpl::new(
                     derive,
-                },
+                    &parse_quote!((String))
+                    ).into_token_stream()
             ),
             tagged(
                 "Tuple2",
-                StructImpl {
-                    fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
+                ZodTupleImpl::new(
                     derive,
-                },
+                    &parse_quote!((String, u8))
+                    ).into_token_stream()
             ),
             tagged(
                 "Struct1",
-                StructImpl {
-                    fields: syn::Fields::Named(parse_quote!({ inner: String })),
+                ZodObjectImpl::new(
                     derive,
-                },
+                    &parse_quote!({inner: String})
+                    ).into_token_stream()
             ),
             tagged(
                 "Struct2",
-                StructImpl {
-                    fields: syn::Fields::Named(
-                        parse_quote!({ inner_string: String, inner_u8: u8 }),
-                    ),
+                ZodObjectImpl::new(
                     derive,
-                },
+                    &parse_quote!({inner_string: String, inner_u8: u8})
+                    ).into_token_stream()
             ),
         ];
 
@@ -307,7 +319,7 @@ mod test {
             content: String::from(content_label),
         };
 
-        let tagged = |name: &'static str, inner: StructImpl| {
+        let tagged = |name: &'static str, inner: TokenStream| {
             quote! {
                 #zod_core::z::ZodObject {
                     fields: ::std::vec![#zod_core::z::ZodNamedField {
@@ -335,35 +347,34 @@ mod test {
                     },],
                 }.into()
             },
+            
             tagged(
                 "Tuple1",
-                StructImpl {
-                    fields: syn::Fields::Unnamed(parse_quote!((String))),
+                ZodTupleImpl::new(
                     derive,
-                },
+                    &parse_quote!((String))
+                    ).into_token_stream()
             ),
             tagged(
                 "Tuple2",
-                StructImpl {
-                    fields: syn::Fields::Unnamed(parse_quote!((String, u8))),
+                ZodTupleImpl::new(
                     derive,
-                },
+                    &parse_quote!((String, u8))
+                    ).into_token_stream()
             ),
             tagged(
                 "Struct1",
-                StructImpl {
-                    fields: syn::Fields::Named(parse_quote!({ inner: String })),
+                ZodObjectImpl::new(
                     derive,
-                },
+                    &parse_quote!({inner: String})
+                    ).into_token_stream()
             ),
             tagged(
                 "Struct2",
-                StructImpl {
-                    fields: syn::Fields::Named(
-                        parse_quote!({ inner_string: String, inner_u8: u8 }),
-                    ),
+                ZodObjectImpl::new(
                     derive,
-                },
+                    &parse_quote!({inner_string: String, inner_u8: u8})
+                    ).into_token_stream()
             ),
         ];
 
