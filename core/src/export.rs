@@ -18,6 +18,9 @@ pub struct Export<Io> {
 
     #[builder(setter(into))]
     pub value: ZodType<Io>,
+
+    #[builder(setter(into, strip_option), default)]
+    pub docs: Option<String>,
 }
 
 impl<Io> Display for ZodFormatter<'_, Export<Io>>
@@ -26,6 +29,12 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.args.is_empty() {
+            if let Some(ref docs) = self.docs {
+                f.write_str("\n")?;
+                for line in docs.lines() {
+                    f.write_fmt(format_args!("// {line}\n"))?;
+                }
+            }
             f.write_fmt(format_args!(
                 "export const {name} = {value};",
                 name = self.name,
@@ -37,6 +46,13 @@ where
                 .iter()
                 .map(|name| format!("{name}: {any}", any = ZodFormatter(&z::ZodTypeAny)))
                 .collect::<Vec<_>>();
+
+            if let Some(ref docs) = self.docs {
+                f.write_str("\n")?;
+                for line in docs.lines() {
+                    f.write_fmt(format_args!("// {line}\n"))?;
+                }
+            }
             f.write_fmt(format_args!(
                 "export const {name} = ({args}) => {value};",
                 name = self.name,
@@ -57,6 +73,13 @@ where
         } else {
             ""
         };
+
+        if let Some(ref docs) = self.docs {
+            f.write_str("\n")?;
+            for line in docs.lines() {
+                f.write_fmt(format_args!("// {line}\n"))?;
+            }
+        }
         match self.value.inner {
             ZodTypeInner::Reference(ref inner) => {
                 f.write_fmt(format_args!(
@@ -167,6 +190,7 @@ impl From<Export<Kind::Input>> for Export<Kind::EitherIo> {
     fn from(other: Export<Kind::Input>) -> Self {
         Self {
             ns: other.ns,
+            docs: other.docs,
             name: other.name,
             args: other.args,
             value: other.value.into(),
@@ -178,6 +202,7 @@ impl From<Export<Kind::Output>> for Export<Kind::EitherIo> {
     fn from(other: Export<Kind::Output>) -> Self {
         Self {
             ns: other.ns,
+            docs: other.docs,
             name: other.name,
             args: other.args,
             value: other.value.into(),
@@ -188,6 +213,7 @@ impl From<Export<Kind::Output>> for Export<Kind::EitherIo> {
 crate::make_eq!(Export {
     ns,
     name,
+    docs,
     args,
     value
 });
@@ -250,12 +276,23 @@ impl Display for NsMap {
             } else {
                 f.write_fmt(format_args!("    export namespace {name} {{\n"))?;
                 for export in set.values() {
-                    f.write_str("        ")?;
-                    Display::fmt(&TsFormatter(export), f)?;
-                    f.write_str("\n")?;
-                    f.write_str("        ")?;
-                    Display::fmt(&ZodFormatter(export), f)?;
-                    f.write_str("\n")?;
+                    let ts = TsFormatter(export).to_string();
+                    for line in ts.lines() {
+                        if line.is_empty() {
+                            f.write_str("\n")?;
+                        } else {
+                            f.write_fmt(format_args!("        {}\n", line.trim()))?;
+                        }
+                    }
+
+                    let zod = ZodFormatter(export).to_string();
+                    for line in zod.lines() {
+                        if line.is_empty() {
+                            f.write_str("\n")?;
+                        } else {
+                            f.write_fmt(format_args!("        {}\n", line.trim()))?;
+                        }
+                    }
                 }
 
                 f.write_str("    }\n")?;
@@ -319,7 +356,7 @@ impl NsMap {
 mod test {
     use crate::{
         z::{ZodNamedField, ZodObject, ZodString},
-        TypeExt,
+        Namespace, Reference, TypeExt,
     };
     use pretty_assertions::assert_eq;
 
@@ -387,6 +424,78 @@ mod test {
         assert_eq!(
             TsFormatter(&export).to_string(),
             "export type MyString = string | undefined;"
+        );
+    }
+
+    #[test]
+    fn export_map_ok() {
+        struct Ns;
+
+        impl Namespace for Ns {
+            const NAME: &'static str = "Ns";
+        }
+        struct Ns2;
+        impl Namespace for Ns2 {
+            const NAME: &'static str = "Ns2";
+        }
+        let map = ExportMap::new(
+            [
+                Export::builder()
+                    .name("hello")
+                    .ns(Ns::NAME)
+                    .value(ZodTypeInner::Generic(String::from("MyGeneric")))
+                    .build(),
+                Export::builder()
+                    .name("world")
+                    .docs("My Docs")
+                    .ns(Ns2::NAME)
+                    .value(
+                        ZodObject::builder()
+                            .fields(vec![ZodNamedField::builder()
+                                .name("hello")
+                                .value(Reference::builder().name("hello").ns(Ns::NAME).build())
+                                .build()])
+                            .build(),
+                    )
+                    .build(),
+            ],
+            [Export::builder()
+                .name("hello")
+                .ns(Ns::NAME)
+                .value(ZodTypeInner::Generic(String::from("MyGeneric")))
+                .build()],
+        );
+
+        assert_eq!(
+            map.to_string().trim(),
+            r#"
+export namespace Ns {
+    export namespace input {
+        export type hello = Ns.io.hello;
+        export const hello = Ns.io.hello;
+    }
+    export namespace output {
+        export type hello = Ns.io.hello;
+        export const hello = Ns.io.hello;
+    }
+    export namespace io {
+        export type hello = MyGeneric;
+        export const hello = MyGeneric;
+    }
+}
+export namespace Ns2 {
+    export namespace input {
+
+        // My Docs
+        export interface world { hello: Ns.input.hello }
+
+        // My Docs
+        export const world = z.object({ hello: Ns.input.hello });
+    }
+    export namespace output {}
+    export namespace io {}
+}"#
+            .trim()
         );
     }
 }

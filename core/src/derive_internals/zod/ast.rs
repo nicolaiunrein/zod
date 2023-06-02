@@ -1,4 +1,4 @@
-use super::attrs::{FieldAttrsExt, NameExt};
+use super::attrs::{get_rustdoc, FieldAttrsExt, NameExt};
 use super::custom_suffix::CustomSuffix;
 use super::fields::{FieldValue, ZodNamedFieldImpl, ZodUnnamedFieldImpl};
 use super::generics::{needs_inline, replace_generics, GenericsExt};
@@ -22,6 +22,7 @@ pub(super) struct Ast {
     pub custom_suffix: custom_suffix::CustomSuffix,
     pub name: String,
     pub optional: bool,
+    pub docs: Option<String>,
     // pub transparent: bool,
     // pub type_from: Option<syn::Type>,
     // pub type_try_from: Option<syn::Type>,
@@ -61,6 +62,7 @@ impl Ast {
         Ok(Self {
             derive,
             ident: derive_input.ident.clone(),
+            docs: get_rustdoc(&derive_input.attrs),
             optional: !serde_ast.attrs.default().is_none(),
             data: Data::new(derive, serde_ast),
             generics: derive_input.generics,
@@ -111,6 +113,16 @@ impl ToTokens for Ast {
         let derive = self.derive;
         let optional = self.optional;
 
+        let docs = if let Some(ref docs) = self.docs {
+            quote! {
+                fn docs() -> ::std::option::Option<::std::string::String> {
+                    Some(::std::string::String::from(#docs))
+                }
+            }
+        } else {
+            quote!()
+        };
+
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         tokens.extend(quote! {
@@ -136,6 +148,8 @@ impl ToTokens for Ast {
                 fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#derive>) {
                     // TODO
                 }
+
+                #docs
             }
 
             impl #ns {

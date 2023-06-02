@@ -1,4 +1,5 @@
 use darling::FromDeriveInput;
+use syn::{Expr, Lit, Meta};
 
 use super::Derive;
 
@@ -45,5 +46,33 @@ impl NameExt for serde_derive_internals::attr::Name {
             Derive::Input => self.deserialize_name(),
             Derive::Output => self.serialize_name(),
         }
+    }
+}
+
+pub fn get_rustdoc(attrs: &[syn::Attribute]) -> Option<String> {
+    let mut full_docs = String::new();
+    for attr in attrs {
+        match attr.meta {
+            Meta::NameValue(ref nv) => {
+                if nv.path.is_ident("doc") {
+                    match nv.value {
+                        Expr::Lit(ref lit_expr) => match lit_expr.lit {
+                            Lit::Str(ref s) => {
+                                full_docs.push_str(s.value().trim());
+                                full_docs.push('\n');
+                            }
+                            _ => {}
+                        },
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    if full_docs.is_empty() {
+        None
+    } else {
+        Some(full_docs)
     }
 }

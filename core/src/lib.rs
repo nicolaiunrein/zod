@@ -98,6 +98,11 @@ where
 
     /// Return generics of the implementing type
     fn args() -> Vec<GenericArgument<Io>>;
+
+    /// Return optional docs
+    fn docs() -> Option<String> {
+        None
+    }
 }
 
 /// Trait to prevent incorret implementation of the Type trait.
@@ -130,6 +135,7 @@ where
             Some(Export {
                 name: String::from(Self::NAME),
                 ns: String::from(Self::Ns::NAME),
+                docs: Self::docs(),
                 args: Self::args()
                     .iter()
                     .map(|arg| arg.name())
@@ -441,12 +447,12 @@ mod test {
     }
 
     struct Ns;
-    struct Ns2;
 
     impl Namespace for Ns {
         const NAME: &'static str = "Ns";
     }
 
+    struct Ns2;
     impl Namespace for Ns2 {
         const NAME: &'static str = "Ns2";
     }
@@ -608,64 +614,6 @@ mod test {
         assert_eq!(
             TsFormatter(&<Generic::<Alias> as TypeExt<Kind::Input>>::inline()).to_string(),
             "Ns.input.Generic<Ns.input.Alias>"
-        );
-    }
-
-    #[test]
-    fn export_map_ok() {
-        let map = ExportMap::new(
-            [
-                Export::builder()
-                    .name("hello")
-                    .ns(Ns::NAME)
-                    .value(ZodTypeInner::Generic(String::from("MyGeneric")))
-                    .build(),
-                Export::builder()
-                    .name("world")
-                    .ns(Ns2::NAME)
-                    .value(
-                        ZodObject::builder()
-                            .fields(vec![ZodNamedField::builder()
-                                .name("hello")
-                                .value(Reference::builder().name("hello").ns(Ns::NAME).build())
-                                .build()])
-                            .build(),
-                    )
-                    .build(),
-            ],
-            [Export::builder()
-                .name("hello")
-                .ns(Ns::NAME)
-                .value(ZodTypeInner::Generic(String::from("MyGeneric")))
-                .build()],
-        );
-
-        assert_eq!(
-            map.to_string().trim(),
-            r#"
-export namespace Ns {
-    export namespace input {
-        export type hello = Ns.io.hello;
-        export const hello = Ns.io.hello;
-    }
-    export namespace output {
-        export type hello = Ns.io.hello;
-        export const hello = Ns.io.hello;
-    }
-    export namespace io {
-        export type hello = MyGeneric;
-        export const hello = MyGeneric;
-    }
-}
-export namespace Ns2 {
-    export namespace input {
-        export interface world { hello: Ns.input.hello }
-        export const world = z.object({ hello: Ns.input.hello });
-    }
-    export namespace output {}
-    export namespace io {}
-}"#
-            .trim()
         );
     }
 }

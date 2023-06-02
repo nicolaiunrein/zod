@@ -10,7 +10,7 @@
   - &check; `#[serde(untagged)]`
   - &check; `#[serde(default)]`
   - &check; `#[serde(default = "path")]`
-  - [ ] `#[serde(deny_unknown_fields)]`
+  - &check; `#[serde(deny_unknown_fields)]`
   - [ ] `#[serde(remote = "...")]`
   - [ ] `#[serde(transparent)]`
   - [ ] `#[serde(from = "FromType")]`
@@ -47,7 +47,7 @@
   - &cross; `#[serde(borrow)]` - ignored
   - &cross; `#[serde(borrow = "'a + 'b + ...")]` - ignored
   - &cross; `#[serde(bound = "T: MyTrait")]` - ignored
-- [ ] add support for docs
+- [x] add support for docs
 - [ ] support tuple style enums with inner objects
   - [ ] add a associated type `type Value: Into<ZodType>;` on [`Type`]
   - [ ] make value return `Self::Type`
