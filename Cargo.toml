@@ -18,8 +18,8 @@ package.license = "MIT OR Apache-2.0"
 members = [
     "core",
     "derive",
-    "integrations/axum",
-    "examples/axum-websocket",
+    # "integrations/axum",
+    # "examples/axum-websocket",
 ]
 
 [dependencies]

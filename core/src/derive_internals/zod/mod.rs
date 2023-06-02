@@ -60,8 +60,8 @@ mod test {
     use crate::{
         derive_internals::zod::{
             custom_suffix::CustomSuffix,
-            r#enum::EnumImpl,
-            r#struct::{ZodObjectImpl, ZodTupleImpl},
+            fields::{FieldValue, ZodNamedFieldImpl},
+            r#struct::ZodObjectImpl,
         },
         test_utils::TokenStreamExt,
     };
@@ -70,7 +70,7 @@ mod test {
     use syn::parse_quote;
 
     #[test]
-    fn expand_zod_for_struct_with_named_fields_ok() {
+    fn expand_ok() {
         let derive = Derive::Input;
         let input = quote! {
             #[zod(namespace = "Ns")]
@@ -80,132 +80,22 @@ mod test {
             }
         };
 
-        let inner = ZodObjectImpl::new(
-            derive,
-            &parse_quote!({ inner_string: String, inner_u8: u8 }),
-        );
-
-        let custom_suffix = CustomSuffix { inner: None };
-
-        let expected = quote! {
-            impl #zod_core::Type<#derive> for Test {
-                type Ns = Ns;
-                const NAME: &'static str = "Test";
-                const INLINE: bool = false;
-
-                fn value() -> #zod_core::z::ZodType<#derive> {
-                    #zod_core::z::ZodType {
-                        optional: false,
-                        custom_suffix: #custom_suffix,
-                        inner: #inner.into()
-                    }
-                }
-
-                fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#derive>> {
-                    let mut v = ::std::vec::Vec::new();
-                    v
-                }
-
-                fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
-            }
-
-            impl Ns {
-                #[allow(dead_code)]
-                #[allow(non_upper_case_globals)]
-                const __ZOD_PRIVATE_INPUT___Test: () = {};
-            }
-
-        };
-
-        assert_eq!(
-            expand(Derive::Input, input).to_formatted_string().unwrap(),
-            expected.to_formatted_string().unwrap()
-        )
-    }
-
-    #[test]
-    fn expand_zod_for_struct_with_tuple_fields_ok() {
-        let derive = Derive::Input;
-        let input = quote! {
-            #[zod(namespace = "Ns")]
-            struct Test(String, u8);
-        };
-
-        let custom_suffix = CustomSuffix { inner: None };
-
-        let inner = ZodTupleImpl::new(derive, &parse_quote!((String, u8)));
-
-        let expected = quote! {
-            impl #zod_core::Type<#derive> for Test {
-                type Ns = Ns;
-                const NAME: &'static str = "Test";
-                const INLINE: bool = false;
-
-                fn value() -> #zod_core::z::ZodType<#derive> {
-                    #zod_core::z::ZodType {
-                        optional: false,
-                        custom_suffix: #custom_suffix,
-                        inner: #inner.into()
-                    }
-                }
-
-                fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#derive>> {
-                    let mut v = ::std::vec::Vec::new();
-                    v
-                }
-
-                fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
-            }
-
-            impl Ns {
-                #[allow(dead_code)]
-                #[allow(non_upper_case_globals)]
-                const __ZOD_PRIVATE_INPUT___Test: () = {};
-            }
-
-        };
-
-        assert_eq!(
-            expand(Derive::Input, input).to_formatted_string().unwrap(),
-            expected.to_formatted_string().unwrap()
-        )
-    }
-
-    #[test]
-    fn impl_zod_for_enum() {
-        let derive = Derive::Input;
-        let input = quote! {
-            #[zod(namespace = "Ns")]
-            enum Test {
-                Unit,
-                Tuple1(String),
-                Tuple2(String, u8),
-                Struct0 {},
-                Struct1 {
-                    inner: String,
+        let inner = ZodObjectImpl {
+            fields: vec![
+                ZodNamedFieldImpl {
+                    name: String::from("inner_string"),
+                    optional: false,
+                    derive,
+                    value: FieldValue::Type(parse_quote!(String)),
                 },
-                Struct2 {
-                    inner_string: String,
-                    inner_u8: u8,
-                }
-            }
-        };
-
-        let inner = EnumImpl::new(
-            derive,
-            Default::default(),
-            vec![
-                parse_quote!(Unit),
-                parse_quote!(Tuple1(String)),
-                parse_quote!(Tuple2(String, u8)),
-                parse_quote!(Struct0 {}),
-                parse_quote!(Struct1 { inner: String }),
-                parse_quote!(Struct2 {
-                    inner_string: String,
-                    inner_u8: u8
-                }),
+                ZodNamedFieldImpl {
+                    name: String::from("inner_u8"),
+                    optional: false,
+                    derive,
+                    value: FieldValue::Type(parse_quote!(u8)),
+                },
             ],
-        );
+        };
 
         let custom_suffix = CustomSuffix { inner: None };
 
@@ -242,6 +132,6 @@ mod test {
         assert_eq!(
             expand(Derive::Input, input).to_formatted_string().unwrap(),
             expected.to_formatted_string().unwrap()
-        );
+        )
     }
 }

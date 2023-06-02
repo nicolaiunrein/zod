@@ -525,7 +525,16 @@ mod test {
             }
         };
 
-        let data = Data::new(Derive::Input, input, Default::default());
+        let cx = serde_derive_internals::Ctxt::new();
+        let input = serde_derive_internals::ast::Container::from_ast(
+            &cx,
+            &input,
+            serde_derive_internals::Derive::Serialize,
+        )
+        .unwrap();
+        cx.check().unwrap();
+
+        let data = Data::new(Derive::Input, input);
 
         assert_eq!(
             data,
@@ -553,7 +562,16 @@ mod test {
             }
         };
 
-        let data = Data::new(Derive::Input, input, Default::default());
+        let cx = serde_derive_internals::Ctxt::new();
+        let input = serde_derive_internals::ast::Container::from_ast(
+            &cx,
+            &input,
+            serde_derive_internals::Derive::Serialize,
+        )
+        .unwrap();
+        cx.check().unwrap();
+
+        let data = Data::new(Derive::Input, input);
 
         assert_eq!(
             data,

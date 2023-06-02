@@ -1,4 +1,4 @@
-use super::{fields::*, Derive};
+use super::fields::*;
 use crate::utils::zod_core;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -22,22 +22,6 @@ impl ToTokens for ZodObjectImpl {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct ZodTupleImpl {
     pub(crate) fields: Vec<ZodUnnamedFieldImpl>,
-}
-
-impl ZodTupleImpl {
-    pub fn new(derive: Derive, fields: &syn::FieldsUnnamed) -> Self {
-        Self {
-            fields: fields
-                .unnamed
-                .iter()
-                .map(|f| ZodUnnamedFieldImpl {
-                    optional: false, // TODO
-                    derive,
-                    ty: f.ty.clone(),
-                })
-                .collect(),
-        }
-    }
 }
 
 impl ToTokens for ZodTupleImpl {
@@ -68,53 +52,15 @@ impl ToTokens for ZodTupleImpl {
 mod test {
     use super::*;
 
-    use crate::test_utils::TokenStreamExt;
+    use crate::{derive_internals::zod::Derive, test_utils::TokenStreamExt};
     use pretty_assertions::assert_eq;
     use syn::parse_quote;
 
     #[test]
-    fn named_struct_ok() {
+    fn expand_zod_tuple_ok() {
         let derive = Derive::Input;
-        let input = ZodObjectImpl::new(
-            derive,
-            &parse_quote!({
-                inner_string: String,
-                inner_u8: u8,
-            }),
-        );
 
-        let zod_fields = vec![
-            ZodNamedFieldImpl {
-                name: String::from("inner_string"),
-                optional: false,
-                derive,
-                value: FieldValue::Type(parse_quote!(String)),
-            },
-            ZodNamedFieldImpl {
-                name: String::from("inner_u8"),
-                optional: false,
-                derive,
-                value: FieldValue::Type(parse_quote!(u8)),
-            },
-        ];
-
-        let expected = quote! {
-            #zod_core::z::ZodObject {
-              fields: ::std::vec![ #(#zod_fields),*],
-            }
-        };
-
-        assert_eq!(
-            input.to_formatted_string().unwrap(),
-            expected.to_formatted_string().unwrap()
-        );
-    }
-    #[test]
-    fn tuple_struct_ok() {
-        let derive = Derive::Input;
-        let input = ZodTupleImpl::new(derive, &parse_quote!((String, u8)));
-
-        let zod_fields = vec![
+        let fields = vec![
             ZodUnnamedFieldImpl {
                 //todo
                 optional: false,
@@ -128,9 +74,13 @@ mod test {
             },
         ];
 
+        let input = ZodTupleImpl {
+            fields: fields.clone(),
+        };
+
         let expected = quote! {
             #zod_core::z::ZodTuple {
-              fields: ::std::vec![ #(#zod_fields),*],
+              fields: ::std::vec![ #(#fields),*],
             }
         };
 

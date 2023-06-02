@@ -32,6 +32,10 @@
 //! ## Contributing
 //! Contribution is more than welcome. This crate is extensively tested but there are a lot of edge-cases. If you find anything that is not working but should, please let meknow.
 //!
+//! # Example of a manual implementation. The derive macros produce roughly the same code.
+//! ```
+#![doc = include_str!("../tests/manual_impl.rs")]
+//! ```
 //!
 //!
 #![deny(unsafe_code)]

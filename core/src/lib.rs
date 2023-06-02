@@ -82,10 +82,6 @@ pub mod prelude {
 
 pub use typed_str;
 
-/// # Example of a manual implementation. The derive macros produce roughly the same code.
-/// ```
-#[doc = include_str!("../../tests/manual_impl.rs")]
-/// ```
 pub trait Type<Io>
 where
     Io: Clone,
