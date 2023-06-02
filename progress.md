@@ -1,26 +1,52 @@
 ## Progress 
-- [x] Implement basic codegen with generics
-- [x] ~~Disallow trait bounds on structs and enums~~ __Support__ trait bounds on structs and enums
-- [x] create namespace macro
-- [ ] implement all missing serde attrs where possible. see: [ts-rs](https://docs.rs/ts-rs/latest/ts_rs/)
-  - [x] tag
-    - [x] internally
-    - [x] externally
-    - [x] adjacently
-    - [x] untagged
-  - [x] rename
-  - [x] rename-all
-  - [x] skip
-  - [x] skip_deserializing
-  - [x] skip_serializing
-  - [x] skip_serializing_if
-  - [x] default
-    - [x] Restrict non-default fields in tuple structs to only come before the first default field
-  - [ ] from
-  - [ ] try_from
-  - [ ] into 
-  - [ ] transparent structs
-  - [ ] flatten
+- &check; Implement basic codegen with generics
+- &check; ~~Disallow trait bounds on structs and enums~~ __Support__ trait bounds on structs and enums
+- &check; create namespace macro
+- Supported serde container attributes
+  - &check; `#[serde(rename = "name")]`
+  - &check; `#[serde(rename_all = "...")]` 
+  - &check; `#[serde(tag = "type")]`
+  - &check; `#[serde(tag = "t", content = "c")]`
+  - &check; `#[serde(untagged)]`
+  - &check; `#[serde(default)]`
+  - &check; `#[serde(default = "path")]`
+  - [ ] `#[serde(deny_unknown_fields)]`
+  - [ ] `#[serde(remote = "...")]`
+  - [ ] `#[serde(transparent)]`
+  - [ ] `#[serde(from = "FromType")]`
+  - [ ] `#[serde(try_from = "FromType")]`
+  - [ ] `#[serde(into = "IntoType")]`
+  - [ ] `#[serde(crate = "...")]`
+- Supported serde variant attributes
+  - &check; `#[serde(rename = "name")]`
+  - &check; `#[serde(rename_all = "...")]`
+  - &check; `#[serde(skip)]`
+  - &check; `#[serde(skip_serializing)]`
+  - &check; `#[serde(skip_deserializing)]`
+  - [ ] `#[serde(serialize_with = "path")]`
+  - [ ] `#[serde(deserialize_with = "path")]`
+  - [ ] `#[serde(with = "module")]`
+  - &cross; `#[serde(alias = "name")]` - ignored sice only affects deserializing by different name
+  - &cross; `#[serde(bound = "T: MyTrait")]` - ignored
+  - &cross; `#[serde(borrow)]` - ignored
+  - &cross; `#[serde(borrow = "'a + 'b + ...")]` - ignored
+  - &cross; `#[serde(other)]` - ingored
+- Supported serde field attributes
+  - &check; `#[serde(rename = "name")]`
+  - &check; `#[serde(default)]`
+  - &check; `#[serde(skip)]`
+  - &check; `#[serde(skip_serializing)]`
+  - &check; `#[serde(skip_deserializing)]`
+  - &check; `#[serde(skip_serializing_if = "path")]`
+  - [ ] `#[serde(flatten)]`
+  - [ ] `#[serde(getter = "...")]`
+  - [ ] `#[serde(serialize_with = "path")]`
+  - [ ] `#[serde(deserialize_with = "path")]`
+  - [ ] `#[serde(with = "module")]`
+  - &cross; `#[serde(alias = "name")]` - ignored sice only affects deserializing by different name
+  - &cross; `#[serde(borrow)]` - ignored
+  - &cross; `#[serde(borrow = "'a + 'b + ...")]` - ignored
+  - &cross; `#[serde(bound = "T: MyTrait")]` - ignored
 - [ ] add support for docs
 - [ ] support tuple style enums with inner objects
   - [ ] add a associated type `type Value: Into<ZodType>;` on [`Type`]

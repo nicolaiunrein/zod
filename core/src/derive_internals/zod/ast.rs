@@ -21,8 +21,8 @@ pub(super) struct Ast {
     pub namespace: syn::Path,
     pub custom_suffix: custom_suffix::CustomSuffix,
     pub name: String,
+    pub optional: bool,
     // pub transparent: bool,
-    // pub default
     // pub type_from: Option<syn::Type>,
     // pub type_try_from: Option<syn::Type>,
     // pub type_into: Option<syn::Type>,
@@ -50,15 +50,22 @@ impl Ast {
             Derive::Output => serde_ast.attrs.name().serialize_name(),
         };
 
+        let mut custom_suffix = CustomSuffix {
+            inner: zod_attrs.custom_suffix,
+        };
+
+        if serde_ast.attrs.deny_unknown_fields() {
+            custom_suffix.add(".strict()");
+        }
+
         Ok(Self {
             derive,
             ident: derive_input.ident.clone(),
+            optional: !serde_ast.attrs.default().is_none(),
             data: Data::new(derive, serde_ast),
             generics: derive_input.generics,
             namespace: zod_attrs.namespace,
-            custom_suffix: CustomSuffix {
-                inner: zod_attrs.custom_suffix,
-            },
+            custom_suffix,
             name,
         })
     }
@@ -102,6 +109,7 @@ impl ToTokens for Ast {
         let generic_arguments = self.generic_arguments();
         let unique_ident = self.unique_ident();
         let derive = self.derive;
+        let optional = self.optional;
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
@@ -113,7 +121,7 @@ impl ToTokens for Ast {
 
                 fn value() -> #zod_core::z::ZodType<#derive> {
                     #zod_core::z::ZodType {
-                        optional: false,
+                        optional: #optional,
                         custom_suffix: #custom_suffix,
                         inner: #inner.into()
                     }

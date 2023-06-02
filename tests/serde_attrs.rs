@@ -12,17 +12,36 @@ fn serde_rename_ok() {
     #[serde(rename = "YourStruct")]
     struct MyStruct {
         value: u8,
+        #[serde(rename = "renamed_value")]
+        renamed: u8,
     }
+
+    #[derive(ZodInputOnly, serde::Deserialize)]
+    #[zod(namespace = "Ns")]
+    #[serde(rename = "YourEnum")]
+    enum MyEnum {
+        Value(u8),
+        #[serde(rename = "renamed_value")]
+        Renamed(u8),
+    }
+
     assert_eq!(
         MyStruct::inline().as_zod().to_string(),
         "Ns.input.YourStruct"
     );
     assert_eq!(
         MyStruct::export().unwrap().as_zod().to_string(),
-        "export const YourStruct = z.object({ value: Rs.input.U8 });"
+        "export const YourStruct = z.object({ value: Rs.input.U8, renamed_value: Rs.input.U8 });"
+    );
+
+    assert_eq!(MyEnum::inline().as_zod().to_string(), "Ns.input.YourEnum");
+    assert_eq!(
+        MyEnum::export().unwrap().as_zod().to_string(),
+        "export const YourEnum = z.union([z.object({ Value: z.tuple([Rs.input.U8]) }), z.object({ renamed_value: z.tuple([Rs.input.U8]) })]);"
     );
 
     const _: () = Ns::__ZOD_PRIVATE_INPUT___YourStruct;
+    const _: () = Ns::__ZOD_PRIVATE_INPUT___YourEnum;
 }
 
 #[test]
@@ -35,12 +54,32 @@ fn serde_rename_all_ok() {
     #[serde(rename_all = "UPPERCASE")]
     struct MyStruct {
         some_value: u8,
+        #[serde(rename = "renamed_value")]
+        other_value: u8,
     }
     assert_eq!(MyStruct::inline().as_zod().to_string(), "Ns.input.MyStruct");
     assert_eq!(
         MyStruct::export().unwrap().as_zod().to_string(),
-        "export const MyStruct = z.object({ SOME_VALUE: Rs.input.U8 });"
+        "export const MyStruct = z.object({ SOME_VALUE: Rs.input.U8, renamed_value: Rs.input.U8 });"
     );
+
+    #[derive(ZodInputOnly, serde::Deserialize)]
+    #[zod(namespace = "Ns")]
+    #[serde(rename_all = "UPPERCASE")]
+    enum MyEnum {
+        Value(u8),
+        #[serde(rename = "renamed_value")]
+        Renamed(u8),
+    }
+
+    assert_eq!(MyEnum::inline().as_zod().to_string(), "Ns.input.MyEnum");
+    assert_eq!(
+        MyEnum::export().unwrap().as_zod().to_string(),
+        "export const MyEnum = z.union([z.object({ VALUE: z.tuple([Rs.input.U8]) }), z.object({ renamed_value: z.tuple([Rs.input.U8]) })]);"
+    );
+
+    const _: () = Ns::__ZOD_PRIVATE_INPUT___MyStruct;
+    const _: () = Ns::__ZOD_PRIVATE_INPUT___MyEnum;
 }
 
 #[test]
@@ -149,5 +188,44 @@ fn skip_enum_fields() {
     assert_eq!(
         MyEnum::export().unwrap().as_zod().to_string(),
         "export const MyEnum = z.union([z.object({ Tuple0: z.tuple([]) }), z.object({ Tuple1: z.tuple([Rs.input.U8]) }), z.object({ Named: z.object({ value: Rs.input.U8 }) })]);"
+    );
+}
+
+#[test]
+fn optional_type() {
+    #[derive(Namespace)]
+    struct Ns;
+
+    #[derive(ZodInputOnly, serde::Deserialize, Default)]
+    #[zod(namespace = "Ns")]
+    #[serde(rename = "YourStruct", default)]
+    struct MyStruct {
+        value: u8,
+    }
+    assert_eq!(
+        MyStruct::inline().as_zod().to_string(),
+        "Ns.input.YourStruct"
+    );
+    assert_eq!(
+        MyStruct::export().unwrap().as_zod().to_string(),
+        "export const YourStruct = z.object({ value: Rs.input.U8 }).optional();"
+    );
+}
+
+#[test]
+fn deny_unknown_fields() {
+    #[derive(Namespace)]
+    struct Ns;
+
+    #[derive(ZodInputOnly, serde::Deserialize)]
+    #[zod(namespace = "Ns")]
+    #[serde(deny_unknown_fields)]
+    struct MyStruct {
+        value: u8,
+    }
+    assert_eq!(MyStruct::inline().as_zod().to_string(), "Ns.input.MyStruct");
+    assert_eq!(
+        MyStruct::export().unwrap().as_zod().to_string(),
+        "export const MyStruct = z.object({ value: Rs.input.U8 }).strict();"
     );
 }
