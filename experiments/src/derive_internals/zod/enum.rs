@@ -42,167 +42,44 @@ impl From<&SerdeTagType> for TagType {
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct EnumImpl {
-    tag: TagType,
-    variants: Vec<syn::Variant>,
-    derive: Derive,
+    pub(crate) tag: TagType,
+    pub(crate) variants: Vec<VariantImpl>,
+    pub(crate) derive: Derive,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum VariantImpl {
+    Literal(String),
+    Object(ZodObjectImpl),
+    Tuple(ZodTupleImpl),
+}
+
+impl ToTokens for VariantImpl {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            VariantImpl::Literal(name) => {
+                quote!(#zod_core::z::ZodLiteral::String(#name).into())
+            }
+            VariantImpl::Object(obj) => quote!(#obj.into()),
+            VariantImpl::Tuple(tuple) => quote!(#tuple.into()),
+        }
+        .to_tokens(tokens)
+    }
 }
 
 impl EnumImpl {
-    pub fn new(
-        derive: Derive,
-        tag: TagType,
-        variants: Vec<syn::Variant>,
-    ) -> Self {
+    pub fn new(derive: Derive, tag: TagType, variants: Vec<VariantImpl>) -> Self {
         Self {
-            derive,variants, tag
+            derive,
+            variants,
+            tag,
         }
-    }
-    
-    fn variants(&self) -> Vec<TokenStream> {
-        let derive = self.derive;
-        self.variants
-            .iter()
-            .map(|orig| {
-                if orig.discriminant.is_some() {
-                    todo!()
-                }
-
-                let ident = &orig.ident;
-                let name = ident.to_string();
-
-
-                match &self.tag {
-                    TagType::Externally => match orig.fields {
-                        syn::Fields::Unit => {
-                            quote!(#zod_core::z::ZodLiteral::String(#name).into())
-                        }
-                        _ => {
-                            let value = match orig.fields {
-                                syn::Fields::Named(ref named) => ZodObjectImpl::new(derive, named).into_token_stream(),
-                                syn::Fields::Unnamed(ref unnamed) => ZodTupleImpl::new(derive, unnamed).into_token_stream(),
-                                syn::Fields::Unit => todo!(),
-                            };
-                                
-                            quote! {
-                                #zod_core::z::ZodObject {
-                                    fields: ::std::vec![
-                                        #zod_core::z::ZodNamedField {
-                                            name: #name,
-                                            optional: false,
-                                            value: #value.into()
-                                        }
-                                    ],
-                                }.into()
-                            }
-                        }
-                    },
-                    TagType::Internally { tag } => {
-                        match &orig.fields {
-                            syn::Fields::Unit => {
-                                // same as Adjacently
-                                quote! {
-                                    #zod_core::z::ZodObject {
-                                        fields: ::std::vec![
-                                            #zod_core::z::ZodNamedField {
-                                                name: #tag,
-                                                optional: false,
-                                                value: #zod_core::z::ZodLiteral::String(#name).into()
-                                            },
-                                        ],
-                                    }.into()
-                                }
-                            },
-                            syn::Fields::Named(fields) => {
-                                let first = ZodNamedFieldImpl {
-                                    name: tag.clone(),
-                                    optional: false,
-                                    derive,
-                                    value: FieldValue::Literal(name, ident.span())
-                                };
-                                let fields = fields.named.iter().map(|f| ZodNamedFieldImpl {
-                                        name: f.ident.as_ref().expect("Named field").to_string(),
-                                        optional: false,
-                                        derive,
-                                        value: f.ty.clone().into()
-                                    });
-                                let obj = ZodObjectImpl {
-                                    fields: std::iter::once(first).chain(fields).collect(),
-                                };
-                                quote!(#obj.into())
-                            }
-                            syn::Fields::Unnamed(fields) => {
-                                if fields.unnamed.len() == 1 {
-                                    todo!("Serde supports object merging")
-                                } else {
-                                    panic!("Unsupported")
-                                }
-                            }
-                        }
-                    },
-                    TagType::Adjacently { tag, content } => match orig.fields {
-                        syn::Fields::Unit => {
-                            // same as Externally
-                            quote! {
-                                #zod_core::z::ZodObject {
-                                    fields: ::std::vec![
-                                        #zod_core::z::ZodNamedField {
-                                            name: #tag,
-                                            optional: false,
-                                            value: #zod_core::z::ZodLiteral::String(#name).into()
-                                        },
-                                    ],
-                                }.into()
-                            }
-                        }
-                        _ => {
-                            let value = match orig.fields {
-                                syn::Fields::Named(ref named) => ZodObjectImpl::new(derive, named).into_token_stream(),
-                                syn::Fields::Unnamed(ref unnamed) => ZodTupleImpl::new(derive, unnamed).into_token_stream(),
-                                syn::Fields::Unit => todo!(),
-                            };
-                            quote! {
-                                #zod_core::z::ZodObject {
-                                    fields: ::std::vec![
-                                        #zod_core::z::ZodNamedField {
-                                            name: #tag,
-                                            optional: false,
-                                            value: #zod_core::z::ZodLiteral::String(#name).into()
-                                        },
-                                        #zod_core::z::ZodNamedField {
-                                            name: #content,
-                                            optional: false,
-                                            value: #value.into()
-                                        }
-                                    ],
-                                }.into()
-                            }
-                        }
-                    },
-                    TagType::Untagged => {
-                        match orig.fields {
-                            syn::Fields::Unit => {
-                                quote!(#zod_core::z::ZodLiteral::String(#name).into())
-                            }
-                            _ => {
-                                let value = match orig.fields {
-                                    syn::Fields::Named(ref named) => ZodObjectImpl::new(derive, named).into_token_stream(),
-                                    syn::Fields::Unnamed(ref unnamed) => ZodTupleImpl::new(derive, unnamed).into_token_stream(),
-                                    syn::Fields::Unit => todo!(),
-                                };
-
-                                quote!(#value.into())
-                            }
-                        }
-                    }
-                }
-            })
-            .collect()
     }
 }
 
 impl ToTokens for EnumImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let variants = self.variants();
+        let variants = &self.variants;
         let out = match &self.tag {
             TagType::Externally | TagType::Untagged => {
                 quote! {
@@ -252,31 +129,20 @@ mod test {
             quote!(#zod_core::z::ZodLiteral::String("Unit").into()),
             tagged(
                 "Tuple1",
-                ZodTupleImpl::new(
-                    derive,
-                    &parse_quote!((String))
-                    ).into_token_stream()
+                ZodTupleImpl::new(derive, &parse_quote!((String))).into_token_stream(),
             ),
             tagged(
                 "Tuple2",
-                ZodTupleImpl::new(
-                    derive,
-                    &parse_quote!((String, u8))
-                    ).into_token_stream()
+                ZodTupleImpl::new(derive, &parse_quote!((String, u8))).into_token_stream(),
             ),
             tagged(
                 "Struct1",
-                ZodObjectImpl::new(
-                    derive,
-                    &parse_quote!({inner: String})
-                    ).into_token_stream()
+                ZodObjectImpl::new(derive, &parse_quote!({inner: String})).into_token_stream(),
             ),
             tagged(
                 "Struct2",
-                ZodObjectImpl::new(
-                    derive,
-                    &parse_quote!({inner_string: String, inner_u8: u8})
-                    ).into_token_stream()
+                ZodObjectImpl::new(derive, &parse_quote!({inner_string: String, inner_u8: u8}))
+                    .into_token_stream(),
             ),
         ];
 
@@ -347,34 +213,22 @@ mod test {
                     },],
                 }.into()
             },
-            
             tagged(
                 "Tuple1",
-                ZodTupleImpl::new(
-                    derive,
-                    &parse_quote!((String))
-                    ).into_token_stream()
+                ZodTupleImpl::new(derive, &parse_quote!((String))).into_token_stream(),
             ),
             tagged(
                 "Tuple2",
-                ZodTupleImpl::new(
-                    derive,
-                    &parse_quote!((String, u8))
-                    ).into_token_stream()
+                ZodTupleImpl::new(derive, &parse_quote!((String, u8))).into_token_stream(),
             ),
             tagged(
                 "Struct1",
-                ZodObjectImpl::new(
-                    derive,
-                    &parse_quote!({inner: String})
-                    ).into_token_stream()
+                ZodObjectImpl::new(derive, &parse_quote!({inner: String})).into_token_stream(),
             ),
             tagged(
                 "Struct2",
-                ZodObjectImpl::new(
-                    derive,
-                    &parse_quote!({inner_string: String, inner_u8: u8})
-                    ).into_token_stream()
+                ZodObjectImpl::new(derive, &parse_quote!({inner_string: String, inner_u8: u8}))
+                    .into_token_stream(),
             ),
         ];
 

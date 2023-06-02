@@ -10,12 +10,22 @@ use self::ast::Ast;
 use crate::utils::zod_core;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
+use serde_derive_internals::Derive as SerdeDerive;
 use syn::DeriveInput;
 
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum Derive {
     Input,
     Output,
+}
+
+impl From<Derive> for SerdeDerive {
+    fn from(value: Derive) -> Self {
+        match value {
+            Derive::Input => SerdeDerive::Deserialize,
+            Derive::Output => SerdeDerive::Serialize,
+        }
+    }
 }
 
 impl ToTokens for Derive {

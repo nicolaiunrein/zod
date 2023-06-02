@@ -1,6 +1,8 @@
+use super::attrs::{DefaultExt, NameExt};
 use super::custom_suffix::CustomSuffix;
+use super::fields::{FieldValue, ZodNamedFieldImpl, ZodUnnamedFieldImpl};
 use super::generics::{needs_inline, replace_generics, GenericsExt};
-use super::r#enum::{EnumImpl, TagType};
+use super::r#enum::{EnumImpl, TagType, VariantImpl};
 use super::r#struct::{ZodObjectImpl, ZodTupleImpl};
 use super::Derive;
 use super::{attrs::ZodAttrs, custom_suffix};
@@ -29,7 +31,11 @@ pub(super) struct Ast {
 impl Ast {
     pub fn new(derive: Derive, mut derive_input: DeriveInput) -> Result<Self, TokenStream2> {
         let cx = serde_derive_internals::Ctxt::new();
-        let serde_attrs = serde_derive_internals::attr::Container::from_ast(&cx, &derive_input);
+        let input_clone = derive_input.clone();
+        let serde_ast =
+            serde_derive_internals::ast::Container::from_ast(&cx, &input_clone, derive.into())
+                .unwrap();
+
         cx.check().unwrap();
 
         let zod_attrs: ZodAttrs = match ZodAttrs::from_derive_input(&derive_input) {
@@ -39,19 +45,21 @@ impl Ast {
 
         derive_input.generics.update_where_clause(derive);
 
+        let name = match derive {
+            Derive::Input => serde_ast.attrs.name().deserialize_name(),
+            Derive::Output => serde_ast.attrs.name().serialize_name(),
+        };
+
         Ok(Self {
             derive,
             ident: derive_input.ident.clone(),
-            data: Data::new(derive, derive_input.clone(), serde_attrs.tag().into()),
+            data: Data::new(derive, serde_ast),
             generics: derive_input.generics,
             namespace: zod_attrs.namespace,
             custom_suffix: CustomSuffix {
                 inner: zod_attrs.custom_suffix,
             },
-            name: match derive {
-                Derive::Input => serde_attrs.name().deserialize_name(),
-                Derive::Output => serde_attrs.name().serialize_name(),
-            },
+            name,
         })
     }
 
@@ -149,57 +157,331 @@ impl ToTokens for Data {
 }
 
 impl Data {
-    fn new(derive: Derive, input: syn::DeriveInput, tag: TagType) -> Self {
+    fn new(derive: Derive, input: serde_derive_internals::ast::Container) -> Self {
         match input.data {
-            syn::Data::Struct(mut data) => {
-                let inline = data
-                    .fields
-                    .iter()
-                    .any(|f| needs_inline(&f.ty, &input.generics));
+            serde_derive_internals::ast::Data::Struct(style, fields) => {
+                let inline = fields.iter().any(|f| needs_inline(&f.ty, &input.generics));
 
-                if !inline {
-                    for f in data.fields.iter_mut() {
-                        replace_generics(&mut f.ty, &input.generics);
-                    }
-                }
-
-                match data.fields {
-                    syn::Fields::Named(fields) => {
-                        Self::Struct(inline, ZodObjectImpl::new(derive, &fields))
-                    }
-                    syn::Fields::Unnamed(fields) => {
-                        Self::Tuple(inline, ZodTupleImpl::new(derive, &fields))
-                    }
-
-                    syn::Fields::Unit => todo!(),
+                match style {
+                    serde_derive_internals::ast::Style::Struct => Self::Struct(
+                        inline,
+                        ZodObjectImpl {
+                            fields: fields
+                                .into_iter()
+                                .map(|field| {
+                                    let mut ty = field.ty.clone();
+                                    if !inline {
+                                        replace_generics(&mut ty, &input.generics);
+                                    }
+                                    ZodNamedFieldImpl {
+                                        name: field.attrs.name().as_str(derive),
+                                        optional: field.attrs.default().is_optional(),
+                                        derive,
+                                        value: FieldValue::Type(ty),
+                                    }
+                                })
+                                .collect(),
+                        },
+                    ),
+                    serde_derive_internals::ast::Style::Tuple => Self::Tuple(
+                        inline,
+                        ZodTupleImpl {
+                            fields: fields
+                                .into_iter()
+                                .map(|field| {
+                                    let mut ty = field.ty.clone();
+                                    if !inline {
+                                        replace_generics(&mut ty, &input.generics);
+                                    }
+                                    ZodUnnamedFieldImpl {
+                                        derive,
+                                        // optional: field.attrs.default(),
+                                        optional: false,
+                                        ty,
+                                    }
+                                })
+                                .collect(),
+                        },
+                    ),
+                    serde_derive_internals::ast::Style::Newtype => todo!(),
+                    serde_derive_internals::ast::Style::Unit => todo!(),
                 }
             }
-
-            syn::Data::Enum(data) => {
-                let inline = data.variants.iter().any(|v| {
+            serde_derive_internals::ast::Data::Enum(variants) => {
+                let inline = variants.iter().any(|v| {
                     v.fields
                         .iter()
                         .any(|f| needs_inline(&f.ty, &input.generics))
                 });
 
-                let variants = if !inline {
-                    data.variants
-                        .into_iter()
-                        .map(|mut v| {
-                            for f in v.fields.iter_mut() {
-                                replace_generics(&mut f.ty, &input.generics);
+                let variants: Vec<_> = variants
+                    .into_iter()
+                    .map(|variant| match input.attrs.tag().into() {
+                        TagType::Externally => match variant.style {
+                            serde_derive_internals::ast::Style::Unit => {
+                                VariantImpl::Literal(variant.attrs.name().as_str(derive))
                             }
-                            v
-                        })
-                        .collect::<Vec<_>>()
-                } else {
-                    data.variants.into_iter().collect::<Vec<_>>()
-                };
+                            serde_derive_internals::ast::Style::Struct => {
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: vec![ZodNamedFieldImpl {
+                                        name: variant.attrs.name().as_str(derive),
+                                        optional: false,
+                                        derive,
+                                        value: FieldValue::Object(ZodObjectImpl {
+                                            fields: variant
+                                                .fields
+                                                .into_iter()
+                                                .map(|f| {
+                                                    let mut ty = f.ty.clone();
+                                                    if !inline {
+                                                        replace_generics(&mut ty, &input.generics);
+                                                    }
 
-                Self::Enum(inline, EnumImpl::new(derive, tag, variants))
+                                                    ZodNamedFieldImpl {
+                                                        name: f.attrs.name().as_str(derive),
+                                                        optional: f.attrs.default().is_optional(),
+                                                        derive,
+                                                        value: FieldValue::Type(ty),
+                                                    }
+                                                })
+                                                .collect(),
+                                        }),
+                                    }],
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Newtype
+                            | serde_derive_internals::ast::Style::Tuple => {
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: vec![ZodNamedFieldImpl {
+                                        name: variant.attrs.name().as_str(derive),
+                                        optional: false,
+                                        derive,
+                                        value: FieldValue::Tuple(ZodTupleImpl {
+                                            fields: variant
+                                                .fields
+                                                .into_iter()
+                                                .map(|f| {
+                                                    let mut ty = f.ty.clone();
+                                                    if !inline {
+                                                        replace_generics(&mut ty, &input.generics);
+                                                    }
+
+                                                    ZodUnnamedFieldImpl {
+                                                        optional: f.attrs.default().is_optional(),
+                                                        derive,
+                                                        ty,
+                                                    }
+                                                })
+                                                .collect(),
+                                        }),
+                                    }],
+                                })
+                            }
+                        },
+                        TagType::Internally { tag } => match variant.style {
+                            serde_derive_internals::ast::Style::Unit => {
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: vec![ZodNamedFieldImpl {
+                                        name: tag,
+                                        optional: false,
+                                        derive,
+                                        value: FieldValue::Literal(
+                                            variant.attrs.name().as_str(derive),
+                                            variant.ident.span(),
+                                        ),
+                                    }],
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Struct => {
+                                let first = ZodNamedFieldImpl {
+                                    name: tag.clone(),
+                                    optional: false,
+                                    derive,
+                                    value: FieldValue::Literal(
+                                        variant.attrs.name().as_str(derive),
+                                        variant.ident.span(),
+                                    ),
+                                };
+                                let fields = variant.fields.iter().map(|f| {
+                                    let mut ty = f.ty.clone();
+
+                                    if !inline {
+                                        replace_generics(&mut ty, &input.generics)
+                                    }
+
+                                    ZodNamedFieldImpl {
+                                        name: f.attrs.name().as_str(derive),
+                                        optional: f.attrs.default().is_optional(),
+                                        derive,
+                                        value: FieldValue::Type(ty),
+                                    }
+                                });
+
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: std::iter::once(first).chain(fields).collect(),
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Tuple => {
+                                unreachable!("prevented by serde")
+                            }
+                            serde_derive_internals::ast::Style::Newtype => {
+                                todo!("Serde supports object merging")
+                            }
+                        },
+                        TagType::Adjacently { tag, content } => match variant.style {
+                            serde_derive_internals::ast::Style::Unit => {
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: vec![ZodNamedFieldImpl {
+                                        name: tag,
+                                        optional: false,
+                                        derive,
+                                        value: FieldValue::Literal(
+                                            variant.attrs.name().as_str(derive),
+                                            variant.ident.span(),
+                                        ),
+                                    }],
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Struct => {
+                                let value = FieldValue::Object(ZodObjectImpl {
+                                    fields: variant
+                                        .fields
+                                        .iter()
+                                        .map(|f| {
+                                            let mut ty = f.ty.clone();
+                                            if !inline {
+                                                replace_generics(&mut ty, &input.generics)
+                                            }
+
+                                            ZodNamedFieldImpl {
+                                                name: f.attrs.name().as_str(derive),
+                                                optional: f.attrs.default().is_optional(),
+                                                derive,
+                                                value: FieldValue::Type(f.ty.clone()),
+                                            }
+                                        })
+                                        .collect(),
+                                });
+
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: vec![
+                                        ZodNamedFieldImpl {
+                                            name: tag,
+                                            optional: false,
+                                            derive,
+                                            value: FieldValue::Literal(
+                                                variant.attrs.name().as_str(derive),
+                                                variant.ident.span(),
+                                            ),
+                                        },
+                                        ZodNamedFieldImpl {
+                                            name: content,
+                                            optional: false,
+                                            derive,
+                                            value,
+                                        },
+                                    ],
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Newtype
+                            | serde_derive_internals::ast::Style::Tuple => {
+                                let value = FieldValue::Tuple(ZodTupleImpl {
+                                    fields: variant
+                                        .fields
+                                        .into_iter()
+                                        .map(|f| {
+                                            let mut ty = f.ty.clone();
+                                            if !inline {
+                                                replace_generics(&mut ty, &input.generics)
+                                            }
+
+                                            ZodUnnamedFieldImpl {
+                                                derive,
+                                                optional: f.attrs.default().is_optional(),
+                                                ty,
+                                            }
+                                        })
+                                        .collect(),
+                                });
+
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: vec![
+                                        ZodNamedFieldImpl {
+                                            name: tag,
+                                            optional: false,
+                                            derive,
+                                            value: FieldValue::Literal(
+                                                variant.attrs.name().as_str(derive),
+                                                variant.ident.span(),
+                                            ),
+                                        },
+                                        ZodNamedFieldImpl {
+                                            name: content,
+                                            optional: false,
+                                            derive,
+                                            value,
+                                        },
+                                    ],
+                                })
+                            }
+                        },
+                        TagType::Untagged => match variant.style {
+                            serde_derive_internals::ast::Style::Struct => {
+                                VariantImpl::Object(ZodObjectImpl {
+                                    fields: variant
+                                        .fields
+                                        .into_iter()
+                                        .map(|f| {
+                                            let mut ty = f.ty.clone();
+                                            if !inline {
+                                                replace_generics(&mut ty, input.generics)
+                                            }
+                                            ZodNamedFieldImpl {
+                                                name: f.attrs.name().as_str(derive),
+                                                optional: f.attrs.default().is_optional(),
+                                                derive,
+                                                value: FieldValue::Type(ty),
+                                            }
+                                        })
+                                        .collect(),
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Newtype
+                            | serde_derive_internals::ast::Style::Tuple => {
+                                VariantImpl::Tuple(ZodTupleImpl {
+                                    fields: variant
+                                        .fields
+                                        .into_iter()
+                                        .map(|f| {
+                                            let mut ty = f.ty.clone();
+                                            if !inline {
+                                                replace_generics(&mut ty, input.generics)
+                                            }
+                                            ZodUnnamedFieldImpl {
+                                                optional: f.attrs.default().is_optional(),
+                                                derive,
+                                                ty,
+                                            }
+                                        })
+                                        .collect(),
+                                })
+                            }
+                            serde_derive_internals::ast::Style::Unit => {
+                                VariantImpl::Literal(variant.attrs.name().as_str(derive))
+                            }
+                        },
+                    })
+                    .collect();
+
+                Self::Enum(
+                    inline,
+                    EnumImpl {
+                        tag: input.attrs.tag().into(),
+                        variants,
+                        derive,
+                    },
+                )
             }
-
-            syn::Data::Union(_) => todo!("todo... not supported"),
         }
     }
 

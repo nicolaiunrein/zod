@@ -1,4 +1,7 @@
-use super::Derive;
+use super::{
+    r#struct::{ZodObjectImpl, ZodTupleImpl},
+    Derive,
+};
 use crate::utils::zod_core;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote_spanned, ToTokens};
@@ -8,6 +11,8 @@ use syn::spanned::Spanned;
 pub(crate) enum FieldValue {
     Literal(String, Span),
     Type(syn::Type),
+    Object(ZodObjectImpl),
+    Tuple(ZodTupleImpl),
 }
 
 impl PartialEq for FieldValue {
@@ -52,6 +57,10 @@ impl ToTokens for ZodNamedFieldImpl {
                 quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#derive>>::inline().into()),
                 ty.span(),
             ),
+            FieldValue::Object(ref obj) => (quote_spanned!(obj.span() => #obj.into()), obj.span()),
+            FieldValue::Tuple(ref tuple) => {
+                (quote_spanned!(tuple.span() => #tuple.into()), tuple.span())
+            }
         };
 
         tokens.extend(quote_spanned! {
@@ -66,7 +75,7 @@ impl ToTokens for ZodNamedFieldImpl {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct ZodUnnamedFieldImpl {
+pub(crate) struct ZodUnnamedFieldImpl {
     pub derive: Derive,
     pub optional: bool,
     pub ty: syn::Type,
