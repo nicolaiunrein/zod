@@ -1,5 +1,0 @@
-error: [zod]: expected `&mut self` got `&self`.
- --> tests/ui/rpc/fail/function_ref_self.rs:8:19
-  |
-8 |     async fn test(&self) {}
-  |                   ^

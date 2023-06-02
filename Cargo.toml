@@ -20,9 +20,6 @@ members = [
     "derive",
     "integrations/axum",
     "examples/axum-websocket",
-    # todo remove
-    "experiments",
-    "experiments/derive" 
 ]
 
 [dependencies]
@@ -50,5 +47,5 @@ trybuild = { version = "1.0.77", features = ["diff"] }
 unindent = "0.2.1"
 
 [features]
-smol_str = ["zod-core/smol_str"]
-ordered-float = ["zod-core/ordered-float"]
+# smol_str = ["zod-core/smol_str"]
+# ordered-float = ["zod-core/ordered-float"]

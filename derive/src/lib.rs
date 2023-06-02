@@ -1,109 +1,35 @@
-mod backend;
-mod docs;
-mod error;
-mod namespace;
-mod test_utils;
-mod utils;
-mod zod_type;
-
-mod rpc;
-
-use backend::BackendInput;
-use darling::FromDeriveInput;
-use namespace::Namespace;
 use proc_macro::TokenStream;
-use proc_macro_error::proc_macro_error;
-use quote::quote;
-use zod_type::ZodType;
+use zod_core::derive_internals::zod::Derive;
 
-#[proc_macro_error]
-#[proc_macro_derive(RequestType, attributes(zod))]
-pub fn request(input: TokenStream) -> TokenStream {
-    req_res(input, zod_type::Derive::Request)
+#[proc_macro_derive(Zod, attributes(zod))]
+pub fn zod_io(input: TokenStream) -> TokenStream {
+    let mut input_impl =
+        zod_core::derive_internals::zod::expand(Derive::Input, input.clone().into());
+    let output_impl = zod_core::derive_internals::zod::expand(Derive::Output, input.into());
+    input_impl.extend(output_impl);
+    input_impl.into()
 }
 
-#[proc_macro_error]
-#[proc_macro_derive(ResponseType, attributes(zod))]
-pub fn response(input: TokenStream) -> TokenStream {
-    req_res(input, zod_type::Derive::Response)
+#[proc_macro_derive(ZodInputOnly, attributes(zod))]
+pub fn zod_input(input: TokenStream) -> TokenStream {
+    zod_core::derive_internals::zod::expand(Derive::Input, input.into()).into()
 }
 
-fn req_res(input: TokenStream, derive: zod_type::Derive) -> TokenStream {
-    let parsed = match syn::parse(input) {
-        Ok(parsed) => parsed,
-        Err(err) => {
-            return err.into_compile_error().into();
-        }
-    };
-
-    let response_type = match ZodType::new(&parsed, derive) {
-        Ok(input) => input,
-        Err(err) => {
-            return err.write_errors().into();
-        }
-    };
-
-    quote!(#response_type).into()
+#[proc_macro_derive(ZodOutputOnly, attributes(zod))]
+pub fn zod_output(input: TokenStream) -> TokenStream {
+    zod_core::derive_internals::zod::expand(Derive::Output, input.into()).into()
 }
 
-#[proc_macro_error]
 #[proc_macro_derive(Namespace, attributes(zod))]
-pub fn ns(input: TokenStream) -> TokenStream {
-    let parsed = match syn::parse(input) {
-        Ok(parsed) => parsed,
-        Err(err) => {
-            return err.into_compile_error().into();
-        }
-    };
-
-    let ns = match Namespace::from_derive_input(&parsed) {
-        Ok(input) => input,
-        Err(err) => {
-            return err.write_errors().into();
-        }
-    };
-
-    quote!(#ns).into()
+pub fn namespace(input: TokenStream) -> TokenStream {
+    zod_core::derive_internals::namespace::expand(input.into()).into()
 }
 
-#[proc_macro_error]
-#[proc_macro_derive(Backend, attributes(zod))]
-pub fn backend(input: TokenStream) -> TokenStream {
-    let parsed = match syn::parse(input) {
-        Ok(parsed) => parsed,
-        Err(err) => {
-            return err.into_compile_error().into();
-        }
-    };
-
-    let backend = match BackendInput::from_derive_input(&parsed) {
-        Ok(input) => input,
-        Err(err) => {
-            return err.write_errors().into();
-        }
-    };
-
-    quote!(#backend).into()
-}
-
-#[proc_macro_error]
-#[proc_macro_attribute]
-pub fn rpc(_attrs: TokenStream, input: TokenStream) -> TokenStream {
-    let orig = proc_macro2::TokenStream::from(input.clone());
-
-    let ast = syn::parse_macro_input!(input as syn::ItemImpl);
-
-    let input = match rpc::RpcInput::try_from(ast) {
-        Ok(v) => v,
-        Err(err) => {
-            return err.into_compile_error().into();
-        }
-    };
-
-    let output = quote! {
-        #orig
-        #input
-    };
-
-    output.into()
+#[cfg(test)]
+mod test {
+    #[test]
+    fn ui_fail() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/ui/fail_*.rs");
+    }
 }

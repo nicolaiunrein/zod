@@ -1,8 +1,0 @@
-error[E0119]: conflicting implementations of trait `RpcNamespace` for type `A`
-  --> tests/ui/rpc/fail/multiple_impls.rs:10:6
-   |
-7  | impl A {}
-   |      - first implementation here
-...
-10 | impl A {}
-   |      ^ conflicting implementation for `A`
