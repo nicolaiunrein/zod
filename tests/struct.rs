@@ -1,3 +1,4 @@
+use pretty_assertions::assert_eq;
 use zod::prelude::*;
 
 struct Ns;
@@ -23,19 +24,18 @@ struct StructOutputOnly {
     pub _value: u8,
 }
 
-mod test {
-    use super::*;
-    use pretty_assertions::assert_eq;
+#[test]
+fn struct_input_ok() {
+    assert_eq!(
+        StructInputOnly::inline().as_zod().to_string(),
+        "Custom_Ns.input.StructInputOnly"
+    );
+}
 
-    #[test]
-    fn gives_correct_reference() {
-        assert_eq!(
-            StructInputOnly::inline(),
-            zod_core::Reference::<Kind::Input>::builder()
-                .name("StructInputOnly")
-                .ns("Custom_Ns")
-                .build()
-                .into()
-        );
-    }
+#[test]
+fn struct_output_ok() {
+    assert_eq!(
+        StructOutputOnly::inline().as_zod().to_string(),
+        "Custom_Ns.output.StructOutputOnly"
+    );
 }

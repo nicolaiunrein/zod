@@ -43,6 +43,19 @@ impl ZodTupleImpl {
 impl ToTokens for ZodTupleImpl {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let fields = &self.fields;
+        if let Some(p) = fields.iter().position(|f| f.optional) {
+            if !fields.iter().skip(p).all(|f| f.optional) {
+                let field = &fields[p + 1];
+                syn::Error::new_spanned(
+                    &field.ty,
+                    "zod: `non-default field follows default field`",
+                )
+                .into_compile_error()
+                .to_tokens(tokens);
+                return;
+            }
+        }
+
         tokens.extend(quote! {
             #zod_core::z::ZodTuple {
                 fields: ::std::vec![#(#fields),*]

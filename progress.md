@@ -8,18 +8,20 @@
     - [x] externally
     - [x] adjacently
     - [x] untagged
-  - [ ] rename
-  - [ ] rename-all
-  - [ ] skip
-  - [ ] skip_deserializing
-  - [ ] default
-    - [ ] Restrict non-default fields in tuple structs to only come before the first default field
+  - [x] rename
+  - [x] rename-all
+  - [x] skip
+  - [x] skip_deserializing
+  - [x] skip_serializing
+  - [x] skip_serializing_if
+  - [x] default
+    - [x] Restrict non-default fields in tuple structs to only come before the first default field
   - [ ] transparent structs
   - [ ] flatten
 - [ ] add support for docs
 - [ ] support tuple style enums with inner objects
   - [ ] add a associated type `type Value: Into<ZodType>;` on [`Type`]
-  - [ ] make value return `String`
+  - [ ] make value return `Self::Type`
 - [ ] Implement RPC part
 - [ ] codegen options (eg. type prefix/suffix)
 - [ ] write detailed intro

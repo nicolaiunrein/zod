@@ -1,4 +1,4 @@
-use super::attrs::{DefaultExt, NameExt};
+use super::attrs::{FieldAttrsExt, NameExt};
 use super::custom_suffix::CustomSuffix;
 use super::fields::{FieldValue, ZodNamedFieldImpl, ZodUnnamedFieldImpl};
 use super::generics::{needs_inline, replace_generics, GenericsExt};
@@ -160,7 +160,10 @@ impl Data {
     fn new(derive: Derive, input: serde_derive_internals::ast::Container) -> Self {
         match input.data {
             serde_derive_internals::ast::Data::Struct(style, fields) => {
-                let inline = fields.iter().any(|f| needs_inline(&f.ty, &input.generics));
+                let inline = fields
+                    .iter()
+                    .filter(|field| !field.attrs.skip(derive))
+                    .any(|f| needs_inline(&f.ty, &input.generics));
 
                 match style {
                     serde_derive_internals::ast::Style::Struct => Self::Struct(
@@ -168,6 +171,7 @@ impl Data {
                         ZodObjectImpl {
                             fields: fields
                                 .into_iter()
+                                .filter(|field| !field.attrs.skip(derive))
                                 .map(|field| {
                                     let mut ty = field.ty.clone();
                                     if !inline {
@@ -175,7 +179,7 @@ impl Data {
                                     }
                                     ZodNamedFieldImpl {
                                         name: field.attrs.name().as_str(derive),
-                                        optional: field.attrs.default().is_optional(),
+                                        optional: field.attrs.is_optional(derive),
                                         derive,
                                         value: FieldValue::Type(ty),
                                     }
@@ -183,11 +187,13 @@ impl Data {
                                 .collect(),
                         },
                     ),
-                    serde_derive_internals::ast::Style::Tuple => Self::Tuple(
+                    serde_derive_internals::ast::Style::Newtype
+                    | serde_derive_internals::ast::Style::Tuple => Self::Tuple(
                         inline,
                         ZodTupleImpl {
                             fields: fields
                                 .into_iter()
+                                .filter(|field| !field.attrs.skip(derive))
                                 .map(|field| {
                                     let mut ty = field.ty.clone();
                                     if !inline {
@@ -195,15 +201,13 @@ impl Data {
                                     }
                                     ZodUnnamedFieldImpl {
                                         derive,
-                                        // optional: field.attrs.default(),
-                                        optional: false,
+                                        optional: field.attrs.is_optional(derive),
                                         ty,
                                     }
                                 })
                                 .collect(),
                         },
                     ),
-                    serde_derive_internals::ast::Style::Newtype => todo!(),
                     serde_derive_internals::ast::Style::Unit => todo!(),
                 }
             }
@@ -211,6 +215,7 @@ impl Data {
                 let inline = variants.iter().any(|v| {
                     v.fields
                         .iter()
+                        .filter(|field| !field.attrs.skip(derive))
                         .any(|f| needs_inline(&f.ty, &input.generics))
                 });
 
@@ -231,6 +236,7 @@ impl Data {
                                             fields: variant
                                                 .fields
                                                 .into_iter()
+                                                .filter(|field| !field.attrs.skip(derive))
                                                 .map(|f| {
                                                     let mut ty = f.ty.clone();
                                                     if !inline {
@@ -239,7 +245,7 @@ impl Data {
 
                                                     ZodNamedFieldImpl {
                                                         name: f.attrs.name().as_str(derive),
-                                                        optional: f.attrs.default().is_optional(),
+                                                        optional: f.attrs.is_optional(derive),
                                                         derive,
                                                         value: FieldValue::Type(ty),
                                                     }
@@ -260,6 +266,7 @@ impl Data {
                                             fields: variant
                                                 .fields
                                                 .into_iter()
+                                                .filter(|field| !field.attrs.skip(derive))
                                                 .map(|f| {
                                                     let mut ty = f.ty.clone();
                                                     if !inline {
@@ -267,7 +274,7 @@ impl Data {
                                                     }
 
                                                     ZodUnnamedFieldImpl {
-                                                        optional: f.attrs.default().is_optional(),
+                                                        optional: f.attrs.is_optional(derive),
                                                         derive,
                                                         ty,
                                                     }
@@ -302,20 +309,24 @@ impl Data {
                                         variant.ident.span(),
                                     ),
                                 };
-                                let fields = variant.fields.iter().map(|f| {
-                                    let mut ty = f.ty.clone();
+                                let fields = variant
+                                    .fields
+                                    .iter()
+                                    .filter(|field| !field.attrs.skip(derive))
+                                    .map(|f| {
+                                        let mut ty = f.ty.clone();
 
-                                    if !inline {
-                                        replace_generics(&mut ty, &input.generics)
-                                    }
+                                        if !inline {
+                                            replace_generics(&mut ty, &input.generics)
+                                        }
 
-                                    ZodNamedFieldImpl {
-                                        name: f.attrs.name().as_str(derive),
-                                        optional: f.attrs.default().is_optional(),
-                                        derive,
-                                        value: FieldValue::Type(ty),
-                                    }
-                                });
+                                        ZodNamedFieldImpl {
+                                            name: f.attrs.name().as_str(derive),
+                                            optional: f.attrs.is_optional(derive),
+                                            derive,
+                                            value: FieldValue::Type(ty),
+                                        }
+                                    });
 
                                 VariantImpl::Object(ZodObjectImpl {
                                     fields: std::iter::once(first).chain(fields).collect(),
@@ -347,6 +358,7 @@ impl Data {
                                     fields: variant
                                         .fields
                                         .iter()
+                                        .filter(|field| !field.attrs.skip(derive))
                                         .map(|f| {
                                             let mut ty = f.ty.clone();
                                             if !inline {
@@ -355,7 +367,7 @@ impl Data {
 
                                             ZodNamedFieldImpl {
                                                 name: f.attrs.name().as_str(derive),
-                                                optional: f.attrs.default().is_optional(),
+                                                optional: f.attrs.is_optional(derive),
                                                 derive,
                                                 value: FieldValue::Type(f.ty.clone()),
                                             }
@@ -389,6 +401,7 @@ impl Data {
                                     fields: variant
                                         .fields
                                         .into_iter()
+                                        .filter(|field| !field.attrs.skip(derive))
                                         .map(|f| {
                                             let mut ty = f.ty.clone();
                                             if !inline {
@@ -397,7 +410,7 @@ impl Data {
 
                                             ZodUnnamedFieldImpl {
                                                 derive,
-                                                optional: f.attrs.default().is_optional(),
+                                                optional: f.attrs.is_optional(derive),
                                                 ty,
                                             }
                                         })
@@ -431,6 +444,7 @@ impl Data {
                                     fields: variant
                                         .fields
                                         .into_iter()
+                                        .filter(|field| !field.attrs.skip(derive))
                                         .map(|f| {
                                             let mut ty = f.ty.clone();
                                             if !inline {
@@ -438,7 +452,7 @@ impl Data {
                                             }
                                             ZodNamedFieldImpl {
                                                 name: f.attrs.name().as_str(derive),
-                                                optional: f.attrs.default().is_optional(),
+                                                optional: f.attrs.is_optional(derive),
                                                 derive,
                                                 value: FieldValue::Type(ty),
                                             }
@@ -452,13 +466,14 @@ impl Data {
                                     fields: variant
                                         .fields
                                         .into_iter()
+                                        .filter(|field| !field.attrs.skip(derive))
                                         .map(|f| {
                                             let mut ty = f.ty.clone();
                                             if !inline {
                                                 replace_generics(&mut ty, input.generics)
                                             }
                                             ZodUnnamedFieldImpl {
-                                                optional: f.attrs.default().is_optional(),
+                                                optional: f.attrs.is_optional(derive),
                                                 derive,
                                                 ty,
                                             }

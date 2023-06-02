@@ -14,12 +14,29 @@ pub(super) struct ZodAttrs {
     pub custom_suffix: Option<String>,
 }
 
-pub(crate) trait NameExt {
-    fn as_str(&self, derive: Derive) -> String;
+pub trait FieldAttrsExt {
+    fn skip(&self, derive: Derive) -> bool;
+    fn is_optional(&self, derive: Derive) -> bool;
 }
 
-pub(crate) trait DefaultExt {
-    fn is_optional(&self) -> bool;
+impl FieldAttrsExt for serde_derive_internals::attr::Field {
+    fn skip(&self, derive: Derive) -> bool {
+        match derive {
+            Derive::Input => self.skip_deserializing(),
+            Derive::Output => self.skip_serializing(),
+        }
+    }
+
+    fn is_optional(&self, derive: Derive) -> bool {
+        match derive {
+            Derive::Input => !self.default().is_none(),
+            Derive::Output => !self.default().is_none() || self.skip_serializing_if().is_some(),
+        }
+    }
+}
+
+pub(crate) trait NameExt {
+    fn as_str(&self, derive: Derive) -> String;
 }
 
 impl NameExt for serde_derive_internals::attr::Name {
@@ -27,16 +44,6 @@ impl NameExt for serde_derive_internals::attr::Name {
         match derive {
             Derive::Input => self.deserialize_name(),
             Derive::Output => self.serialize_name(),
-        }
-    }
-}
-
-impl DefaultExt for serde_derive_internals::attr::Default {
-    fn is_optional(&self) -> bool {
-        match self {
-            serde_derive_internals::attr::Default::Default
-            | serde_derive_internals::attr::Default::Path(_) => true,
-            serde_derive_internals::attr::Default::None => false,
         }
     }
 }
