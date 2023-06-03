@@ -100,33 +100,34 @@ mod test {
         let custom_suffix = CustomSuffix { inner: None };
 
         let expected = quote! {
-            impl #zod_core::Type<#derive> for Test {
-                type Ns = Ns;
-                const NAME: &'static str = "Test";
-                const INLINE: bool = false;
+            const _: () = {
+                impl #zod_core::Type<#derive> for Test {
+                    type Ns = Ns;
+                    const NAME: &'static str = "Test";
+                    const INLINE: bool = false;
 
-                fn value() -> #zod_core::z::ZodType<#derive> {
-                    #zod_core::z::ZodType {
-                        optional: false,
-                        custom_suffix: #custom_suffix,
-                        inner: #inner.into()
+                    fn value() -> #zod_core::z::ZodType<#derive> {
+                        #zod_core::z::ZodType {
+                            optional: false,
+                            custom_suffix: #custom_suffix,
+                            inner: #inner.into()
+                        }
                     }
+
+                    fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#derive>> {
+                        let mut v = ::std::vec::Vec::new();
+                        v
+                    }
+
+                    fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
                 }
 
-                fn args() -> ::std::vec::Vec<#zod_core::GenericArgument<#derive>> {
-                    let mut v = ::std::vec::Vec::new();
-                    v
+                impl Ns {
+                    #[allow(dead_code)]
+                    #[allow(non_upper_case_globals)]
+                    const __ZOD_PRIVATE_INPUT___Test: () = {};
                 }
-
-                fn visit_dependencies(visitor: &mut #zod_core::DependencyVisitor<#zod_core::Kind::Input>) {}
-            }
-
-            impl Ns {
-                #[allow(dead_code)]
-                #[allow(non_upper_case_globals)]
-                const __ZOD_PRIVATE_INPUT___Test: () = {};
-            }
-
+            };
         };
 
         assert_eq!(

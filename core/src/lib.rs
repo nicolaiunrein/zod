@@ -62,7 +62,6 @@ pub mod test_utils;
 
 use std::{collections::HashSet, fmt::Display, marker::PhantomData};
 
-use build_ins::Rs;
 use formatter::{TsFormatter, ZodFormatter};
 use typed_builder::TypedBuilder;
 use z::{ZodType, ZodTypeInner};
@@ -79,8 +78,6 @@ pub mod prelude {
     pub use super::TypeExt;
     pub use crate::formatter::Formatter;
 }
-
-pub use typed_str;
 
 pub trait Type<Io>
 where
@@ -246,36 +243,32 @@ pub trait Namespace {
     const NAME: &'static str;
 }
 
-impl<const C: char, T: typed_str::LinkedChars> Type<Kind::Input> for typed_str::TypedStr<C, T> {
-    type Ns = Rs;
-    const NAME: &'static str = "";
-    const INLINE: bool = true;
+pub struct GenericPlaceholder<T>(T);
 
-    fn value() -> ZodType<Kind::Input> {
-        ZodType::builder()
-            .inner(ZodTypeInner::Generic(Self::new().to_string()))
-            .build()
-    }
-
-    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Input>) {}
-    fn args() -> Vec<GenericArgument<Kind::Input>> {
-        Vec::new()
-    }
+pub trait Generic {
+    type Ns: Namespace;
+    const VALUE: &'static str;
 }
 
-impl<const C: char, T: typed_str::LinkedChars> Type<Kind::Output> for typed_str::TypedStr<C, T> {
-    type Ns = Rs;
+impl<T, Io: Clone> Type<Io> for GenericPlaceholder<T>
+where
+    T: Generic,
+{
+    type Ns = <T as Generic>::Ns;
+
     const NAME: &'static str = "";
+
     const INLINE: bool = true;
 
-    fn value() -> ZodType<Kind::Output> {
+    fn value() -> ZodType<Io> {
         ZodType::builder()
-            .inner(ZodTypeInner::Generic(Self::new().to_string()))
+            .inner(ZodTypeInner::Generic(T::VALUE.to_string()))
             .build()
     }
 
-    fn visit_dependencies(_visitor: &mut DependencyVisitor<Kind::Output>) {}
-    fn args() -> Vec<GenericArgument<Kind::Output>> {
+    fn visit_dependencies(_visitor: &mut DependencyVisitor<Io>) {}
+
+    fn args() -> Vec<GenericArgument<Io>> {
         Vec::new()
     }
 }
@@ -549,6 +542,14 @@ mod test {
         inner: Generic<T>,
     }
 
+    struct NestedGeneric;
+
+    impl super::Generic for NestedGeneric {
+        type Ns = Ns;
+
+        const VALUE: &'static str = "T";
+    }
+
     impl<T: Type<Input>> Type<Input> for Nested<T> {
         type Ns = Ns;
         const NAME: &'static str = "Nested";
@@ -558,7 +559,7 @@ mod test {
             ZodObject::builder()
                 .fields(vec![ZodNamedField::builder()
                     .name("inner")
-                    .value(<Generic<typed_str::typed_str!("T")> as TypeExt<Input>>::inline())
+                    .value(<GenericPlaceholder<NestedGeneric> as TypeExt<Input>>::inline())
                     .build()])
                 .build()
                 .into()

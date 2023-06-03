@@ -2,12 +2,11 @@ use crate::utils::zod_core;
 use quote::quote;
 use std::collections::HashMap;
 use std::collections::HashSet;
-
-use syn::parse_quote;
-
-use syn::visit;
-use syn::visit::Visit;
-use syn::visit_mut::{self, VisitMut};
+use syn::{
+    parse_quote, visit,
+    visit::Visit,
+    visit_mut::{self, VisitMut},
+};
 
 use super::Derive;
 
@@ -85,9 +84,8 @@ impl VisitMut for GenercicsReplace {
             syn::Type::Path(p) => {
                 if let Some(orig) = p.path.get_ident() {
                     if self.generics.get(orig).is_some() {
-                        let name = orig.to_string();
-                        let chars = name.chars();
-                        *node = make_generic(chars);
+                        let ident = make_generic_struct_ident(orig);
+                        *node = parse_quote!(#zod_core::GenericPlaceholder<#ident>);
                     }
                 }
             }
@@ -96,14 +94,9 @@ impl VisitMut for GenercicsReplace {
         visit_mut::visit_type_mut(self, node)
     }
 }
-fn make_generic(mut chars: impl Iterator<Item = char>) -> syn::Type {
-    match chars.next() {
-        Some(c) => {
-            let inner = make_generic(chars);
-            parse_quote!(#zod_core::typed_str::TypedStr<#c, #inner>)
-        }
-        None => parse_quote!(#zod_core::typed_str::End),
-    }
+
+pub(crate) fn make_generic_struct_ident(ident: &syn::Ident) -> syn::Ident {
+    quote::format_ident!("__GENERIC_{ident}")
 }
 
 pub(crate) fn replace_generics(ty: &mut syn::Type, generics: &syn::Generics) {
@@ -159,11 +152,11 @@ mod test {
     #[test]
     fn ok() {
         let mut input: syn::Type = parse_quote!(Test<A, LONG, C<D, NotUsed>>);
-        let a = make_generic("A".chars());
-        let long = make_generic("LONG".chars());
-        let d = make_generic("D".chars());
+        let a = make_generic_struct_ident(&parse_quote!(A));
+        let long = make_generic_struct_ident(&parse_quote!(LONG));
+        let d = make_generic_struct_ident(&parse_quote!(D));
 
-        let expected: syn::Type = parse_quote!(Test<#a, #long, C<#d, NotUsed>>);
+        let expected: syn::Type = parse_quote!(Test<#zod_core::GenericPlaceholder<#a>, #zod_core::GenericPlaceholder<#long>, C<#zod_core::GenericPlaceholder<#d>, NotUsed>>);
         let generics = parse_quote!(<A, LONG, D>);
         replace_generics(&mut input, &generics);
 

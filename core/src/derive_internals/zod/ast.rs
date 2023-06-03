@@ -123,9 +123,27 @@ impl ToTokens for Ast {
             quote!()
         };
 
+        let generic_impls = self.generics.idents().into_iter().map(|ident| {
+            let name = ident.to_string();
+            let ident = super::generics::make_generic_struct_ident(ident);
+            quote! {
+                struct #ident;
+
+                impl #zod_core::Generic for #ident {
+                    type Ns = #ns;
+                    const VALUE: &'static str = #name;
+                }
+            }
+        });
+
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         tokens.extend(quote! {
+            const _: () = {
+                #(#generic_impls)*
+
+
+
             impl #impl_generics #zod_core::Type<#derive> for #ident #ty_generics #where_clause {
                 type Ns = #ns;
                 const NAME: &'static str = #name;
@@ -157,6 +175,7 @@ impl ToTokens for Ast {
                 #[allow(non_upper_case_globals)]
                 const #unique_ident: () = {};
             }
+            };
         })
     }
 }
@@ -568,7 +587,7 @@ mod test {
                         optional: false,
                         derive: Derive::Input,
                         value: FieldValue::Type(
-                            parse_quote!(Other<#zod_core::typed_str::TypedStr<'T', #zod_core::typed_str::End>>),
+                            parse_quote!(Other<#zod_core::GenericPlaceholder<__GENERIC_T>>),
                         )
                     }]
                 }

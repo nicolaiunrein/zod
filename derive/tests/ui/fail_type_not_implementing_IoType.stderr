@@ -5,23 +5,20 @@ error[E0277]: the trait bound `X: Type<zod_core::Kind::Input>` is not satisfied
    |                    ^ the trait `Type<zod_core::Kind::Input>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
+             <GenericPlaceholder<T> as Type<Io>>
              <Struct as Type<zod_core::Kind::Input>>
              <Struct as Type<zod_core::Kind::Output>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Input>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<zod_core::Kind::Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<zod_core::Kind::Input>>
              <i16 as Type<zod_core::Kind::Output>>
+             <i32 as Type<zod_core::Kind::Input>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/core/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
-...
-   |     fn inline() -> ZodType<Io> {
-   |        ------ required by a bound in this associated function
+   |                        ^^^^^^^^ required by this bound in `inline`
 
 error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:13:20
@@ -30,23 +27,20 @@ error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
    |                    ^ the trait `Type<zod_core::Kind::Output>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
+             <GenericPlaceholder<T> as Type<Io>>
              <Struct as Type<zod_core::Kind::Input>>
              <Struct as Type<zod_core::Kind::Output>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Input>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<zod_core::Kind::Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<zod_core::Kind::Input>>
              <i16 as Type<zod_core::Kind::Output>>
+             <i32 as Type<zod_core::Kind::Input>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/core/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
-...
-   |     fn inline() -> ZodType<Io> {
-   |        ------ required by a bound in this associated function
+   |                        ^^^^^^^^ required by this bound in `inline`
 
 error[E0277]: the trait bound `X: Type<zod_core::Kind::Input>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
@@ -55,23 +49,20 @@ error[E0277]: the trait bound `X: Type<zod_core::Kind::Input>` is not satisfied
    |                      ^ the trait `Type<zod_core::Kind::Input>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
+             <GenericPlaceholder<T> as Type<Io>>
              <Struct as Type<zod_core::Kind::Input>>
              <Struct as Type<zod_core::Kind::Output>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Input>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<zod_core::Kind::Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<zod_core::Kind::Input>>
              <i16 as Type<zod_core::Kind::Output>>
+             <i32 as Type<zod_core::Kind::Input>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/core/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
-...
-   |     fn inline() -> ZodType<Io> {
-   |        ------ required by a bound in this associated function
+   |                        ^^^^^^^^ required by this bound in `inline`
 
 error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
   --> tests/ui/fail_type_not_implementing_IoType.rs:18:22
@@ -80,20 +71,17 @@ error[E0277]: the trait bound `X: Type<zod_core::Kind::Output>` is not satisfied
    |                      ^ the trait `Type<zod_core::Kind::Output>` is not implemented for `X`
    |
    = help: the following other types implement trait `Type<Io>`:
+             <GenericPlaceholder<T> as Type<Io>>
              <Struct as Type<zod_core::Kind::Input>>
              <Struct as Type<zod_core::Kind::Output>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Input>>
-             <TypedStr<C, T> as Type<zod_core::Kind::Output>>
              <bool as Type<zod_core::Kind::Input>>
              <bool as Type<zod_core::Kind::Output>>
              <i16 as Type<zod_core::Kind::Input>>
              <i16 as Type<zod_core::Kind::Output>>
+             <i32 as Type<zod_core::Kind::Input>>
            and $N others
 note: required by a bound in `inline`
   --> $WORKSPACE/core/src/lib.rs
    |
    | pub trait TypeExt<Io>: Type<Io>
-   |                        ^^^^^^^^ required by this bound in `TypeExt::inline`
-...
-   |     fn inline() -> ZodType<Io> {
-   |        ------ required by a bound in this associated function
+   |                        ^^^^^^^^ required by this bound in `inline`

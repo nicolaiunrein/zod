@@ -16,7 +16,7 @@ quote = "1.0.27"
 serde_derive_internals = "0.28.0"
 syn = { version = "2.0.16", features = ["extra-traits", "visit-mut", "visit"] }
 typed-builder = "0.14.0"
-typed_str = { path = "../../typed_str"}
+# typed_str = { path = "../../typed_str"}
 
 [dev-dependencies]
 prettyplease = "0.2.5"
