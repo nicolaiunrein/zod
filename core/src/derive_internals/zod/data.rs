@@ -6,8 +6,9 @@ use super::{
     attrs::{FieldAttrsExt, NameExt, ZodFieldAttrs},
     fields::{FieldValue, ZodNamedFieldImpl, ZodUnnamedFieldImpl},
     generics,
-    r#enum::{EnumImpl, TagType, VariantImpl},
+    r#enum::{EnumImpl, TagType},
     r#struct::{ZodObjectImpl, ZodTupleImpl},
+    variant::VariantImpl,
     Derive,
 };
 

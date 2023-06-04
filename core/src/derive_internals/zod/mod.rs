@@ -6,10 +6,11 @@ mod r#enum;
 mod fields;
 mod generics;
 mod r#struct;
+mod variant;
 
 use self::ast::Ast;
 use crate::utils::zod_core;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use serde_derive_internals::Derive as SerdeDerive;
 use syn::DeriveInput;
@@ -30,7 +31,7 @@ impl From<Derive> for SerdeDerive {
 }
 
 impl ToTokens for Derive {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             Self::Input => tokens.extend(quote!(#zod_core::Kind::Input)),
             Self::Output => tokens.extend(quote!(#zod_core::Kind::Output)),
@@ -39,7 +40,7 @@ impl ToTokens for Derive {
 }
 
 /// convert input into the generated code providing a `Derive`.
-pub fn expand(derive: Derive, input: TokenStream2) -> TokenStream2 {
+pub fn expand(derive: Derive, input: TokenStream) -> TokenStream {
     let derive_input: DeriveInput = match syn::parse2(input) {
         Ok(parsed) => parsed,
         Err(err) => {
