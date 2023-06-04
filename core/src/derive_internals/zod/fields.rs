@@ -13,6 +13,7 @@ pub(crate) enum FieldValue {
     Type(syn::Type),
     Object(ZodObjectImpl),
     Tuple(ZodTupleImpl),
+    OverrideGetter(syn::Path),
 }
 
 impl PartialEq for FieldValue {
@@ -43,32 +44,48 @@ pub(crate) struct ZodNamedFieldImpl {
     pub value: FieldValue,
 }
 
+impl FieldValue {
+    fn expand(&self, derive: Derive) -> TokenStream2 {
+        match self {
+            FieldValue::Literal(ref value, ref span) => {
+                quote_spanned!(*span => #zod_core::z::ZodLiteral::String(#value).into())
+            }
+            FieldValue::Type(ref ty) => {
+                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#derive>>::inline().into())
+            }
+            FieldValue::Object(ref obj) => quote_spanned!(obj.span() => #obj.into()),
+            FieldValue::Tuple(ref tuple) => quote_spanned!(tuple.span() => #tuple.into()),
+            FieldValue::OverrideGetter(ref p) => {
+                quote_spanned!(p.span() => #zod_core::z::ZodType::from(#p()))
+            }
+        }
+    }
+
+    pub(super) fn span(&self) -> Span {
+        match self {
+            FieldValue::Literal(_, span) => span.clone(),
+            FieldValue::Type(ty) => ty.span(),
+            FieldValue::Object(ob) => ob.span(),
+            FieldValue::Tuple(tuple) => tuple.span(),
+            FieldValue::OverrideGetter(p) => p.span(),
+        }
+    }
+}
+
 impl ToTokens for ZodNamedFieldImpl {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let name = &self.name;
         let optional = &self.optional;
         let derive = self.derive;
-        let (qualified_value, span) = match self.value {
-            FieldValue::Literal(ref value, span) => (
-                quote_spanned!(span => #zod_core::z::ZodLiteral::String(#value).into()),
-                span,
-            ),
-            FieldValue::Type(ref ty) => (
-                quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#derive>>::inline().into()),
-                ty.span(),
-            ),
-            FieldValue::Object(ref obj) => (quote_spanned!(obj.span() => #obj.into()), obj.span()),
-            FieldValue::Tuple(ref tuple) => {
-                (quote_spanned!(tuple.span() => #tuple.into()), tuple.span())
-            }
-        };
+        let value = self.value.expand(derive);
+        let span = self.value.span();
 
         tokens.extend(quote_spanned! {
             span =>
             #zod_core::z::ZodNamedField {
                 name: #name,
                 optional: #optional,
-                value: #qualified_value,
+                value: #value,
             }
         })
     }
@@ -78,7 +95,7 @@ impl ToTokens for ZodNamedFieldImpl {
 pub(crate) struct ZodUnnamedFieldImpl {
     pub derive: Derive,
     pub optional: bool,
-    pub ty: syn::Type,
+    pub ty: FieldValue,
 }
 
 impl ToTokens for ZodUnnamedFieldImpl {
@@ -86,13 +103,13 @@ impl ToTokens for ZodUnnamedFieldImpl {
         let optional = &self.optional;
         let ty = &self.ty;
         let derive = self.derive;
-        let qualified_ty = quote_spanned!(ty.span() => <#ty as #zod_core::TypeExt::<#derive>>);
+        let value = self.ty.expand(derive);
 
         tokens.extend(quote_spanned! {
             ty.span() =>
             #zod_core::z::ZodType {
                 optional: #optional,
-                ..#qualified_ty::inline().into()
+                ..#value
             }
         })
     }

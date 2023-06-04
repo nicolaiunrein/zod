@@ -17,7 +17,7 @@ struct StructIo {
 struct StructInputOnly {
     pub _value: u8,
 }
-//
+
 #[derive(ZodOutputOnly)]
 #[zod(namespace = "Ns")]
 struct StructOutputOnly {

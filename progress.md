@@ -16,16 +16,16 @@
   - [ ] `#[serde(from = "FromType")]`
   - [ ] `#[serde(try_from = "FromType")]`
   - [ ] `#[serde(into = "IntoType")]`
-  - [ ] `#[serde(crate = "...")]`
+  - &cross; `#[serde(crate = "...")]` - ignored
 - Supported serde variant attributes
   - &check; `#[serde(rename = "name")]`
   - &check; `#[serde(rename_all = "...")]`
   - &check; `#[serde(skip)]`
   - &check; `#[serde(skip_serializing)]`
   - &check; `#[serde(skip_deserializing)]`
-  - [ ] `#[serde(serialize_with = "path")]`
-  - [ ] `#[serde(deserialize_with = "path")]`
-  - [ ] `#[serde(with = "module")]`
+  - &check; `#[serde(serialize_with = "path")]` -- see `#[zod(override_output_with = "...")]`
+  - &check; `#[serde(deserialize_with = "path")]` -- see `#[zod(override_input_with = "...")]`
+  - &check; `#[serde(with = "module")]` -- see `#[zod(override_with = "...")]`
   - &cross; `#[serde(alias = "name")]` - ignored sice only affects deserializing by different name
   - &cross; `#[serde(bound = "T: MyTrait")]` - ignored
   - &cross; `#[serde(borrow)]` - ignored
@@ -40,9 +40,9 @@
   - &check; `#[serde(skip_serializing_if = "path")]`
   - [ ] `#[serde(flatten)]`
   - [ ] `#[serde(getter = "...")]`
-  - [ ] `#[serde(serialize_with = "path")]`
-  - [ ] `#[serde(deserialize_with = "path")]`
-  - [ ] `#[serde(with = "module")]`
+  - &check; `#[serde(serialize_with = "path")]` -- see `#[zod(override_output_with = "...")]`
+  - &check; `#[serde(deserialize_with = "path")]` -- see `#[zod(override_input_with = "...")]`
+  - &check; `#[serde(with = "module")]` -- see `#[zod(override_with = "...")]`
   - &cross; `#[serde(alias = "name")]` - ignored sice only affects deserializing by different name
   - &cross; `#[serde(borrow)]` - ignored
   - &cross; `#[serde(borrow = "'a + 'b + ...")]` - ignored

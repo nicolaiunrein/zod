@@ -1,6 +1,7 @@
 mod ast;
 mod attrs;
 mod custom_suffix;
+mod data;
 mod r#enum;
 mod fields;
 mod generics;

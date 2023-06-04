@@ -30,8 +30,8 @@ impl ToTokens for ZodTupleImpl {
         if let Some(p) = fields.iter().position(|f| f.optional) {
             if !fields.iter().skip(p).all(|f| f.optional) {
                 let field = &fields[p + 1];
-                syn::Error::new_spanned(
-                    &field.ty,
+                syn::Error::new(
+                    field.ty.span(),
                     "zod: `non-default field follows default field`",
                 )
                 .into_compile_error()
@@ -65,12 +65,12 @@ mod test {
                 //todo
                 optional: false,
                 derive,
-                ty: parse_quote!(String),
+                ty: FieldValue::Type(parse_quote!(String)),
             },
             ZodUnnamedFieldImpl {
                 optional: false,
                 derive,
-                ty: parse_quote!(u8),
+                ty: FieldValue::Type(parse_quote!(u8)),
             },
         ];
 

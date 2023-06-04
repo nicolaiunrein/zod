@@ -1,7 +1,7 @@
-use darling::FromDeriveInput;
+use darling::{FromAttributes, FromDeriveInput};
 use syn::{Expr, Lit, Meta};
 
-use super::Derive;
+use super::{fields::FieldValue, Derive};
 
 #[derive(FromDeriveInput)]
 #[darling(
@@ -13,6 +13,39 @@ use super::Derive;
 pub(super) struct ZodAttrs {
     pub namespace: syn::Path,
     pub custom_suffix: Option<String>,
+}
+
+#[derive(FromAttributes)]
+#[darling(attributes(zod))]
+pub(super) struct ZodFieldAttrs {
+    override_input_with: Option<syn::Path>,
+    override_output_with: Option<syn::Path>,
+    override_with: Option<syn::Path>,
+}
+
+impl ZodFieldAttrs {
+    pub(super) fn as_field_value(&self, derive: Derive) -> Option<FieldValue> {
+        let fail = || match derive {
+            Derive::Input => {
+                r#"only one of #[zod(override_with = "...")] or #[zod(override_input_with = "...")] may be specified"#
+            }
+            Derive::Output => {
+                r#"only one of #[zod(override_with = "...")] or #[zod(override_output_with = "...")] may be specified"#
+            }
+        };
+        match derive {
+            Derive::Input => match (&self.override_with, &self.override_input_with) {
+                (None, None) => None,
+                (None, Some(p)) | (Some(p), None) => Some(FieldValue::OverrideGetter(p.clone())),
+                _ => panic!("{}", fail()),
+            },
+            Derive::Output => match (&self.override_with, &self.override_output_with) {
+                (None, None) => None,
+                (None, Some(p)) | (Some(p), None) => Some(FieldValue::OverrideGetter(p.clone())),
+                _ => panic!("{}", fail()),
+            },
+        }
+    }
 }
 
 pub trait FieldAttrsExt {
